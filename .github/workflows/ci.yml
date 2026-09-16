@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm lint:sql
+      - run: pnpm typecheck
+      - run: pnpm test:coverage
+      - run: pnpm build:web
+      - run: pnpm smoke:mobile
+      - run: pnpm audit --audit-level high
+      - uses: gitleaks/gitleaks-action@v2
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec supabase start
+      - run: pnpm exec supabase db reset
+      - run: pnpm exec supabase test db
+      - run: pnpm test:edge:local
+      - run: pnpm exec supabase db lint --local --level warning
+      - if: always()
+        run: pnpm exec supabase stop --no-backup

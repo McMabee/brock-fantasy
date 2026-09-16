@@ -1,0 +1,18 @@
+{
+  "fixtureNotice": "Synthetic validation fixture. Replace with an approved historical provider payload.",
+  "provider": "fixture",
+  "providerGameId": "hockey-game-001",
+  "revision": "1",
+  "capturedAt": "2026-09-15T12:00:00Z",
+  "gameStatus": "final",
+  "players": [
+    {
+      "providerAthleteId": "synthetic-athlete-a",
+      "athleteName": "Synthetic Athlete A",
+      "teamProviderId": "brock-mh",
+      "position": "F",
+      "stats": { "goals": 2, "assists": 1, "shots": 5 }
+    }
+  ],
+  "raw": { "fixture": true }
+}

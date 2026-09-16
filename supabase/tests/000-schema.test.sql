@@ -1,0 +1,48 @@
+begin;
+select plan(39);
+
+select has_table('public', 'provider_snapshots', 'raw provider snapshots exist');
+select has_table('public', 'provider_raw_receipts', 'pre-validation raw receipts exist');
+select has_table('public', 'fantasy_point_events', 'point ledger exists');
+select has_table('public', 'draft_picks', 'draft picks exist');
+select has_table('public', 'idempotency_keys', 'idempotency store exists');
+select has_table('public', 'chat_reports', 'chat moderation reports exist');
+select has_table('public', 'sponsor_events', 'aggregate sponsor metrics exist');
+select has_table('public', 'athlete_rankings', 'deterministic athlete rankings exist');
+select has_table('public', 'draft_queues', 'manager draft queues exist');
+select has_table('public', 'push_deliveries', 'push delivery audit exists');
+
+select ok((select relrowsecurity from pg_class where oid = 'public.profiles'::regclass), 'profiles has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.leagues'::regclass), 'leagues has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.draft_picks'::regclass), 'draft picks have RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.fantasy_point_events'::regclass), 'point events have RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.audit_log'::regclass), 'audit log has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.draft_queues'::regclass), 'draft queues have RLS');
+
+select has_function('public', 'create_league', array['text', 'uuid', 'league_format', 'text'], 'create league command exists');
+select has_function('public', 'make_draft_pick', array['uuid', 'uuid', 'text', 'draft_pick_source'], 'atomic draft command exists');
+select has_function('public', 'replay_game', array['uuid', 'text'], 'scoring replay command exists');
+select has_function('public', 'request_waiver', array['uuid', 'uuid', 'uuid', 'text'], 'waiver command exists');
+select has_function('public', 'propose_trade', array['uuid', 'uuid', 'uuid[]', 'uuid[]', 'timestamp with time zone', 'text'], 'trade command exists');
+select has_function('public', 'set_draft_queue', array['uuid', 'uuid[]', 'text'], 'draft queue command exists');
+select has_function('public', 'process_expired_drafts', array['integer'], 'server autopick processor exists');
+select has_function('public', 'set_draft_status', array['uuid', 'text', 'text'], 'draft pause and resume command exists');
+select has_function('public', 'generate_matchup_schedule', array['uuid', 'timestamp with time zone', 'integer', 'text'], 'matchup schedule command exists');
+select has_function('public', 'advance_matchup_periods', array['integer'], 'matchup lifecycle worker exists');
+select has_function('public', 'expire_trades', array['integer'], 'trade expiry worker exists');
+select has_function('public', 'moderate_chat_message', array['uuid', 'boolean', 'text', 'text'], 'chat moderation command exists');
+select has_function('public', 'record_sponsor_event', array['uuid', 'text'], 'aggregate sponsor metric command exists');
+
+select ok(not has_function_privilege('anon', 'public.create_league(text,uuid,public.league_format,text)', 'EXECUTE'), 'anonymous role cannot create leagues');
+select ok(has_function_privilege('authenticated', 'public.create_league(text,uuid,public.league_format,text)', 'EXECUTE'), 'authenticated role can invoke league creation');
+select ok(not has_function_privilege('anon', 'public.make_draft_pick(uuid,uuid,text,public.draft_pick_source)', 'EXECUTE'), 'anonymous role cannot invoke draft picks');
+select ok(has_function_privilege('authenticated', 'public.make_draft_pick(uuid,uuid,text,public.draft_pick_source)', 'EXECUTE'), 'authenticated role can invoke draft picks');
+select ok(has_function_privilege('service_role', 'public.process_expired_drafts(integer)', 'EXECUTE'), 'service role can run draft autopick worker');
+select ok(not has_function_privilege('authenticated', 'public.process_expired_drafts(integer)', 'EXECUTE'), 'members cannot run the global autopick worker');
+select ok(not has_function_privilege('authenticated', 'public.rebalance_roster_slots(uuid)', 'EXECUTE'), 'internal roster rebalance is not client callable');
+select ok(has_function_privilege('anon', 'public.record_sponsor_event(uuid,text)', 'EXECUTE'), 'anonymous web visitors can record aggregate sponsor events');
+select ok(not has_function_privilege('anon', 'public.replay_game(uuid,text)', 'EXECUTE'), 'anonymous role cannot replay scoring');
+select ok(has_function_privilege('service_role', 'public.replay_game(uuid,text)', 'EXECUTE'), 'service role can replay scoring');
+
+select * from finish();
+rollback;
