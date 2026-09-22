@@ -64,3 +64,21 @@ test('persists the selected colour theme', async ({ page }) => {
   await page.reload();
   await expect(page.getByRole('button', { name: 'Switch to dark theme' })).toBeVisible();
 });
+
+test('pauses and resumes one competition ingestion feed', async ({ page }) => {
+  await page.goto('/admin/incidents');
+
+  await page
+    .getByLabel("Men's Hockey incident reason", { exact: true })
+    .fill('Provider response is delayed');
+  await page.getByRole('button', { name: 'Pause ingestion' }).first().click();
+  await expect(page.getByRole('alert')).toHaveText("Men's Hockey ingestion paused.");
+  await expect(page.getByText('ACTIVE INCIDENT')).toBeVisible();
+
+  await page
+    .getByLabel("Men's Hockey resolution reason", { exact: true })
+    .fill('Provider feed is reconciled');
+  await page.getByRole('button', { name: 'Resume ingestion' }).click();
+  await expect(page.getByRole('alert')).toHaveText("Men's Hockey ingestion resumed.");
+  await expect(page.getByText('ACTIVE INCIDENT')).toHaveCount(0);
+});

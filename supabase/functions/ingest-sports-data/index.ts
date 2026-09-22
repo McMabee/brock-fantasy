@@ -108,6 +108,18 @@ Deno.serve(async (request) => {
       .eq('id', gameId)
       .single();
     if (gameError) throw gameError;
+    const { data: competition, error: competitionError } = await db
+      .from('competitions')
+      .select('ruleset_id')
+      .eq('id', game.competition_id)
+      .single();
+    if (competitionError) throw competitionError;
+    const { data: incidentControl, error: incidentControlError } = await db
+      .from('competition_ingestion_controls')
+      .select('ingestion_paused, ingestion_pause_reason, ingestion_paused_at')
+      .eq('competition_id', game.competition_id)
+      .maybeSingle();
+    if (incidentControlError) throw incidentControlError;
     const { data: existing } = await db
       .from('provider_snapshots')
       .select('id, processed_at, payload_hash')
@@ -138,6 +150,27 @@ Deno.serve(async (request) => {
       return Response.json(
         { sourceIdentity, ignored: true, processedAt: existing.processed_at },
         { headers },
+      );
+    }
+    if (incidentControl?.ingestion_paused) {
+      const reason =
+        (incidentControl.ingestion_pause_reason as string | null) ?? 'Incident response';
+      const heldReceipt = await db
+        .from('provider_raw_receipts')
+        .update({
+          validation_status: 'held',
+          validation_error: `Competition ingestion paused: ${reason}`.slice(0, 1_000),
+        })
+        .eq('id', rawReceiptId);
+      if (heldReceipt.error) throw heldReceipt.error;
+      return Response.json(
+        {
+          error: 'Competition ingestion is paused.',
+          competitionId: game.competition_id,
+          pausedAt: incidentControl.ingestion_paused_at,
+          reason,
+        },
+        { status: 423, headers },
       );
     }
 
@@ -222,12 +255,6 @@ Deno.serve(async (request) => {
         .filter((athlete) => athlete.competition_id === game.competition_id)
         .map((athlete) => athlete.id as string),
     );
-    const { data: competition, error: competitionError } = await db
-      .from('competitions')
-      .select('ruleset_id')
-      .eq('id', game.competition_id)
-      .single();
-    if (competitionError) throw competitionError;
     const { data: scoringRules, error: scoringRulesError } = await db
       .from('scoring_rules')
       .select('stat_key')

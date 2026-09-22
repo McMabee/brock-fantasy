@@ -8,6 +8,7 @@
 | Draft, roster, and scoring events | Competition integrity               | League members and admins     | Retained as non-personal competition record                                      |
 | Chat messages/reports/mutes       | League communication and moderation | Applicable members/admins     | Subject to approved retention; author can be anonymized                          |
 | Provider snapshots and mappings   | Auditable scoring/replay            | Administrators                | Retained by sports-data policy                                                   |
+| Ingestion incident reasons        | Competition-scoped incident control | AAL2 administrators           | Retained in the audit log under the incident policy                              |
 | Audit log                         | Security and corrections            | Administrators                | Actor reference anonymized after account deletion                                |
 | Push token                        | Mobile notifications                | User and notification service | Deleted with account                                                             |
 | Sponsor daily counts              | Aggregate campaign reporting        | Sponsor admins                | No user identifier collected                                                     |

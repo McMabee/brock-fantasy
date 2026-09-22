@@ -119,7 +119,7 @@ export default function AdminScreen() {
             <Text style={styles.incidentBody}>
               Pause only the affected competition while preserving raw provider inputs.
             </Text>
-            <ActionButton label="Open incident workflow" disabled variant="danger" />
+            <ActionButton label="Open incident workflow" href="/admin/incidents" variant="danger" />
           </Card>
         </View>
       </View>

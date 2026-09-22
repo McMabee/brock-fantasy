@@ -19,10 +19,11 @@ for representative routes, and Android/iOS Metro bundle smoke tests. Signed nati
 through EAS on protected preview and production profiles.
 
 With local Supabase running, the Edge smoke creates a disposable verified administrator, proves AAL1
-is rejected and completes a TOTP/AAL2 challenge, retains malformed provider input, scores and
-corrects the synthetic hockey fixture into a matchup, rejects a conflicting revision, invokes the
-empty push dispatcher, exercises account deletion, and removes its other disposable records. It
-never prints local access tokens.
+is rejected and completes a TOTP/AAL2 challenge, retains malformed provider input, pauses one
+competition and preserves a held payload, resumes ingestion, scores and corrects the synthetic
+hockey fixture into a matchup, rejects a conflicting revision, invokes the empty push dispatcher,
+exercises account deletion, and removes its other disposable records. It never prints local access
+tokens.
 
 The TypeScript suite validates deterministic scoring/correction deltas, snake order/autopick,
 roster invariants, provider identity/mapping, CSV-to-canonical conversion, and both standings
@@ -50,8 +51,8 @@ Before activating a competition, replace synthetic rules and fixtures with signe
   correct a fixture, inspect both standings formats, report/mute chat, and delete the account.
 - Accessibility: keyboard-only web, focus order, VoiceOver/TalkBack smoke tests, text resizing,
   contrast, reduced motion, and touch targets. Automated axe checks cover home, authentication,
-  dashboard, league, draft, league setup, and account views at desktop and mobile web sizes; they do
-  not replace the manual or physical-device checks in this list.
+  dashboard, league, draft, league setup, account, and ingestion incident views at desktop and
+  mobile web sizes; they do not replace the manual or physical-device checks in this list.
 - Load: league join bursts, draft contention, score fan-out, and standings recalculation.
 
 No release may ship with failed scoring, access-control, migration, restore, or critical E2E tests.

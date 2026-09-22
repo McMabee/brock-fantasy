@@ -283,6 +283,41 @@ try {
     throw new Error('Malformed payload was not retained as a rejected raw receipt.');
   }
 
+  const pauseIngestion = await fetch(`${status.REST_URL}/rpc/set_competition_ingestion_status`, {
+    method: 'POST',
+    headers: userHeaders,
+    body: JSON.stringify({
+      p_competition_id: competitionId,
+      p_paused: true,
+      p_reason: 'Edge smoke provider outage',
+      p_idempotency_key: `pause-${runLabel}`,
+    }),
+  });
+  await expectStatus(pauseIngestion, 200, 'pause competition ingestion');
+  const heldIngest = await fetch(`${status.FUNCTIONS_URL}/ingest-sports-data`, {
+    method: 'POST',
+    headers: userHeaders,
+    body: JSON.stringify(baseFixture),
+  });
+  await expectStatus(heldIngest, 423, 'hold fixture while competition ingestion is paused');
+  const heldReceipts = await readRows(
+    `provider_raw_receipts?source_hint=eq.${provider}&validation_status=eq.held&select=id`,
+  );
+  if (heldReceipts.length !== 1) {
+    throw new Error('Paused ingestion did not preserve one held raw receipt.');
+  }
+  const resumeIngestion = await fetch(`${status.REST_URL}/rpc/set_competition_ingestion_status`, {
+    method: 'POST',
+    headers: userHeaders,
+    body: JSON.stringify({
+      p_competition_id: competitionId,
+      p_paused: false,
+      p_reason: 'Edge smoke provider restored',
+      p_idempotency_key: `resume-${runLabel}`,
+    }),
+  });
+  await expectStatus(resumeIngestion, 200, 'resume competition ingestion');
+
   const firstIngest = await fetch(`${status.FUNCTIONS_URL}/ingest-sports-data`, {
     method: 'POST',
     headers: userHeaders,
@@ -342,7 +377,7 @@ try {
   userId = undefined;
 
   process.stdout.write(
-    'Edge smoke passed: auth/admin, rejected receipt, fixture scoring/correction, push, deletion.\n',
+    'Edge smoke passed: auth/admin, ingestion pause/hold/resume, fixture scoring/correction, push, deletion.\n',
   );
 } finally {
   await deleteRows('leagues', `id=eq.${leagueId}`);

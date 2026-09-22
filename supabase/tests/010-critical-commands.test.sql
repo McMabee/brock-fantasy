@@ -1,5 +1,5 @@
 begin;
-select plan(23);
+select plan(30);
 
 insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, created_at, updated_at)
 values
@@ -17,8 +17,40 @@ values ('30000000-0000-4000-8000-000000000001', 'admin');
 select set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000001', true);
 select set_config('request.jwt.claim', '{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}', true);
 select is(public.current_user_is_admin(), false, 'admin role without MFA is not authorized');
+select throws_ok(
+  $$select public.set_competition_ingestion_status('20000000-0000-4000-8000-000000000001', true, 'Provider outage under investigation', 'incident-pause-0001')$$,
+  'Administrator with MFA required',
+  'admin without MFA cannot pause competition ingestion'
+);
 select set_config('request.jwt.claim', '{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
 select is(public.current_user_is_admin(), true, 'admin role with AAL2 is authorized');
+select lives_ok(
+  $$select public.set_competition_ingestion_status('20000000-0000-4000-8000-000000000001', true, 'Provider outage under investigation', 'incident-pause-0001')$$,
+  'AAL2 administrator pauses one competition'
+);
+select is(
+  (select ingestion_paused from public.competition_ingestion_controls where competition_id = '20000000-0000-4000-8000-000000000001'),
+  true,
+  'competition records the ingestion pause'
+);
+select lives_ok(
+  $$select public.set_competition_ingestion_status('20000000-0000-4000-8000-000000000001', true, 'Provider outage under investigation', 'incident-pause-0001')$$,
+  'duplicate pause command returns its committed response'
+);
+select is(
+  (select count(*)::integer from public.audit_log where request_id = 'incident-pause-0001'),
+  1,
+  'idempotent pause creates one audit event'
+);
+select lives_ok(
+  $$select public.set_competition_ingestion_status('20000000-0000-4000-8000-000000000001', false, 'Provider feed reconciled', 'incident-resume-0001')$$,
+  'AAL2 administrator resumes one competition'
+);
+select is(
+  (select ingestion_paused from public.competition_ingestion_controls where competition_id = '20000000-0000-4000-8000-000000000001'),
+  false,
+  'competition clears the ingestion pause'
+);
 delete from public.user_roles where user_id = '30000000-0000-4000-8000-000000000001';
 
 insert into public.teams (id, competition_id, name, short_name, is_brock)

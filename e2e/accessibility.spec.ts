@@ -31,6 +31,7 @@ const routes: readonly AuditedPage[] = [
   },
   route('league setup', '/leagues/new'),
   route('account', '/account'),
+  route('ingestion incident control', '/admin/incidents'),
 ];
 
 for (const auditedPage of routes) {

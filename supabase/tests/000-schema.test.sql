@@ -1,5 +1,5 @@
 begin;
-select plan(39);
+select plan(45);
 
 select has_table('public', 'provider_snapshots', 'raw provider snapshots exist');
 select has_table('public', 'provider_raw_receipts', 'pre-validation raw receipts exist');
@@ -11,6 +11,7 @@ select has_table('public', 'sponsor_events', 'aggregate sponsor metrics exist');
 select has_table('public', 'athlete_rankings', 'deterministic athlete rankings exist');
 select has_table('public', 'draft_queues', 'manager draft queues exist');
 select has_table('public', 'push_deliveries', 'push delivery audit exists');
+select has_table('public', 'competition_ingestion_controls', 'competition ingestion pause state exists');
 
 select ok((select relrowsecurity from pg_class where oid = 'public.profiles'::regclass), 'profiles has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.leagues'::regclass), 'leagues has RLS');
@@ -18,6 +19,7 @@ select ok((select relrowsecurity from pg_class where oid = 'public.draft_picks':
 select ok((select relrowsecurity from pg_class where oid = 'public.fantasy_point_events'::regclass), 'point events have RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.audit_log'::regclass), 'audit log has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.draft_queues'::regclass), 'draft queues have RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.competition_ingestion_controls'::regclass), 'ingestion controls have RLS');
 
 select has_function('public', 'create_league', array['text', 'uuid', 'league_format', 'text'], 'create league command exists');
 select has_function('public', 'make_draft_pick', array['uuid', 'uuid', 'text', 'draft_pick_source'], 'atomic draft command exists');
@@ -32,6 +34,7 @@ select has_function('public', 'advance_matchup_periods', array['integer'], 'matc
 select has_function('public', 'expire_trades', array['integer'], 'trade expiry worker exists');
 select has_function('public', 'moderate_chat_message', array['uuid', 'boolean', 'text', 'text'], 'chat moderation command exists');
 select has_function('public', 'record_sponsor_event', array['uuid', 'text'], 'aggregate sponsor metric command exists');
+select has_function('public', 'set_competition_ingestion_status', array['uuid', 'boolean', 'text', 'text'], 'competition ingestion control exists');
 
 select ok(not has_function_privilege('anon', 'public.create_league(text,uuid,public.league_format,text)', 'EXECUTE'), 'anonymous role cannot create leagues');
 select ok(has_function_privilege('authenticated', 'public.create_league(text,uuid,public.league_format,text)', 'EXECUTE'), 'authenticated role can invoke league creation');
@@ -43,6 +46,9 @@ select ok(not has_function_privilege('authenticated', 'public.rebalance_roster_s
 select ok(has_function_privilege('anon', 'public.record_sponsor_event(uuid,text)', 'EXECUTE'), 'anonymous web visitors can record aggregate sponsor events');
 select ok(not has_function_privilege('anon', 'public.replay_game(uuid,text)', 'EXECUTE'), 'anonymous role cannot replay scoring');
 select ok(has_function_privilege('service_role', 'public.replay_game(uuid,text)', 'EXECUTE'), 'service role can replay scoring');
+select ok(not has_function_privilege('anon', 'public.set_competition_ingestion_status(uuid,boolean,text,text)', 'EXECUTE'), 'anonymous role cannot control ingestion');
+select ok(has_function_privilege('authenticated', 'public.set_competition_ingestion_status(uuid,boolean,text,text)', 'EXECUTE'), 'authenticated administrators may invoke ingestion control');
+select ok(not has_table_privilege('anon', 'public.competition_ingestion_controls', 'SELECT'), 'anonymous users cannot read ingestion incident details');
 
 select * from finish();
 rollback;

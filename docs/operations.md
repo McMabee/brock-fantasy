@@ -57,11 +57,18 @@ webhooks where supported or short scheduled Edge invocations within the approved
 Authenticate requests, retry with bounded backoff, alert on stale/failed runs, and pause only affected
 competitions during an outage.
 
-Automated feeds, administrator JSON imports, and the remaining CSV adapter must all produce the same
-canonical payload and enter `ingest-sports-data`. Preserve the pre-validation receipt, validate and
-map IDs, normalize, replay, audit, and then publish committed results. Never write normalized stats
-or point totals directly. Test duplicates, corrections/reversals, malformed/partial data, unknown IDs,
+Automated feeds and administrator JSON/CSV imports must all produce the same canonical payload and
+enter `ingest-sports-data`. Preserve the pre-validation receipt, validate and map IDs, normalize,
+replay, audit, and then publish committed results. Never write normalized stats or point totals
+directly. Test duplicates, corrections/reversals, malformed/partial data, unknown IDs,
 postponed/cancelled games, rate limits, and delayed finalization in staging.
+
+An AAL2 administrator can pause or resume one competition from `/admin/incidents`. A pause requires
+an incident reason and is idempotent and audited. The ingestion function continues to retain valid
+incoming payloads as `held` raw receipts, but does not create a sync run, normalize statistics, update
+game state, or replay scores for that competition. After a documented resolution and resume, submit
+each held payload again through the same ingestion endpoint and verify that its receipt becomes
+accepted. Do not resume globally when only one competition is affected.
 
 ### Competition activation and recurring jobs
 
@@ -123,9 +130,12 @@ monitor later corrections.
 
 ## Scoring incident
 
-Pause only the affected competition, preserve raw inputs, identify games/leagues, correct mapping or
-normalization/rules, replay from the immutable snapshot, compare totals to golden expectations,
-communicate user-visible changes, and write a postmortem. Never edit point totals directly.
+From the AAL2 operations account, open `/admin/incidents`, enter the incident reason, and pause only
+the affected competition. Confirm new canonical payloads appear as held raw receipts without a sync
+run or score change. Identify games/leagues, correct mapping or normalization/rules, compare a replay
+to golden expectations, record a resolution note, and resume that competition. Re-submit held inputs
+oldest-first, reconcile totals, communicate user-visible changes, and write a postmortem. Never edit
+point totals directly.
 
 ## Backup and restore gate
 
