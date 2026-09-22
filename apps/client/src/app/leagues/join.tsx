@@ -2,14 +2,17 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
-import { colors, heading } from '@/theme';
+import { createHeading, useAppTheme, useThemedStyles, type ThemeColors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 export default function JoinLeagueScreen() {
   useRequireUser();
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useStyles();
+  const uiStyles = useUiStyles();
   const [inviteCode, setInviteCode] = useState('');
   const [teamName, setTeamName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -84,12 +87,15 @@ export default function JoinLeagueScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { maxWidth: 540, width: '100%', alignSelf: 'center', gap: 18, padding: 26 },
-  title: { ...heading, fontSize: 25, marginTop: 4 },
-  body: { color: colors.muted, fontSize: 13, lineHeight: 21 },
-  field: { gap: 7 },
-  codeInput: { fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
-  error: { color: colors.danger, fontSize: 12 },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    card: { maxWidth: 540, width: '100%', alignSelf: 'center', gap: 18, padding: 26 },
+    title: { ...createHeading(colors), fontSize: 25, marginTop: 4 },
+    body: { color: colors.muted, fontSize: 13, lineHeight: 21 },
+    field: { gap: 7 },
+    codeInput: { fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
+    error: { color: colors.danger, fontSize: 12 },
+    actions: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);

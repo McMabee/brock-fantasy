@@ -7,11 +7,11 @@ import {
   EmptyState,
   Pill,
   SectionTitle,
-  uiStyles,
+  useUiStyles,
 } from '@/components/ui';
 import { SponsorPlacement } from '@/components/sponsor-placement';
 import { demoLeague, demoMatchup, demoStandings, teamName } from '@/data/demo';
-import { colors, heading, radii } from '@/theme';
+import { createHeading, radii, useThemedStyles, type ThemeColors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { useCompetitions } from '@/hooks/use-competitions';
 import { useMyLeagues } from '@/hooks/use-my-leagues';
@@ -23,6 +23,8 @@ export default function DashboardScreen() {
   const leagues = useMyLeagues();
   const { demoMode } = useSession();
   const { width } = useWindowDimensions();
+  const styles = useStyles();
+  const uiStyles = useUiStyles();
   const wide = width >= 900;
 
   return (
@@ -185,6 +187,7 @@ function MatchupTeam({
   score: number;
   leading?: boolean;
 }) {
+  const styles = useStyles();
   return (
     <View style={styles.matchupTeam}>
       <Text numberOfLines={1} style={styles.matchupTeamName}>
@@ -198,129 +201,137 @@ function MatchupTeam({
   );
 }
 
-const styles = StyleSheet.create({
-  headingActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  dashboardGrid: { gap: 18 },
-  dashboardGridWide: { flexDirection: 'row', alignItems: 'flex-start' },
-  mainColumn: { flex: 1.7, minWidth: 0 },
-  sideColumn: { flex: 1, gap: 16, minWidth: 300 },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  liveLeague: { ...heading, fontSize: 19, marginTop: 10 },
-  period: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  matchupScores: { flexDirection: 'row', alignItems: 'center', paddingVertical: 30 },
-  matchupTeam: { flex: 1, alignItems: 'center' },
-  matchupTeamName: { color: colors.text, fontWeight: '800', fontSize: 13, textAlign: 'center' },
-  matchupScore: {
-    color: colors.text,
-    fontWeight: '900',
-    fontSize: 38,
-    marginTop: 7,
-    fontVariant: ['tabular-nums'],
-  },
-  matchupScoreLeading: { color: colors.brand },
-  projected: { color: colors.muted, fontSize: 10, marginTop: 3 },
-  versus: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.canvasSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  versusText: { color: colors.muted, fontWeight: '900', fontSize: 10 },
-  liveFooter: {
-    backgroundColor: colors.canvasSoft,
-    borderRadius: radii.sm,
-    paddingLeft: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-  livePulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand },
-  liveFooterText: { color: colors.muted, fontSize: 11, flex: 1 },
-  leagueCard: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14 },
-  leagueBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  leagueBadgeText: { color: colors.canvas, fontWeight: '900', fontSize: 15 },
-  leagueCopy: { flex: 1, minWidth: 200 },
-  leagueName: { ...heading, fontSize: 16 },
-  leagueMeta: { color: colors.muted, fontSize: 11, marginTop: 5 },
-  leagueRank: { alignItems: 'center', paddingHorizontal: 8 },
-  leagueRankNumber: { color: colors.brand, fontSize: 20, fontWeight: '900' },
-  leagueRankLabel: { color: colors.muted, fontSize: 8, fontWeight: '800', letterSpacing: 1 },
-  competitionRows: {
-    backgroundColor: colors.panel,
-    borderRadius: radii.md,
-    borderColor: colors.border,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  competitionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 15,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  competitionIndex: { color: colors.brand, fontWeight: '900', fontSize: 11, width: 24 },
-  competitionInfo: { flex: 1 },
-  competitionMeta: { color: colors.muted, fontSize: 10, textTransform: 'capitalize', marginTop: 3 },
-  cardTitle: { ...heading, fontSize: 19 },
-  tableHeader: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 12,
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-  },
-  tableLabel: {
-    color: colors.muted,
-    fontSize: 9,
-    fontWeight: '800',
-    width: 30,
-    textAlign: 'right',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  tableValue: {
-    color: colors.text,
-    fontSize: 12,
-    width: 30,
-    textAlign: 'right',
-    fontVariant: ['tabular-nums'],
-  },
-  tablePoints: {
-    color: colors.brand,
-    fontSize: 12,
-    fontWeight: '800',
-    width: 42,
-    textAlign: 'right',
-    fontVariant: ['tabular-nums'],
-  },
-  rankCell: { textAlign: 'left', width: 18 },
-  teamCell: { flex: 1, textAlign: 'left' },
-  tableTeam: { color: colors.text, fontWeight: '700', fontSize: 11 },
-  draftCard: { backgroundColor: '#26331A' },
-  draftEyebrow: { color: colors.brand, fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
-  draftTitle: { ...heading, fontSize: 20, marginTop: 8 },
-  draftDate: { color: colors.accent, fontWeight: '900', fontSize: 12, marginTop: 8 },
-  draftBody: { color: colors.muted, fontSize: 12, marginVertical: 16 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    headingActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    dashboardGrid: { gap: 18 },
+    dashboardGridWide: { flexDirection: 'row', alignItems: 'flex-start' },
+    mainColumn: { flex: 1.7, minWidth: 0 },
+    sideColumn: { flex: 1, gap: 16, minWidth: 300 },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: 12,
+    },
+    liveLeague: { ...createHeading(colors), fontSize: 19, marginTop: 10 },
+    period: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+    matchupScores: { flexDirection: 'row', alignItems: 'center', paddingVertical: 30 },
+    matchupTeam: { flex: 1, alignItems: 'center' },
+    matchupTeamName: { color: colors.text, fontWeight: '800', fontSize: 13, textAlign: 'center' },
+    matchupScore: {
+      color: colors.text,
+      fontWeight: '900',
+      fontSize: 38,
+      marginTop: 7,
+      fontVariant: ['tabular-nums'],
+    },
+    matchupScoreLeading: { color: colors.brand },
+    projected: { color: colors.muted, fontSize: 10, marginTop: 3 },
+    versus: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: colors.canvasSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    versusText: { color: colors.muted, fontWeight: '900', fontSize: 10 },
+    liveFooter: {
+      backgroundColor: colors.canvasSoft,
+      borderRadius: radii.sm,
+      paddingLeft: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+    },
+    livePulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand },
+    liveFooterText: { color: colors.muted, fontSize: 11, flex: 1 },
+    leagueCard: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14 },
+    leagueBadge: {
+      width: 52,
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: colors.brand,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    leagueBadgeText: { color: colors.onBrand, fontWeight: '900', fontSize: 15 },
+    leagueCopy: { flex: 1, minWidth: 200 },
+    leagueName: { ...createHeading(colors), fontSize: 16 },
+    leagueMeta: { color: colors.muted, fontSize: 11, marginTop: 5 },
+    leagueRank: { alignItems: 'center', paddingHorizontal: 8 },
+    leagueRankNumber: { color: colors.brand, fontSize: 20, fontWeight: '900' },
+    leagueRankLabel: { color: colors.muted, fontSize: 8, fontWeight: '800', letterSpacing: 1 },
+    competitionRows: {
+      backgroundColor: colors.panel,
+      borderRadius: radii.md,
+      borderColor: colors.border,
+      borderWidth: 1,
+      overflow: 'hidden',
+    },
+    competitionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      padding: 15,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    competitionIndex: { color: colors.brand, fontWeight: '900', fontSize: 11, width: 24 },
+    competitionInfo: { flex: 1 },
+    competitionMeta: {
+      color: colors.muted,
+      fontSize: 10,
+      textTransform: 'capitalize',
+      marginTop: 3,
+    },
+    cardTitle: { ...createHeading(colors), fontSize: 19 },
+    tableHeader: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingVertical: 12,
+      borderBottomColor: colors.border,
+      borderBottomWidth: 1,
+    },
+    tableLabel: {
+      color: colors.muted,
+      fontSize: 9,
+      fontWeight: '800',
+      width: 30,
+      textAlign: 'right',
+    },
+    tableRow: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    tableValue: {
+      color: colors.text,
+      fontSize: 12,
+      width: 30,
+      textAlign: 'right',
+      fontVariant: ['tabular-nums'],
+    },
+    tablePoints: {
+      color: colors.brand,
+      fontSize: 12,
+      fontWeight: '800',
+      width: 42,
+      textAlign: 'right',
+      fontVariant: ['tabular-nums'],
+    },
+    rankCell: { textAlign: 'left', width: 18 },
+    teamCell: { flex: 1, textAlign: 'left' },
+    tableTeam: { color: colors.text, fontWeight: '700', fontSize: 11 },
+    draftCard: { backgroundColor: colors.selected },
+    draftEyebrow: { color: colors.brand, fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
+    draftTitle: { ...createHeading(colors), fontSize: 20, marginTop: 8 },
+    draftDate: { color: colors.accent, fontWeight: '900', fontSize: 12, marginTop: 8 },
+    draftBody: { color: colors.muted, fontSize: 12, marginVertical: 16 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);

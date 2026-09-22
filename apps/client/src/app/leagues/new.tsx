@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { LeagueFormat } from '@brock-fantasy/domain';
 
-import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
-import { colors, heading } from '@/theme';
+import { createHeading, useAppTheme, useThemedStyles, type ThemeColors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { useCompetitions } from '@/hooks/use-competitions';
 
@@ -13,6 +13,9 @@ export default function NewLeagueScreen() {
   useRequireUser();
   const competitions = useCompetitions();
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useStyles();
+  const uiStyles = useUiStyles();
   const [name, setName] = useState('');
   const [competitionId, setCompetitionId] = useState('');
   const [format, setFormat] = useState<LeagueFormat>('head_to_head');
@@ -129,6 +132,7 @@ function Option({
   label: string;
   onPress: () => void;
 }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="radio"
@@ -152,6 +156,7 @@ function FormatOption({
   body: string;
   onPress: () => void;
 }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="radio"
@@ -170,57 +175,60 @@ function FormatOption({
   );
 }
 
-const styles = StyleSheet.create({
-  form: { maxWidth: 840, width: '100%', alignSelf: 'center', gap: 26, padding: 25 },
-  field: { gap: 10 },
-  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  option: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-    backgroundColor: colors.canvasSoft,
-  },
-  optionActive: { borderColor: colors.brand, backgroundColor: '#24371A' },
-  optionText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  optionTextActive: { color: colors.brand },
-  formatGrid: { gap: 10 },
-  formatOption: {
-    flexDirection: 'row',
-    gap: 13,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 13,
-    padding: 15,
-    backgroundColor: colors.canvasSoft,
-  },
-  formatOptionActive: { borderColor: colors.brand, backgroundColor: '#1B301A' },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderColor: colors.border,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  radioActive: { borderColor: colors.brand },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.brand },
-  formatCopy: { flex: 1 },
-  formatTitle: { ...heading, fontSize: 15 },
-  formatBody: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
-  ruleSummary: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.canvasSoft,
-    padding: 13,
-    borderRadius: 10,
-  },
-  ruleText: { color: colors.muted, fontSize: 11, lineHeight: 17, flex: 1, minWidth: 220 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10 },
-  error: { color: colors.danger, fontSize: 12 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    form: { maxWidth: 840, width: '100%', alignSelf: 'center', gap: 26, padding: 25 },
+    field: { gap: 10 },
+    options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    option: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 13,
+      paddingVertical: 9,
+      backgroundColor: colors.canvasSoft,
+    },
+    optionActive: { borderColor: colors.brand, backgroundColor: colors.selected },
+    optionText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+    optionTextActive: { color: colors.brand },
+    formatGrid: { gap: 10 },
+    formatOption: {
+      flexDirection: 'row',
+      gap: 13,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 13,
+      padding: 15,
+      backgroundColor: colors.canvasSoft,
+    },
+    formatOptionActive: { borderColor: colors.brand, backgroundColor: colors.selected },
+    radio: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderColor: colors.border,
+      borderWidth: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 2,
+    },
+    radioActive: { borderColor: colors.brand },
+    radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.brand },
+    formatCopy: { flex: 1 },
+    formatTitle: { ...createHeading(colors), fontSize: 15 },
+    formatBody: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
+    ruleSummary: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: colors.canvasSoft,
+      padding: 13,
+      borderRadius: 10,
+    },
+    ruleText: { color: colors.muted, fontSize: 11, lineHeight: 17, flex: 1, minWidth: 220 },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10 },
+    error: { color: colors.danger, fontSize: 12 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);
