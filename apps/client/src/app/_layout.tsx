@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SessionProvider } from '@/providers/session-provider';
 import { usePushRegistration } from '@/hooks/use-push-registration';
-import { AppThemeProvider, colors } from '@/theme';
+import { AppThemeProvider, useAppTheme } from '@/theme';
 
 export default function RootLayout() {
   return (
@@ -20,9 +20,10 @@ export default function RootLayout() {
 
 function AppRuntime() {
   usePushRegistration();
+  const { colors, isDark } = useAppTheme();
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,

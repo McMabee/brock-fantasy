@@ -5,7 +5,7 @@ import { Card } from '@/components/ui';
 import { firstRelated } from '@/lib/relations';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
-import { colors } from '@/theme';
+import { useThemedStyles, type ThemeColors } from '@/theme';
 
 interface Campaign {
   id: string;
@@ -30,6 +30,7 @@ export function SponsorPlacement({
   competitionId?: string | undefined;
 }) {
   const { demoMode } = useSession();
+  const styles = useStyles();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const impressionRecorded = useRef<string | null>(null);
 
@@ -112,10 +113,13 @@ export function SponsorPlacement({
   );
 }
 
-const styles = StyleSheet.create({
-  card: { alignItems: 'center', borderStyle: 'dashed' },
-  label: { color: colors.muted, fontSize: 8, letterSpacing: 2 },
-  creative: { width: '100%', height: 72, marginTop: 8 },
-  name: { color: colors.text, fontSize: 16, fontWeight: '700', marginTop: 8 },
-  demo: { color: colors.muted, fontSize: 9, marginTop: 5 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    card: { alignItems: 'center', borderStyle: 'dashed' },
+    label: { color: colors.muted, fontSize: 8, letterSpacing: 2 },
+    creative: { width: '100%', height: 72, marginTop: 8 },
+    name: { color: colors.text, fontSize: 16, fontWeight: '700', marginTop: 8 },
+    demo: { color: colors.muted, fontSize: 9, marginTop: 5 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);

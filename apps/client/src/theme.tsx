@@ -144,7 +144,7 @@ export function useThemedStyles<T extends StyleSheet.NamedStyles<T>>(
   createStyles: (colors: ThemeColors) => T,
 ) {
   const { colors } = useAppTheme();
-  return useMemo(() => StyleSheet.create(createStyles(colors)), [colors, createStyles]);
+  return useMemo(() => createStyles(colors), [colors, createStyles]);
 }
 
 export const radii = { sm: 10, md: 16, lg: 24, pill: 999 } as const;
