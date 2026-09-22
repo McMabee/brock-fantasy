@@ -99,3 +99,12 @@ test('reviews a provider mapping and resolves its ingestion error', async ({ pag
   await expect(page.getByRole('alert')).toHaveText('UNMAPPED_ATHLETE marked resolved.');
   await expect(page.getByText('UNMAPPED_ATHLETE', { exact: true })).toHaveCount(0);
 });
+
+test('previews score replay deltas without applying them', async ({ page }) => {
+  await page.goto('/admin/replay');
+
+  await page.getByRole('button', { name: 'Generate read-only preview' }).click();
+  await expect(page.getByRole('heading', { name: 'Projected replay' })).toBeVisible();
+  await expect(page.getByText('+6.0', { exact: true })).toBeVisible();
+  await expect(page.getByText('No replay blockers detected')).toBeVisible();
+});

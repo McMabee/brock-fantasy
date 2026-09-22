@@ -77,6 +77,13 @@ idempotency key; direct administrator writes are disabled so every decision is a
 provider identity. Resolving an error acknowledges the recorded exception but does not mutate stats
 or scores: correct the source or mapping, re-submit the snapshot, and reconcile the replay separately.
 
+Use `/admin/replay` to generate a read-only replay preview for the latest snapshot associated with a
+game. The preview applies the production scoring expression without inserting point events or
+updating matchups, and shows current generated points, projected points, net delta, and each proposed
+stat-level change. A paused competition, unresolved sync errors, or missing source snapshot is shown
+as a blocker. The preview is evidence for review, not authority to bypass the normal ingestion replay
+or edit totals directly.
+
 ### Competition activation and recurring jobs
 
 Before enabling a competition, confirm its ruleset is approved, provider mappings are verified,

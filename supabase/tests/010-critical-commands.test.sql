@@ -1,5 +1,5 @@
 begin;
-select plan(36);
+select plan(38);
 
 insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, created_at, updated_at)
 values
@@ -120,6 +120,38 @@ select isnt(
   (select resolved_at from public.sync_errors where id = '62000000-0000-4000-8000-000000000001'),
   null,
   'sync error resolution records completion time'
+);
+insert into public.games (
+  id, competition_id, home_team_id, away_team_id, starts_at, status
+) values (
+  '63000000-0000-4000-8000-000000000001',
+  '20000000-0000-4000-8000-000000000001',
+  '40000000-0000-4000-8000-000000000001',
+  '40000000-0000-4000-8000-000000000002',
+  now() + interval '1 hour',
+  'scheduled'
+);
+insert into public.provider_snapshots (
+  id, provider, game_id, source_identity, game_status, captured_at, payload, payload_hash
+) values (
+  '64000000-0000-4000-8000-000000000001',
+  'critical-test-provider',
+  '63000000-0000-4000-8000-000000000001',
+  'critical-test-provider:game-1:revision-1',
+  'scheduled',
+  now(),
+  '{}',
+  'critical-preview-payload-hash'
+);
+select is(
+  (public.preview_game_replay('63000000-0000-4000-8000-000000000001') ->> 'event_count')::integer,
+  0,
+  'read-only replay preview reports no changes without lineup statistics'
+);
+select is(
+  (public.preview_game_replay('63000000-0000-4000-8000-000000000001') ->> 'can_replay')::boolean,
+  true,
+  'read-only replay preview reports an unblocked mapped snapshot'
 );
 delete from public.user_roles where user_id = '30000000-0000-4000-8000-000000000001';
 

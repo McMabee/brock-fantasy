@@ -5,14 +5,14 @@ that must still be supplied. An inactive competition cannot be offered to users.
 
 ## Implemented foundation
 
-| Area                 | Repository evidence                                                                                                                                                                                                                    |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Universal client     | Expo Router application exports for web, Android, and iOS; responsive auth, dashboard, leagues, drafts, lineups, transactions, notifications, admin, privacy, terms, and deletion routes.                                              |
-| Fantasy authority    | PostgreSQL trusted commands for private league join, snake draft, queue/rank autopick, lineup locks, free agents, waivers, trades, schedules, corrections, moderation, and sponsor counts.                                             |
-| Scoring              | Immutable pre-validation receipts and raw snapshots, provider mappings, normalized statistics, versioned rules, append-only point events, replay, corrections, and standings projections.                                              |
-| Security and privacy | Verified-email configuration, AAL2/TOTP enforcement for administrators, RLS on user/league/operations data, least-privilege command grants, idempotency records, audit events, minimized profiles, and account deletion/anonymization. |
-| Operations           | Sync/error/audit views, audited provider-mapping/error review, JSON and CSV manual ingestion, per-competition pause/resume with held raw receipts, Cron-callable workers, push audit, backup/restore and game-day runbooks.            |
-| Quality baseline     | Strict TypeScript, ESLint, formatting, deterministic domain tests, desktop/mobile Chromium journeys and axe WCAG A/AA audits, SQL parsing, pgTAP schema checks, and universal bundle smoke builds.                                     |
+| Area                 | Repository evidence                                                                                                                                                                                                                       |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Universal client     | Expo Router application exports for web, Android, and iOS; responsive auth, dashboard, leagues, drafts, lineups, transactions, notifications, admin, privacy, terms, and deletion routes.                                                 |
+| Fantasy authority    | PostgreSQL trusted commands for private league join, snake draft, queue/rank autopick, lineup locks, free agents, waivers, trades, schedules, corrections, moderation, and sponsor counts.                                                |
+| Scoring              | Immutable pre-validation receipts and raw snapshots, provider mappings, normalized statistics, versioned rules, append-only point events, replay, corrections, and standings projections.                                                 |
+| Security and privacy | Verified-email configuration, AAL2/TOTP enforcement for administrators, RLS on user/league/operations data, least-privilege command grants, idempotency records, audit events, minimized profiles, and account deletion/anonymization.    |
+| Operations           | Sync/error/audit views, read-only score-replay previews, audited provider-mapping/error review, JSON/CSV ingestion, competition pause/resume with held receipts, Cron-callable workers, push audit, backup/restore and game-day runbooks. |
+| Quality baseline     | Strict TypeScript, ESLint, formatting, deterministic domain tests, desktop/mobile Chromium journeys and axe WCAG A/AA audits, SQL parsing, pgTAP schema checks, and universal bundle smoke builds.                                        |
 
 ## Canonical remaining-work checklist
 
@@ -114,13 +114,13 @@ groups are recorded as submitted and do not imply a primary/backup order.
       retries, concurrent transactions, every provider failure/correction state, and migration tests.
       Automated desktop/mobile Chromium coverage now protects demo navigation, league configuration,
       draft/queue interaction, tab semantics, theme persistence, and competition ingestion incident
-      and mapping controls; authenticated staging journeys and the remaining backend-connected
-      critical flows still need coverage.
+      and mapping controls plus read-only replay previews; authenticated staging journeys and the
+      remaining backend-connected critical flows still need coverage.
 - [ ] Rehearse ingestion through standings for every sport and both league formats. Reconcile expected
       totals with scoring/data owners and retain signed results, including delayed and corrected data.
 - [ ] Pass WCAG 2.2 AA review plus keyboard, focus, screen-reader, resize, contrast, reduced-motion,
       and touch-target testing. Complete supported-browser and physical iOS/Android testing.
-      Automated axe WCAG A/AA checks now pass for nine representative routes at desktop and mobile
+      Automated axe WCAG A/AA checks now pass for ten representative routes at desktop and mobile
       web sizes; manual testing and formal review remain required.
 - [ ] Meet the agreed performance gates: common API p95 near 500 ms, draft commit under one second at
       expected load, usable web near three seconds on typical broadband, and realtime score updates

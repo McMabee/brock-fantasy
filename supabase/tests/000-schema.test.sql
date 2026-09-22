@@ -1,5 +1,5 @@
 begin;
-select plan(53);
+select plan(56);
 
 select has_table('public', 'provider_snapshots', 'raw provider snapshots exist');
 select has_table('public', 'provider_raw_receipts', 'pre-validation raw receipts exist');
@@ -37,6 +37,7 @@ select has_function('public', 'record_sponsor_event', array['uuid', 'text'], 'ag
 select has_function('public', 'set_competition_ingestion_status', array['uuid', 'boolean', 'text', 'text'], 'competition ingestion control exists');
 select has_function('public', 'review_provider_mapping', array['uuid', 'boolean', 'text', 'text'], 'provider mapping review command exists');
 select has_function('public', 'resolve_sync_error', array['uuid', 'text', 'text'], 'sync error resolution command exists');
+select has_function('public', 'preview_game_replay', array['uuid'], 'read-only score replay preview exists');
 
 select ok(not has_function_privilege('anon', 'public.create_league(text,uuid,public.league_format,text)', 'EXECUTE'), 'anonymous role cannot create leagues');
 select ok(has_function_privilege('authenticated', 'public.create_league(text,uuid,public.league_format,text)', 'EXECUTE'), 'authenticated role can invoke league creation');
@@ -57,6 +58,8 @@ select ok(not has_function_privilege('anon', 'public.resolve_sync_error(uuid,tex
 select ok(has_function_privilege('authenticated', 'public.resolve_sync_error(uuid,text,text)', 'EXECUTE'), 'authenticated administrators may invoke sync error resolution');
 select ok(not has_table_privilege('authenticated', 'public.provider_entity_mappings', 'UPDATE'), 'administrators cannot bypass audited mapping review');
 select ok(not has_table_privilege('authenticated', 'public.sync_errors', 'UPDATE'), 'administrators cannot bypass audited error resolution');
+select ok(not has_function_privilege('anon', 'public.preview_game_replay(uuid)', 'EXECUTE'), 'anonymous users cannot preview score replays');
+select ok(has_function_privilege('authenticated', 'public.preview_game_replay(uuid)', 'EXECUTE'), 'authenticated administrators may preview score replays');
 
 select * from finish();
 rollback;

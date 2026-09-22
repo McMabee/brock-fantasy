@@ -33,6 +33,7 @@ const routes: readonly AuditedPage[] = [
   route('account', '/account'),
   route('ingestion incident control', '/admin/incidents'),
   route('provider mapping review', '/admin/mappings'),
+  route('score replay preview', '/admin/replay'),
 ];
 
 for (const auditedPage of routes) {
