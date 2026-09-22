@@ -6,7 +6,7 @@ import { ActionButton, AppShell, Card, EmptyState, Pill, SectionTitle } from '@/
 import { useLeague } from '@/hooks/use-league';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
-import { colors, heading } from '@/theme';
+import { createHeading, useThemedStyles, type ThemeColors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 interface GameOption {
@@ -43,6 +43,7 @@ export default function LineupScreen() {
   const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
   const { demoMode } = useSession();
   const leagueData = useLeague(leagueId);
+  const styles = useStyles();
   const [games, setGames] = useState<readonly GameOption[]>([]);
   const [slots, setSlots] = useState<readonly StarterSlot[]>([]);
   const [selectedGameId, setSelectedGameId] = useState('');
@@ -254,42 +255,45 @@ export default function LineupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  gameList: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  game: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 13,
-    gap: 8,
-    backgroundColor: colors.canvasSoft,
-  },
-  gameSelected: { borderColor: colors.brand },
-  gameDate: { color: colors.text, fontSize: 11, fontWeight: '700' },
-  slots: { gap: 12 },
-  slot: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
-  slotCode: { ...heading, color: colors.brand, width: 58, fontSize: 18 },
-  slotLabel: { color: colors.text, width: 110, fontSize: 12, fontWeight: '700' },
-  athletes: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 7, minWidth: 240 },
-  athlete: {
-    backgroundColor: colors.canvasSoft,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 9,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  athleteSelected: { borderColor: colors.brand, backgroundColor: '#24371A' },
-  athleteName: { color: colors.text, fontSize: 10, fontWeight: '700' },
-  athleteNameSelected: { color: colors.brand },
-  position: { color: colors.muted, fontSize: 8, marginTop: 2 },
-  disabled: { opacity: 0.35 },
-  message: { color: colors.brand, fontSize: 12, marginTop: 12 },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    flexWrap: 'wrap',
-    gap: 9,
-    marginTop: 15,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    gameList: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    game: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 13,
+      gap: 8,
+      backgroundColor: colors.canvasSoft,
+    },
+    gameSelected: { borderColor: colors.brand },
+    gameDate: { color: colors.text, fontSize: 11, fontWeight: '700' },
+    slots: { gap: 12 },
+    slot: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
+    slotCode: { ...createHeading(colors), color: colors.brand, width: 58, fontSize: 18 },
+    slotLabel: { color: colors.text, width: 110, fontSize: 12, fontWeight: '700' },
+    athletes: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 7, minWidth: 240 },
+    athlete: {
+      backgroundColor: colors.canvasSoft,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 9,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    athleteSelected: { borderColor: colors.brand, backgroundColor: colors.selected },
+    athleteName: { color: colors.text, fontSize: 10, fontWeight: '700' },
+    athleteNameSelected: { color: colors.brand },
+    position: { color: colors.muted, fontSize: 8, marginTop: 2 },
+    disabled: { opacity: 0.35 },
+    message: { color: colors.brand, fontSize: 12, marginTop: 12 },
+    actions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      flexWrap: 'wrap',
+      gap: 9,
+      marginTop: 15,
+    },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);

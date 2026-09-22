@@ -9,18 +9,20 @@ import {
   EmptyState,
   Pill,
   SectionTitle,
-  uiStyles,
+  useUiStyles,
 } from '@/components/ui';
 import { useLeague } from '@/hooks/use-league';
 import { useTransactions } from '@/hooks/use-transactions';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/theme';
+import { useThemedStyles, type ThemeColors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 export default function TransactionsScreen() {
   useRequireUser();
   const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
   const leagueData = useLeague(leagueId);
+  const styles = useStyles();
+  const uiStyles = useUiStyles();
   const transactions = useTransactions({
     leagueId,
     competitionId: leagueData.league?.competitionId,
@@ -321,6 +323,7 @@ function Choice({
   selected: boolean;
   onPress: () => void;
 }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="radio"
@@ -333,43 +336,46 @@ function Choice({
   );
 }
 
-const styles = StyleSheet.create({
-  message: { color: colors.brand, fontSize: 12, marginBottom: 10 },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  choice: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    backgroundColor: colors.canvasSoft,
-  },
-  choiceSelected: { borderColor: colors.brand, backgroundColor: '#24371A' },
-  choiceText: { color: colors.muted, fontSize: 10, fontWeight: '700' },
-  choiceTextSelected: { color: colors.brand },
-  assetRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 9,
-    paddingVertical: 11,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  assetCopy: { flex: 1, minWidth: 190 },
-  assetName: { color: colors.text, fontSize: 12, fontWeight: '800' },
-  assetMeta: { color: colors.muted, fontSize: 9, marginTop: 4 },
-  tradeBuilder: { gap: 12 },
-  tradeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  tradeHeading: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 9 },
-  rowActions: { flexDirection: 'row', gap: 7 },
-  footerActions: { marginTop: 14, alignItems: 'flex-end' },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    message: { color: colors.brand, fontSize: 12, marginBottom: 10 },
+    choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+    choice: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 11,
+      paddingVertical: 8,
+      backgroundColor: colors.canvasSoft,
+    },
+    choiceSelected: { borderColor: colors.brand, backgroundColor: colors.selected },
+    choiceText: { color: colors.muted, fontSize: 10, fontWeight: '700' },
+    choiceTextSelected: { color: colors.brand },
+    assetRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 9,
+      paddingVertical: 11,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    assetCopy: { flex: 1, minWidth: 190 },
+    assetName: { color: colors.text, fontSize: 12, fontWeight: '800' },
+    assetMeta: { color: colors.muted, fontSize: 9, marginTop: 4 },
+    tradeBuilder: { gap: 12 },
+    tradeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 12,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    tradeHeading: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 9 },
+    rowActions: { flexDirection: 'row', gap: 7 },
+    footerActions: { marginTop: 14, alignItems: 'flex-end' },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);

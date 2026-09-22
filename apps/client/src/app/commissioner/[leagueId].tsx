@@ -2,12 +2,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, SectionTitle, useUiStyles } from '@/components/ui';
 import { useDraft } from '@/hooks/use-draft';
 import { useLeague } from '@/hooks/use-league';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
-import { colors, heading } from '@/theme';
+import { createHeading, useThemedStyles, type ThemeColors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 interface DraftConfig {
@@ -30,6 +30,8 @@ export default function CommissionerScreen() {
   const { demoMode, user } = useSession();
   const leagueData = useLeague(leagueId);
   const draftData = useDraft(leagueData.draftId ?? undefined);
+  const styles = useStyles();
+  const uiStyles = useUiStyles();
   const [config, setConfig] = useState<DraftConfig | null>(
     demoMode ? { rounds: 4, pickSeconds: 30 } : null,
   );
@@ -250,12 +252,15 @@ export default function CommissionerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  message: { color: colors.brand, fontSize: 12, marginBottom: 10 },
-  card: { maxWidth: 720, gap: 14 },
-  title: { ...heading, fontSize: 20 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  field: { gap: 7 },
-  note: { color: colors.muted, fontSize: 10 },
-  back: { alignItems: 'flex-end', marginTop: 16 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    message: { color: colors.brand, fontSize: 12, marginBottom: 10 },
+    card: { maxWidth: 720, gap: 14 },
+    title: { ...createHeading(colors), fontSize: 20 },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+    field: { gap: 7 },
+    note: { color: colors.muted, fontSize: 10 },
+    back: { alignItems: 'flex-end', marginTop: 16 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);
