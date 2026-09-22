@@ -3,11 +3,11 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
 import { useDraft } from '@/hooks/use-draft';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
-import { colors, heading, radii } from '@/theme';
+import { createHeading, radii, useAppTheme, useThemedStyles, type ThemeColors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 const PICK_SECONDS = 30;
@@ -18,6 +18,9 @@ export default function DraftRoomScreen() {
   const { demoMode } = useSession();
   const draftData = useDraft(id);
   const { width } = useWindowDimensions();
+  const { colors } = useAppTheme();
+  const styles = useStyles();
+  const uiStyles = useUiStyles();
   const [demoPickedIds, setDemoPickedIds] = useState<string[]>([]);
   const [remaining, setRemaining] = useState(PICK_SECONDS);
   const [queuedIds, setQueuedIds] = useState<readonly string[]>(draftData.queuedAthleteIds);
@@ -293,146 +296,155 @@ export default function DraftRoomScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  draftHeader: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 20,
-    paddingTop: 20,
-  },
-  title: { ...heading, fontSize: 33, marginTop: 10 },
-  subtitle: { color: colors.muted, fontSize: 12, marginTop: 6 },
-  clock: {
-    alignItems: 'center',
-    backgroundColor: colors.panel,
-    borderColor: colors.brand,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    paddingHorizontal: 22,
-    paddingVertical: 13,
-    minWidth: 170,
-  },
-  clockLabel: { color: colors.muted, fontSize: 8, fontWeight: '900', letterSpacing: 1.5 },
-  clockValue: {
-    color: colors.brand,
-    fontSize: 30,
-    fontWeight: '900',
-    fontVariant: ['tabular-nums'],
-    marginTop: 2,
-  },
-  clockTeam: { color: colors.text, fontSize: 10, fontWeight: '700', marginTop: 2 },
-  orderStrip: {
-    flexDirection: 'row',
-    overflow: 'hidden',
-    marginVertical: 20,
-    borderRadius: radii.sm,
-    borderColor: colors.border,
-    borderWidth: 1,
-  },
-  orderPick: {
-    flex: 1,
-    minWidth: 130,
-    padding: 11,
-    backgroundColor: colors.canvasSoft,
-    borderRightColor: colors.border,
-    borderRightWidth: 1,
-  },
-  orderPickActive: { backgroundColor: '#263D1A' },
-  orderNumber: { color: colors.brand, fontSize: 9, fontWeight: '900' },
-  orderTeam: { color: colors.text, fontSize: 10, fontWeight: '700', marginTop: 3 },
-  draftGrid: { gap: 16 },
-  draftGridWide: { flexDirection: 'row', alignItems: 'flex-start' },
-  playerPanel: { flex: 1.7, padding: 0, overflow: 'hidden' },
-  playerHeader: {
-    padding: 17,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  panelTitle: { ...heading, fontSize: 17 },
-  panelMeta: { color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 4 },
-  search: { minHeight: 40, width: 230, maxWidth: '100%', fontSize: 12 },
-  tableHead: { flexDirection: 'row', backgroundColor: colors.canvasSoft, padding: 10 },
-  playerCell: { color: colors.muted, fontSize: 8, fontWeight: '900', flex: 1 },
-  positionCell: {
-    color: colors.muted,
-    fontSize: 8,
-    fontWeight: '900',
-    width: 45,
-    textAlign: 'center',
-  },
-  rankCell: { color: colors.muted, fontSize: 8, fontWeight: '900', width: 45, textAlign: 'center' },
-  actionCell: {
-    color: colors.muted,
-    fontSize: 8,
-    fontWeight: '900',
-    width: 142,
-    textAlign: 'center',
-  },
-  playerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 11,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  playerIdentity: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  avatar: {
-    width: 35,
-    height: 35,
-    borderRadius: 11,
-    backgroundColor: colors.panelStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: colors.brand, fontSize: 9, fontWeight: '900' },
-  playerName: { color: colors.text, fontSize: 12, fontWeight: '800' },
-  playerMeta: { color: colors.muted, fontSize: 9, marginTop: 2 },
-  positionValue: {
-    color: colors.text,
-    fontSize: 11,
-    fontWeight: '800',
-    width: 45,
-    textAlign: 'center',
-  },
-  rankValue: { color: colors.muted, fontSize: 11, width: 45, textAlign: 'center' },
-  playerActions: { width: 142, flexDirection: 'row', gap: 5, justifyContent: 'flex-end' },
-  draftButton: {
-    width: 65,
-    backgroundColor: colors.brand,
-    borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  draftButtonPressed: { opacity: 0.7 },
-  draftButtonDisabled: { opacity: 0.45 },
-  draftButtonText: { color: colors.canvas, fontSize: 9, fontWeight: '900' },
-  queueButton: {
-    minWidth: 67,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  queueButtonText: { color: colors.text, fontSize: 8, fontWeight: '900' },
-  sidePanel: { flex: 0.8, minWidth: 280, gap: 14 },
-  queueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    paddingVertical: 11,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  queueNumber: { color: colors.brand, fontSize: 9, fontWeight: '900', width: 18 },
-  queueName: { color: colors.text, fontSize: 11, fontWeight: '700', flex: 1 },
-  queuePosition: { color: colors.muted, fontSize: 10 },
-  empty: { color: colors.muted, fontSize: 11, paddingVertical: 18 },
-  error: { color: colors.danger, fontSize: 12, marginBottom: 10 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    draftHeader: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 20,
+      paddingTop: 20,
+    },
+    title: { ...createHeading(colors), fontSize: 33, marginTop: 10 },
+    subtitle: { color: colors.muted, fontSize: 12, marginTop: 6 },
+    clock: {
+      alignItems: 'center',
+      backgroundColor: colors.panel,
+      borderColor: colors.brand,
+      borderWidth: 1,
+      borderRadius: radii.md,
+      paddingHorizontal: 22,
+      paddingVertical: 13,
+      minWidth: 170,
+    },
+    clockLabel: { color: colors.muted, fontSize: 8, fontWeight: '900', letterSpacing: 1.5 },
+    clockValue: {
+      color: colors.brand,
+      fontSize: 30,
+      fontWeight: '900',
+      fontVariant: ['tabular-nums'],
+      marginTop: 2,
+    },
+    clockTeam: { color: colors.text, fontSize: 10, fontWeight: '700', marginTop: 2 },
+    orderStrip: {
+      flexDirection: 'row',
+      overflow: 'hidden',
+      marginVertical: 20,
+      borderRadius: radii.sm,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    orderPick: {
+      flex: 1,
+      minWidth: 130,
+      padding: 11,
+      backgroundColor: colors.canvasSoft,
+      borderRightColor: colors.border,
+      borderRightWidth: 1,
+    },
+    orderPickActive: { backgroundColor: colors.selected },
+    orderNumber: { color: colors.brand, fontSize: 9, fontWeight: '900' },
+    orderTeam: { color: colors.text, fontSize: 10, fontWeight: '700', marginTop: 3 },
+    draftGrid: { gap: 16 },
+    draftGridWide: { flexDirection: 'row', alignItems: 'flex-start' },
+    playerPanel: { flex: 1.7, padding: 0, overflow: 'hidden' },
+    playerHeader: {
+      padding: 17,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    panelTitle: { ...createHeading(colors), fontSize: 17 },
+    panelMeta: { color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 4 },
+    search: { minHeight: 40, width: 230, maxWidth: '100%', fontSize: 12 },
+    tableHead: { flexDirection: 'row', backgroundColor: colors.canvasSoft, padding: 10 },
+    playerCell: { color: colors.muted, fontSize: 8, fontWeight: '900', flex: 1 },
+    positionCell: {
+      color: colors.muted,
+      fontSize: 8,
+      fontWeight: '900',
+      width: 45,
+      textAlign: 'center',
+    },
+    rankCell: {
+      color: colors.muted,
+      fontSize: 8,
+      fontWeight: '900',
+      width: 45,
+      textAlign: 'center',
+    },
+    actionCell: {
+      color: colors.muted,
+      fontSize: 8,
+      fontWeight: '900',
+      width: 142,
+      textAlign: 'center',
+    },
+    playerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 11,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    playerIdentity: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9 },
+    avatar: {
+      width: 35,
+      height: 35,
+      borderRadius: 11,
+      backgroundColor: colors.panelStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: { color: colors.brand, fontSize: 9, fontWeight: '900' },
+    playerName: { color: colors.text, fontSize: 12, fontWeight: '800' },
+    playerMeta: { color: colors.muted, fontSize: 9, marginTop: 2 },
+    positionValue: {
+      color: colors.text,
+      fontSize: 11,
+      fontWeight: '800',
+      width: 45,
+      textAlign: 'center',
+    },
+    rankValue: { color: colors.muted, fontSize: 11, width: 45, textAlign: 'center' },
+    playerActions: { width: 142, flexDirection: 'row', gap: 5, justifyContent: 'flex-end' },
+    draftButton: {
+      width: 65,
+      backgroundColor: colors.brand,
+      borderRadius: 8,
+      paddingVertical: 8,
+      alignItems: 'center',
+    },
+    draftButtonPressed: { opacity: 0.7 },
+    draftButtonDisabled: { opacity: 0.45 },
+    draftButtonText: { color: colors.onBrand, fontSize: 9, fontWeight: '900' },
+    queueButton: {
+      minWidth: 67,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 7,
+      paddingVertical: 8,
+      alignItems: 'center',
+    },
+    queueButtonText: { color: colors.text, fontSize: 8, fontWeight: '900' },
+    sidePanel: { flex: 0.8, minWidth: 280, gap: 14 },
+    queueRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+      paddingVertical: 11,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    queueNumber: { color: colors.brand, fontSize: 9, fontWeight: '900', width: 18 },
+    queueName: { color: colors.text, fontSize: 11, fontWeight: '700', flex: 1 },
+    queuePosition: { color: colors.muted, fontSize: 10 },
+    empty: { color: colors.muted, fontSize: 11, paddingVertical: 18 },
+    error: { color: colors.danger, fontSize: 12, marginBottom: 10 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);
