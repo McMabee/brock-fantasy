@@ -32,7 +32,7 @@ export default function HomeScreen() {
             <Text style={styles.trustDot}>•</Text>
             <Text style={styles.trustText}>Auditable scoring</Text>
             <Text style={styles.trustDot}>•</Text>
-            <Text style={styles.trustText}>Web + mobile</Text>
+            <Text style={styles.trustText}>Web + mobile (soon...)</Text>
           </View>
         </View>
         <Card accent style={styles.scoreCard}>
