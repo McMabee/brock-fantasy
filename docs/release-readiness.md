@@ -25,7 +25,7 @@ their actionable requirements are repeated here so they do not have to be tracke
 - [ ] Name accountable owners for product/release, scoring/data, brand/content rights, privacy/legal,
       support, accessibility, security/incident response, game-day operations, sponsors, and mobile
       store submission. Record escalation and approval contacts.
-- [ ] Approve a versioned rule pack for each of the six competitions. It must define scoring examples,
+- [ ] Approve a versioned rule pack for each of the six teams. It must define scoring examples,
       roster slots, locks, draft timer and autopick order, free agents, waivers, trades, matchup
       periods, finalization/corrections, and tiebreakers.
 - [ ] Approve the sports-data provider and contract: credentials, stable athlete/team/game IDs,
@@ -52,10 +52,10 @@ their actionable requirements are repeated here so they do not have to be tracke
 - [ ] Replace synthetic rule/fixture data with approved golden fixtures for hockey, basketball, and
       volleyball. Cover every scoring category/roster position, in-progress/final, duplicate,
       corrected/reversed, unknown-athlete, missing/malformed, postponed, and cancelled inputs.
-- [ ] Load and reconcile all six official competition records, teams, eligible athletes, schedules,
+- [ ] Load and reconcile all six official teams records, teams, eligible athletes, schedules,
       games, provider mappings, and complete autopick rankings. Document the basketball activation
       date separately from its October 9 league/draft readiness.
-- [ ] Keep each competition inactive until its rules, rights, mappings, rankings, golden tests,
+- [ ] Keep each team inactive until its rules, rights, mappings, rankings, golden tests,
       operations owner, and rehearsal evidence are all approved. Never promote the synthetic records
       in `supabase/seed.sql`.
 - [ ] Load only approved sponsor campaigns and verify placement windows, click targets, aggregate

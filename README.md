@@ -35,7 +35,7 @@ See `docs/operations.md` for environment, release, backup, and incident procedur
 ## Delivery status
 
 The repository contains the executable product foundation and safe-core/full-target workflows, but
-the six competitions remain deliberately inactive. Approved sport rules, sanctioned provider
+the six teams remain deliberately inactive. Approved sport rules, sanctioned provider
 payloads and rights, production Supabase/EAS projects, legal copy, support ownership, and store
 accounts are external launch gates rather than values inferred by the application.
 

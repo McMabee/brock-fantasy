@@ -11,8 +11,8 @@ export default function AccountDeletionScreen() {
         <SectionTitle title="How to delete your account" />
         <Text style={uiStyles.body}>
           Sign in, open Account, and use Delete account. Type DELETE to confirm. The request removes
-          your authentication identity and personal profile. Historical competition events are
-          anonymized when they must remain to preserve league results and scoring audits.
+          your authentication identity and personal profile. Historical team events are anonymized
+          when they must remain to preserve league results and scoring audits.
         </Text>
         <SectionTitle title="Need help signing in?" />
         <Text style={uiStyles.body}>

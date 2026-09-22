@@ -147,3 +147,6 @@ vite.config.ts.timestamp-*
 .turbo/
 web-build/
 .DS_Store
+
+# Non-technical internal documentation
+docs/internal

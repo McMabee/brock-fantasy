@@ -2,7 +2,7 @@
 
 ## Competition and rules
 
-A competition identifies one sport, division, and season. Six initial competitions share three
+A competition identifies one sport, division, and season. Six initial teams share three
 sport-specific rule engines. Each competition references a versioned ruleset containing scoring,
 roster slots, draft timing, transactions, matchup periods, and tiebreakers. Only approved rulesets
 may be used to create a league.
