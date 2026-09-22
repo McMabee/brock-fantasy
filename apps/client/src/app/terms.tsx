@@ -1,8 +1,9 @@
 import { Text, View } from 'react-native';
 
-import { AppShell, Card, SectionTitle, uiStyles } from '@/components/ui';
+import { AppShell, Card, SectionTitle, useUiStyles } from '@/components/ui';
 
 export default function TermsScreen() {
+  const uiStyles = useUiStyles();
   return (
     <AppShell eyebrow="Draft for approval" title="Platform terms">
       <Card>
@@ -32,6 +33,7 @@ export default function TermsScreen() {
 }
 
 function Term({ title, children }: { title: string; children: string }) {
+  const uiStyles = useUiStyles();
   return (
     <View>
       <SectionTitle title={title} />

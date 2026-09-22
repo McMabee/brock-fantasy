@@ -1,13 +1,15 @@
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, SectionTitle, useUiStyles } from '@/components/ui';
 import { demoCompetitions } from '@/data/demo';
-import { colors, heading, radii } from '@/theme';
+import { createHeading, radii, useThemedStyles, type ThemeColors } from '@/theme';
 
 const sportGlyph = { hockey: '◆', basketball: '●', volleyball: '▲' } as const;
 
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
+  const styles = useStyles();
+  const uiStyles = useUiStyles();
   const wide = width >= 780;
 
   return (
@@ -113,6 +115,7 @@ export default function HomeScreen() {
 }
 
 function Feature({ number, title, body }: { number: string; title: string; body: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.feature}>
       <Text style={styles.featureNumber}>{number}</Text>
@@ -122,117 +125,120 @@ function Feature({ number, title, body }: { number: string; title: string; body:
   );
 }
 
-const styles = StyleSheet.create({
-  hero: { paddingTop: 42, gap: 36 },
-  heroWide: { flexDirection: 'row', alignItems: 'center', paddingTop: 70, paddingBottom: 34 },
-  heroCopy: { flex: 1, maxWidth: 650 },
-  heroTitle: { ...heading, fontSize: 48, lineHeight: 52, marginTop: 20 },
-  heroTitleWide: { fontSize: 68, lineHeight: 70, letterSpacing: -2.5 },
-  heroTitleAccent: { color: colors.brand },
-  heroBody: { color: colors.muted, fontSize: 18, lineHeight: 28, maxWidth: 590, marginTop: 20 },
-  heroActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 28 },
-  trustRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 25,
-    alignItems: 'center',
-  },
-  trustText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  trustDot: { color: colors.brand },
-  scoreCard: {
-    flex: 0.76,
-    minWidth: 310,
-    maxWidth: 460,
-    padding: 22,
-    transform: [{ rotate: '1deg' }],
-  },
-  liveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  liveTime: {
-    color: colors.accent,
-    fontSize: 14,
-    fontWeight: '900',
-    fontVariant: ['tabular-nums'],
-  },
-  matchLabel: {
-    color: colors.muted,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginTop: 24,
-    marginBottom: 15,
-  },
-  teamScore: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  teamIdentity: { flexDirection: 'row', alignItems: 'center', gap: 11, flexShrink: 1 },
-  teamBadge: {
-    width: 43,
-    height: 43,
-    borderRadius: 13,
-    backgroundColor: colors.panelStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  teamBadgePrimary: { backgroundColor: colors.brand },
-  teamBadgeText: { color: colors.canvas, fontWeight: '900', fontSize: 12 },
-  teamName: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  teamRecord: { color: colors.muted, fontSize: 11, marginTop: 3 },
-  score: { color: colors.brand, fontSize: 30, fontWeight: '900', fontVariant: ['tabular-nums'] },
-  scoreMuted: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: '900',
-    fontVariant: ['tabular-nums'],
-  },
-  scoreRule: { height: 1, backgroundColor: colors.border, marginVertical: 15 },
-  scoreFooter: {
-    marginTop: 22,
-    backgroundColor: colors.canvasSoft,
-    borderRadius: radii.sm,
-    padding: 12,
-  },
-  scoreFooterLabel: {
-    color: colors.muted,
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-  scoreFooterValue: { color: colors.text, fontSize: 13, fontWeight: '700', marginTop: 4 },
-  competitionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  competitionCard: {
-    minWidth: 245,
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-    padding: 14,
-  },
-  competitionGlyph: {
-    width: 38,
-    height: 38,
-    borderRadius: 11,
-    backgroundColor: colors.canvasSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  competitionGlyphText: { color: colors.brand, fontSize: 17 },
-  competitionCopy: { flex: 1 },
-  competitionSeason: { color: colors.muted, fontSize: 11, marginTop: 2 },
-  availableMark: { color: colors.brand, fontWeight: '900' },
-  featureBand: {
-    marginTop: 46,
-    borderTopColor: colors.border,
-    borderTopWidth: 1,
-    paddingTop: 30,
-    gap: 28,
-  },
-  featureBandWide: { flexDirection: 'row' },
-  feature: { flex: 1, minWidth: 220 },
-  featureNumber: { color: colors.brand, fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
-  featureTitle: { ...heading, fontSize: 20, marginTop: 9 },
-  featureBody: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: 8 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    hero: { paddingTop: 42, gap: 36 },
+    heroWide: { flexDirection: 'row', alignItems: 'center', paddingTop: 70, paddingBottom: 34 },
+    heroCopy: { flex: 1, maxWidth: 650 },
+    heroTitle: { ...createHeading(colors), fontSize: 48, lineHeight: 52, marginTop: 20 },
+    heroTitleWide: { fontSize: 68, lineHeight: 70, letterSpacing: -2.5 },
+    heroTitleAccent: { color: colors.brand },
+    heroBody: { color: colors.muted, fontSize: 18, lineHeight: 28, maxWidth: 590, marginTop: 20 },
+    heroActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 28 },
+    trustRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginTop: 25,
+      alignItems: 'center',
+    },
+    trustText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+    trustDot: { color: colors.brand },
+    scoreCard: {
+      flex: 0.76,
+      minWidth: 310,
+      maxWidth: 460,
+      padding: 22,
+      transform: [{ rotate: '1deg' }],
+    },
+    liveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    liveTime: {
+      color: colors.accent,
+      fontSize: 14,
+      fontWeight: '900',
+      fontVariant: ['tabular-nums'],
+    },
+    matchLabel: {
+      color: colors.muted,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.5,
+      marginTop: 24,
+      marginBottom: 15,
+    },
+    teamScore: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    teamIdentity: { flexDirection: 'row', alignItems: 'center', gap: 11, flexShrink: 1 },
+    teamBadge: {
+      width: 43,
+      height: 43,
+      borderRadius: 13,
+      backgroundColor: colors.panelStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    teamBadgePrimary: { backgroundColor: colors.brand },
+    teamBadgeText: { color: colors.onBrand, fontWeight: '900', fontSize: 12 },
+    teamName: { color: colors.text, fontSize: 14, fontWeight: '800' },
+    teamRecord: { color: colors.muted, fontSize: 11, marginTop: 3 },
+    score: { color: colors.brand, fontSize: 30, fontWeight: '900', fontVariant: ['tabular-nums'] },
+    scoreMuted: {
+      color: colors.text,
+      fontSize: 30,
+      fontWeight: '900',
+      fontVariant: ['tabular-nums'],
+    },
+    scoreRule: { height: 1, backgroundColor: colors.border, marginVertical: 15 },
+    scoreFooter: {
+      marginTop: 22,
+      backgroundColor: colors.canvasSoft,
+      borderRadius: radii.sm,
+      padding: 12,
+    },
+    scoreFooterLabel: {
+      color: colors.muted,
+      fontSize: 10,
+      textTransform: 'uppercase',
+      letterSpacing: 1.2,
+    },
+    scoreFooterValue: { color: colors.text, fontSize: 13, fontWeight: '700', marginTop: 4 },
+    competitionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    competitionCard: {
+      minWidth: 245,
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 13,
+      padding: 14,
+    },
+    competitionGlyph: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      backgroundColor: colors.canvasSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    competitionGlyphText: { color: colors.brand, fontSize: 17 },
+    competitionCopy: { flex: 1 },
+    competitionSeason: { color: colors.muted, fontSize: 11, marginTop: 2 },
+    availableMark: { color: colors.brand, fontWeight: '900' },
+    featureBand: {
+      marginTop: 46,
+      borderTopColor: colors.border,
+      borderTopWidth: 1,
+      paddingTop: 30,
+      gap: 28,
+    },
+    featureBandWide: { flexDirection: 'row' },
+    feature: { flex: 1, minWidth: 220 },
+    featureNumber: { color: colors.brand, fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
+    featureTitle: { ...createHeading(colors), fontSize: 20, marginTop: 9 },
+    featureBody: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: 8 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);

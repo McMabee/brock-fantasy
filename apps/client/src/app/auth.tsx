@@ -2,9 +2,9 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
 import { useSession } from '@/providers/session-provider';
-import { colors, heading } from '@/theme';
+import { createHeading, useAppTheme, useThemedStyles, type ThemeColors } from '@/theme';
 
 type AuthMode = 'sign_in' | 'sign_up';
 
@@ -12,6 +12,7 @@ export default function AuthScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { demoMode, signIn, signUp, requestPasswordReset } = useSession();
+  const styles = useStyles();
   const [mode, setMode] = useState<AuthMode>('sign_in');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -169,6 +170,7 @@ function AuthTab({
   label: string;
   onPress: () => void;
 }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="tab"
@@ -182,6 +184,9 @@ function AuthTab({
 }
 
 function Field({ label, ...props }: { label: string } & React.ComponentProps<typeof TextInput>) {
+  const { colors } = useAppTheme();
+  const styles = useStyles();
+  const uiStyles = useUiStyles();
   return (
     <View style={styles.field}>
       <Text style={uiStyles.label}>{label}</Text>
@@ -196,33 +201,41 @@ function Field({ label, ...props }: { label: string } & React.ComponentProps<typ
   );
 }
 
-const styles = StyleSheet.create({
-  layout: { paddingTop: 38, gap: 36 },
-  layoutWide: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 70,
-  },
-  copy: { flex: 1, maxWidth: 520 },
-  title: { ...heading, fontSize: 52, lineHeight: 55, marginTop: 18 },
-  body: { color: colors.muted, fontSize: 17, lineHeight: 27, marginTop: 18 },
-  benefits: { marginTop: 26, gap: 13 },
-  benefit: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-  check: { color: colors.brand, fontWeight: '900', fontSize: 16 },
-  benefitText: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  formCard: { flex: 0.8, width: '100%', maxWidth: 440, gap: 17, padding: 24 },
-  tabs: { flexDirection: 'row', backgroundColor: colors.canvasSoft, padding: 4, borderRadius: 12 },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 9 },
-  tabActive: { backgroundColor: colors.panelStrong },
-  tabText: { color: colors.muted, fontSize: 13, fontWeight: '800' },
-  tabTextActive: { color: colors.text },
-  demoNotice: { backgroundColor: '#604A1E', padding: 10, borderRadius: 8 },
-  demoNoticeText: { color: colors.text, fontSize: 11, lineHeight: 16 },
-  field: { gap: 7 },
-  error: { color: colors.danger, fontSize: 12, lineHeight: 18 },
-  notice: { color: colors.brand, fontSize: 12, lineHeight: 18 },
-  forgotButton: { alignSelf: 'center', padding: 6 },
-  forgotText: { color: colors.brand, fontWeight: '700', fontSize: 12 },
-  terms: { color: colors.muted, textAlign: 'center', fontSize: 10, lineHeight: 15 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    layout: { paddingTop: 38, gap: 36 },
+    layoutWide: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingTop: 70,
+    },
+    copy: { flex: 1, maxWidth: 520 },
+    title: { ...createHeading(colors), fontSize: 52, lineHeight: 55, marginTop: 18 },
+    body: { color: colors.muted, fontSize: 17, lineHeight: 27, marginTop: 18 },
+    benefits: { marginTop: 26, gap: 13 },
+    benefit: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+    check: { color: colors.brand, fontWeight: '900', fontSize: 16 },
+    benefitText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    formCard: { flex: 0.8, width: '100%', maxWidth: 440, gap: 17, padding: 24 },
+    tabs: {
+      flexDirection: 'row',
+      backgroundColor: colors.canvasSoft,
+      padding: 4,
+      borderRadius: 12,
+    },
+    tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 9 },
+    tabActive: { backgroundColor: colors.panelStrong },
+    tabText: { color: colors.muted, fontSize: 13, fontWeight: '800' },
+    tabTextActive: { color: colors.text },
+    demoNotice: { backgroundColor: colors.warningSurface, padding: 10, borderRadius: 8 },
+    demoNoticeText: { color: colors.text, fontSize: 11, lineHeight: 16 },
+    field: { gap: 7 },
+    error: { color: colors.danger, fontSize: 12, lineHeight: 18 },
+    notice: { color: colors.brand, fontSize: 12, lineHeight: 18 },
+    forgotButton: { alignSelf: 'center', padding: 6 },
+    forgotText: { color: colors.brand, fontWeight: '700', fontSize: 12 },
+    terms: { color: colors.muted, textAlign: 'center', fontSize: 10, lineHeight: 15 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);

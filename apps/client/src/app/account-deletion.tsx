@@ -1,9 +1,10 @@
 import { Linking, Text } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, SectionTitle, useUiStyles } from '@/components/ui';
 import { supportEmail } from '@/lib/supabase';
 
 export default function AccountDeletionScreen() {
+  const uiStyles = useUiStyles();
   return (
     <AppShell eyebrow="Account lifecycle" title="Delete a Brock Fantasy account">
       <Card style={{ maxWidth: 720 }}>

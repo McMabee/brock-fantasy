@@ -2,10 +2,10 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, SectionTitle, useUiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
-import { colors } from '@/theme';
+import { schoolColors, useAppTheme, useThemedStyles, type ThemeColors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 interface FactorSetup {
@@ -19,6 +19,9 @@ export default function MfaScreen() {
   useRequireUser();
   const router = useRouter();
   const { demoMode, user } = useSession();
+  const { colors } = useAppTheme();
+  const styles = useStyles();
+  const uiStyles = useUiStyles();
   const [factor, setFactor] = useState<FactorSetup | null>(null);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(!demoMode);
@@ -157,17 +160,20 @@ export default function MfaScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { width: '100%', maxWidth: 560, alignSelf: 'center', gap: 15 },
-  qr: { width: 220, height: 220, alignSelf: 'center', backgroundColor: '#FFFFFF' },
-  secret: {
-    color: colors.text,
-    backgroundColor: colors.canvasSoft,
-    padding: 12,
-    borderRadius: 8,
-    fontFamily: 'monospace',
-    textAlign: 'center',
-  },
-  field: { gap: 7 },
-  message: { color: colors.danger, fontSize: 12, lineHeight: 18 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    card: { width: '100%', maxWidth: 560, alignSelf: 'center', gap: 15 },
+    qr: { width: 220, height: 220, alignSelf: 'center', backgroundColor: schoolColors.white },
+    secret: {
+      color: colors.text,
+      backgroundColor: colors.canvasSoft,
+      padding: 12,
+      borderRadius: 8,
+      fontFamily: 'monospace',
+      textAlign: 'center',
+    },
+    field: { gap: 7 },
+    message: { color: colors.danger, fontSize: 12, lineHeight: 18 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);

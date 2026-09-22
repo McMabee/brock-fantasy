@@ -1,12 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppShell, Card, EmptyState, Pill, SectionTitle } from '@/components/ui';
-import { colors } from '@/theme';
+import { useThemedStyles, type ThemeColors } from '@/theme';
 import { useNotifications } from '@/hooks/use-notifications';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 export default function NotificationsScreen() {
   useRequireUser();
+  const styles = useStyles();
   const { notifications, unreadCount, loading, error, markRead } = useNotifications();
   return (
     <AppShell
@@ -56,21 +57,24 @@ function formatRelativeTime(value: string): string {
   return `${Math.floor(elapsedMinutes / 1_440)} d`;
 }
 
-const styles = StyleSheet.create({
-  card: { maxWidth: 760 },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand },
-  dotRead: { backgroundColor: colors.border },
-  copy: { flex: 1 },
-  kind: { color: colors.brand, fontSize: 8, fontWeight: '900', letterSpacing: 1.2 },
-  title: { color: colors.text, fontSize: 13, fontWeight: '800', marginTop: 3 },
-  body: { color: colors.muted, fontSize: 11, marginTop: 3 },
-  time: { color: colors.muted, fontSize: 9 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    card: { maxWidth: 760 },
+    row: {
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+      paddingVertical: 14,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand },
+    dotRead: { backgroundColor: colors.border },
+    copy: { flex: 1 },
+    kind: { color: colors.brand, fontSize: 8, fontWeight: '900', letterSpacing: 1.2 },
+    title: { color: colors.text, fontSize: 13, fontWeight: '800', marginTop: 3 },
+    body: { color: colors.muted, fontSize: 11, marginTop: 3 },
+    time: { color: colors.muted, fontSize: 9 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);
