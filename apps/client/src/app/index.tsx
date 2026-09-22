@@ -37,7 +37,7 @@ export default function HomeScreen() {
             <Text style={styles.trustText}>Web + mobile (soon...)</Text>
           </View>
         </View>
-        <Card accent style={styles.scoreCard}>
+        <Card accent style={[styles.scoreCard, wide && styles.scoreCardWide]}>
           <View style={styles.liveRow}>
             <Pill label="LIVE · PERIOD 3" tone="warning" />
             <Text style={styles.liveTime}>04:18</Text>
@@ -149,8 +149,8 @@ const createStyles = (colors: ThemeColors) =>
       minWidth: 310,
       maxWidth: 460,
       padding: 22,
-      transform: [{ rotate: '1deg' }],
     },
+    scoreCardWide: { transform: [{ rotate: '1deg' }] },
     liveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     liveTime: {
       color: colors.accent,

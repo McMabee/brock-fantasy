@@ -68,10 +68,10 @@ export function AppShell({
             </Pressable>
           ) : null}
           <Pressable accessibilityRole="link" onPress={() => router.push('/notifications')}>
-            <Text style={styles.navLink}>Updates</Text>
+            <Text style={styles.navLink}>{wide ? 'Updates' : 'News'}</Text>
           </Pressable>
           <Pressable accessibilityRole="link" onPress={() => router.push('/account')}>
-            <Text style={styles.navLink}>Account</Text>
+            <Text style={styles.navLink}>{wide ? 'Account' : 'Me'}</Text>
           </Pressable>
           <Pressable
             accessibilityLabel={`Switch to ${isDark ? 'light' : 'dark'} theme`}
@@ -257,7 +257,7 @@ export function useUiStyles() {
 
 const createSharedStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: colors.canvas },
+    safeArea: { flex: 1, overflow: 'hidden', backgroundColor: colors.canvas },
     backgroundOrbOne: {
       position: 'absolute',
       width: 420,
@@ -296,7 +296,7 @@ const createSharedStyles = (colors: ThemeColors) =>
       width: 42,
       height: 42,
       borderRadius: 13,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.brandMark,
       alignItems: 'center',
       justifyContent: 'center',
       transform: [{ rotate: '-4deg' }],
