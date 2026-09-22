@@ -12,7 +12,7 @@ that must still be supplied. An inactive competition cannot be offered to users.
 | Scoring              | Immutable pre-validation receipts and raw snapshots, provider mappings, normalized statistics, versioned rules, append-only point events, replay, corrections, and standings projections.                                                 |
 | Security and privacy | Verified-email configuration, AAL2/TOTP enforcement for administrators, RLS on user/league/operations data, least-privilege command grants, idempotency records, audit events, minimized profiles, and account deletion/anonymization.    |
 | Operations           | Sync/error/audit views, read-only score-replay previews, audited provider-mapping/error review, JSON/CSV ingestion, competition pause/resume with held receipts, Cron-callable workers, push audit, backup/restore and game-day runbooks. |
-| Quality baseline     | Strict TypeScript, ESLint, formatting, deterministic domain tests, desktop/mobile Chromium journeys and axe WCAG A/AA audits, SQL parsing, pgTAP schema checks, and universal bundle smoke builds.                                        |
+| Quality baseline     | Strict TypeScript, ESLint, formatting, deterministic domain tests, Chromium/Firefox/WebKit journeys and axe WCAG A/AA audits, mobile Chromium coverage, SQL/pgTAP checks, and universal bundle smoke builds.                              |
 
 ## Canonical remaining-work checklist
 
@@ -112,16 +112,17 @@ groups are recorded as submitted and do not imply a primary/backup order.
       adjustment audit, and account deletion.
 - [ ] Complete the release matrices in `docs/testing.md`: role/league-boundary RLS, draft races and
       retries, concurrent transactions, every provider failure/correction state, and migration tests.
-      Automated desktop/mobile Chromium coverage now protects demo navigation, league configuration,
-      draft/queue interaction, tab semantics, theme persistence, and competition ingestion incident
-      and mapping controls plus read-only replay previews; authenticated staging journeys and the
-      remaining backend-connected critical flows still need coverage.
+      Automated Chromium, Firefox, and WebKit coverage now protects demo navigation, league
+      configuration, draft/queue interaction, tab semantics, theme persistence, competition
+      ingestion incident and mapping controls, and read-only replay previews. A mobile Chromium
+      viewport is also covered; authenticated staging journeys and remaining backend-connected
+      critical flows still need coverage.
 - [ ] Rehearse ingestion through standings for every sport and both league formats. Reconcile expected
       totals with scoring/data owners and retain signed results, including delayed and corrected data.
 - [ ] Pass WCAG 2.2 AA review plus keyboard, focus, screen-reader, resize, contrast, reduced-motion,
       and touch-target testing. Complete supported-browser and physical iOS/Android testing.
-      Automated axe WCAG A/AA checks now pass for ten representative routes at desktop and mobile
-      web sizes; manual testing and formal review remain required.
+      Automated axe WCAG A/AA checks now pass for ten representative routes across Chromium,
+      Firefox, WebKit, and a mobile web viewport; manual testing and formal review remain required.
 - [ ] Meet the agreed performance gates: common API p95 near 500 ms, draft commit under one second at
       expected load, usable web near three seconds on typical broadband, and realtime score updates
       within five seconds. Load-test joins, draft contention, score fan-out, and standings updates.
