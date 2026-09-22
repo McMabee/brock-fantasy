@@ -4,15 +4,17 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SessionProvider } from '@/providers/session-provider';
 import { usePushRegistration } from '@/hooks/use-push-registration';
-import { colors } from '@/theme';
+import { AppThemeProvider, colors } from '@/theme';
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <SessionProvider>
-        <AppRuntime />
-      </SessionProvider>
-    </SafeAreaProvider>
+    <AppThemeProvider>
+      <SafeAreaProvider>
+        <SessionProvider>
+          <AppRuntime />
+        </SessionProvider>
+      </SafeAreaProvider>
+    </AppThemeProvider>
   );
 }
 
