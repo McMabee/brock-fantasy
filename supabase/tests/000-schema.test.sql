@@ -1,5 +1,5 @@
 begin;
-select plan(45);
+select plan(53);
 
 select has_table('public', 'provider_snapshots', 'raw provider snapshots exist');
 select has_table('public', 'provider_raw_receipts', 'pre-validation raw receipts exist');
@@ -35,6 +35,8 @@ select has_function('public', 'expire_trades', array['integer'], 'trade expiry w
 select has_function('public', 'moderate_chat_message', array['uuid', 'boolean', 'text', 'text'], 'chat moderation command exists');
 select has_function('public', 'record_sponsor_event', array['uuid', 'text'], 'aggregate sponsor metric command exists');
 select has_function('public', 'set_competition_ingestion_status', array['uuid', 'boolean', 'text', 'text'], 'competition ingestion control exists');
+select has_function('public', 'review_provider_mapping', array['uuid', 'boolean', 'text', 'text'], 'provider mapping review command exists');
+select has_function('public', 'resolve_sync_error', array['uuid', 'text', 'text'], 'sync error resolution command exists');
 
 select ok(not has_function_privilege('anon', 'public.create_league(text,uuid,public.league_format,text)', 'EXECUTE'), 'anonymous role cannot create leagues');
 select ok(has_function_privilege('authenticated', 'public.create_league(text,uuid,public.league_format,text)', 'EXECUTE'), 'authenticated role can invoke league creation');
@@ -49,6 +51,12 @@ select ok(has_function_privilege('service_role', 'public.replay_game(uuid,text)'
 select ok(not has_function_privilege('anon', 'public.set_competition_ingestion_status(uuid,boolean,text,text)', 'EXECUTE'), 'anonymous role cannot control ingestion');
 select ok(has_function_privilege('authenticated', 'public.set_competition_ingestion_status(uuid,boolean,text,text)', 'EXECUTE'), 'authenticated administrators may invoke ingestion control');
 select ok(not has_table_privilege('anon', 'public.competition_ingestion_controls', 'SELECT'), 'anonymous users cannot read ingestion incident details');
+select ok(not has_function_privilege('anon', 'public.review_provider_mapping(uuid,boolean,text,text)', 'EXECUTE'), 'anonymous users cannot review provider mappings');
+select ok(has_function_privilege('authenticated', 'public.review_provider_mapping(uuid,boolean,text,text)', 'EXECUTE'), 'authenticated administrators may invoke mapping review');
+select ok(not has_function_privilege('anon', 'public.resolve_sync_error(uuid,text,text)', 'EXECUTE'), 'anonymous users cannot resolve sync errors');
+select ok(has_function_privilege('authenticated', 'public.resolve_sync_error(uuid,text,text)', 'EXECUTE'), 'authenticated administrators may invoke sync error resolution');
+select ok(not has_table_privilege('authenticated', 'public.provider_entity_mappings', 'UPDATE'), 'administrators cannot bypass audited mapping review');
+select ok(not has_table_privilege('authenticated', 'public.sync_errors', 'UPDATE'), 'administrators cannot bypass audited error resolution');
 
 select * from finish();
 rollback;

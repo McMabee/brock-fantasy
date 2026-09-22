@@ -70,6 +70,13 @@ game state, or replay scores for that competition. After a documented resolution
 each held payload again through the same ingestion endpoint and verify that its receipt becomes
 accepted. Do not resume globally when only one competition is affected.
 
+Use `/admin/mappings` to compare provider IDs with their internal competition, team, athlete, or game
+targets. Verification and reopening require an AAL2 administrator, a review reason, and an
+idempotency key; direct administrator writes are disabled so every decision is audited. An
+`UNMAPPED_ATHLETE` sync error cannot be marked resolved until a verified mapping exists for the same
+provider identity. Resolving an error acknowledges the recorded exception but does not mutate stats
+or scores: correct the source or mapping, re-submit the snapshot, and reconcile the replay separately.
+
 ### Competition activation and recurring jobs
 
 Before enabling a competition, confirm its ruleset is approved, provider mappings are verified,

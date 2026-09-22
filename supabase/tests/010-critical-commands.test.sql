@@ -1,5 +1,5 @@
 begin;
-select plan(30);
+select plan(36);
 
 insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, created_at, updated_at)
 values
@@ -63,6 +63,65 @@ values
   ('50000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000001', 'Forward One', 'F'),
   ('50000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000001', 'Forward Two', 'F'),
   ('50000000-0000-4000-8000-000000000003', '20000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000002', 'Forward Three', 'F');
+
+insert into public.user_roles (user_id, role)
+values ('30000000-0000-4000-8000-000000000001', 'admin');
+select set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim', '{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
+insert into public.provider_entity_mappings (
+  id, provider, entity_type, provider_entity_id, internal_entity_id
+) values (
+  '60000000-0000-4000-8000-000000000001',
+  'critical-test-provider',
+  'athlete',
+  'provider-athlete-1',
+  '50000000-0000-4000-8000-000000000001'
+);
+insert into public.sync_runs (
+  id, provider, competition_id, status
+) values (
+  '61000000-0000-4000-8000-000000000001',
+  'critical-test-provider',
+  '20000000-0000-4000-8000-000000000001',
+  'partial'
+);
+insert into public.sync_errors (
+  id, sync_run_id, error_code, message, context
+) values (
+  '62000000-0000-4000-8000-000000000001',
+  '61000000-0000-4000-8000-000000000001',
+  'UNMAPPED_ATHLETE',
+  'Synthetic unmapped athlete',
+  '{"providerAthleteId":"provider-athlete-1","athleteName":"Forward One"}'
+);
+select lives_ok(
+  $$select public.review_provider_mapping('60000000-0000-4000-8000-000000000001', true, 'Matched against approved roster', 'mapping-review-0001')$$,
+  'AAL2 administrator verifies a provider mapping'
+);
+select isnt(
+  (select verified_at from public.provider_entity_mappings where id = '60000000-0000-4000-8000-000000000001'),
+  null,
+  'mapping review records verification time'
+);
+select lives_ok(
+  $$select public.review_provider_mapping('60000000-0000-4000-8000-000000000001', true, 'Matched against approved roster', 'mapping-review-0001')$$,
+  'duplicate mapping review returns its committed response'
+);
+select is(
+  (select count(*)::integer from public.audit_log where request_id = 'mapping-review-0001'),
+  1,
+  'idempotent mapping review creates one audit event'
+);
+select lives_ok(
+  $$select public.resolve_sync_error('62000000-0000-4000-8000-000000000001', 'Verified mapping is now available', 'sync-resolution-0001')$$,
+  'administrator resolves an error after verifying its mapping'
+);
+select isnt(
+  (select resolved_at from public.sync_errors where id = '62000000-0000-4000-8000-000000000001'),
+  null,
+  'sync error resolution records completion time'
+);
+delete from public.user_roles where user_id = '30000000-0000-4000-8000-000000000001';
 
 select set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000001', true);
 select throws_ok(

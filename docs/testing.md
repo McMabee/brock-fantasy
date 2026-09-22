@@ -51,8 +51,9 @@ Before activating a competition, replace synthetic rules and fixtures with signe
   correct a fixture, inspect both standings formats, report/mute chat, and delete the account.
 - Accessibility: keyboard-only web, focus order, VoiceOver/TalkBack smoke tests, text resizing,
   contrast, reduced motion, and touch targets. Automated axe checks cover home, authentication,
-  dashboard, league, draft, league setup, account, and ingestion incident views at desktop and
-  mobile web sizes; they do not replace the manual or physical-device checks in this list.
+  dashboard, league, draft, league setup, account, ingestion incident, and provider-mapping views at
+  desktop and mobile web sizes; they do not replace the manual or physical-device checks in this
+  list.
 - Load: league join bursts, draft contention, score fan-out, and standings recalculation.
 
 No release may ship with failed scoring, access-control, migration, restore, or critical E2E tests.

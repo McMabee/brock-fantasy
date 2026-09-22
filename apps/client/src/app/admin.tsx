@@ -110,7 +110,7 @@ export default function AdminScreen() {
               data.
             </Text>
             <ActionButton label="Import provider snapshot" href="/admin/import" />
-            <ActionButton label="Review mappings" disabled variant="secondary" />
+            <ActionButton label="Review mappings" href="/admin/mappings" variant="secondary" />
             <ActionButton label="Preview score replay" disabled variant="secondary" />
           </Card>
           <Card style={styles.incident}>

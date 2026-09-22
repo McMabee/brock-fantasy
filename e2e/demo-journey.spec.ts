@@ -82,3 +82,20 @@ test('pauses and resumes one competition ingestion feed', async ({ page }) => {
   await expect(page.getByRole('alert')).toHaveText("Men's Hockey ingestion resumed.");
   await expect(page.getByText('ACTIVE INCIDENT')).toHaveCount(0);
 });
+
+test('reviews a provider mapping and resolves its ingestion error', async ({ page }) => {
+  await page.goto('/admin/mappings');
+
+  await page
+    .getByLabel('approved-provider athlete player-19842 review reason', { exact: true })
+    .fill('Matched against the approved roster');
+  await page.getByRole('button', { name: 'Verify mapping' }).click();
+  await expect(page.getByRole('alert')).toHaveText('Mapping verified for review.');
+
+  await page
+    .getByLabel('UNMAPPED_ATHLETE demo-error-1 resolution reason', { exact: true })
+    .fill('Verified athlete mapping is available');
+  await page.getByRole('button', { name: 'Mark resolved' }).first().click();
+  await expect(page.getByRole('alert')).toHaveText('UNMAPPED_ATHLETE marked resolved.');
+  await expect(page.getByText('UNMAPPED_ATHLETE', { exact: true })).toHaveCount(0);
+});
