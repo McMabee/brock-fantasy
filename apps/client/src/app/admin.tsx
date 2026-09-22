@@ -7,9 +7,9 @@ import {
   EmptyState,
   Pill,
   SectionTitle,
-  uiStyles,
+  useUiStyles,
 } from '@/components/ui';
-import { colors, heading } from '@/theme';
+import { createHeading, useThemedStyles, type ThemeColors } from '@/theme';
 import { useOperations } from '@/hooks/use-operations';
 import { useRequireAdmin } from '@/hooks/use-route-access';
 
@@ -17,6 +17,8 @@ export default function AdminScreen() {
   useRequireAdmin();
   const operations = useOperations();
   const { width } = useWindowDimensions();
+  const styles = useStyles();
+  const uiStyles = useUiStyles();
   const wide = width >= 850;
   return (
     <AppShell
@@ -144,6 +146,7 @@ function Metric({
   detail: string;
   warning?: boolean;
 }) {
+  const styles = useStyles();
   return (
     <Card style={styles.metric}>
       <Text style={[styles.metricValue, warning && styles.metricWarning]}>{value}</Text>
@@ -153,45 +156,53 @@ function Metric({
   );
 }
 
-const styles = StyleSheet.create({
-  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  metric: { flex: 1, minWidth: 190 },
-  metricValue: { color: colors.brand, fontSize: 29, fontWeight: '900' },
-  metricWarning: { color: colors.accent },
-  metricLabel: { color: colors.text, fontSize: 12, fontWeight: '800', marginTop: 5 },
-  metricDetail: { color: colors.muted, fontSize: 9, marginTop: 3 },
-  grid: { gap: 18 },
-  gridWide: { flexDirection: 'row', alignItems: 'flex-start' },
-  main: { flex: 1.65, minWidth: 0 },
-  side: { flex: 0.8, minWidth: 280 },
-  tableCard: { paddingVertical: 4 },
-  syncRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 13,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  syncCopy: { flex: 1, minWidth: 180 },
-  syncName: { color: colors.text, fontSize: 12, fontWeight: '800' },
-  syncMeta: { color: colors.muted, fontSize: 9, marginTop: 3 },
-  auditRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 13,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  auditKind: { color: colors.brand, fontSize: 8, fontWeight: '900', width: 105 },
-  auditCopy: { flex: 1 },
-  auditDetail: { color: colors.text, fontSize: 11, fontWeight: '700' },
-  auditActor: { color: colors.muted, fontSize: 9, marginTop: 4 },
-  actions: { gap: 11 },
-  actionTitle: { ...heading, fontSize: 17 },
-  incident: { marginTop: 14, backgroundColor: '#382020', borderColor: '#704040', gap: 8 },
-  incidentLabel: { color: colors.danger, fontSize: 8, fontWeight: '900', letterSpacing: 1.5 },
-  incidentTitle: { ...heading, fontSize: 17 },
-  incidentBody: { color: '#D0AAAA', fontSize: 11, lineHeight: 17, marginBottom: 7 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    metric: { flex: 1, minWidth: 190 },
+    metricValue: { color: colors.brand, fontSize: 29, fontWeight: '900' },
+    metricWarning: { color: colors.accent },
+    metricLabel: { color: colors.text, fontSize: 12, fontWeight: '800', marginTop: 5 },
+    metricDetail: { color: colors.muted, fontSize: 9, marginTop: 3 },
+    grid: { gap: 18 },
+    gridWide: { flexDirection: 'row', alignItems: 'flex-start' },
+    main: { flex: 1.65, minWidth: 0 },
+    side: { flex: 0.8, minWidth: 280 },
+    tableCard: { paddingVertical: 4 },
+    syncRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 13,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    syncCopy: { flex: 1, minWidth: 180 },
+    syncName: { color: colors.text, fontSize: 12, fontWeight: '800' },
+    syncMeta: { color: colors.muted, fontSize: 9, marginTop: 3 },
+    auditRow: {
+      flexDirection: 'row',
+      gap: 12,
+      paddingVertical: 13,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    auditKind: { color: colors.brand, fontSize: 8, fontWeight: '900', width: 105 },
+    auditCopy: { flex: 1 },
+    auditDetail: { color: colors.text, fontSize: 11, fontWeight: '700' },
+    auditActor: { color: colors.muted, fontSize: 9, marginTop: 4 },
+    actions: { gap: 11 },
+    actionTitle: { ...createHeading(colors), fontSize: 17 },
+    incident: {
+      marginTop: 14,
+      backgroundColor: colors.dangerSurface,
+      borderColor: colors.dangerBorder,
+      gap: 8,
+    },
+    incidentLabel: { color: colors.danger, fontSize: 8, fontWeight: '900', letterSpacing: 1.5 },
+    incidentTitle: { ...createHeading(colors), fontSize: 17 },
+    incidentBody: { color: colors.dangerText, fontSize: 11, lineHeight: 17, marginBottom: 7 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);

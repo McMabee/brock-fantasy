@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, SectionTitle, useUiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/theme';
+import { useAppTheme, useThemedStyles, type ThemeColors } from '@/theme';
 import { useRequireAdmin } from '@/hooks/use-route-access';
 
 export default function AdminImportScreen() {
   useRequireAdmin();
+  const { colors } = useAppTheme();
+  const styles = useStyles();
+  const uiStyles = useUiStyles();
   const [payload, setPayload] = useState('');
   const [result, setResult] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
@@ -83,10 +86,13 @@ export default function AdminImportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { maxWidth: 850, gap: 14 },
-  editor: { minHeight: 280, textAlignVertical: 'top', fontFamily: 'monospace', fontSize: 11 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 9 },
-  result: { maxWidth: 850, marginTop: 12, backgroundColor: colors.canvasSoft },
-  resultText: { color: colors.brand, fontFamily: 'monospace', fontSize: 10, lineHeight: 16 },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    card: { maxWidth: 850, gap: 14 },
+    editor: { minHeight: 280, textAlignVertical: 'top', fontFamily: 'monospace', fontSize: 11 },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 9 },
+    result: { maxWidth: 850, marginTop: 12, backgroundColor: colors.canvasSoft },
+    resultText: { color: colors.brand, fontFamily: 'monospace', fontSize: 10, lineHeight: 16 },
+  });
+
+const useStyles = () => useThemedStyles(createStyles);

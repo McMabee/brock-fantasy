@@ -166,8 +166,3 @@ export function createHeading(colors: ThemeColors): TextStyle {
     letterSpacing: -0.8,
   };
 }
-
-// Temporary dark-theme compatibility exports while screens migrate to useAppTheme.
-export const colors = darkColors;
-export const shadow = createShadow(darkColors);
-export const heading = createHeading(darkColors);

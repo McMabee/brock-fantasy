@@ -17,7 +17,6 @@ import { useSession } from '@/providers/session-provider';
 import {
   createHeading,
   createShadow,
-  darkColors,
   radii,
   useAppTheme,
   useThemedStyles,
@@ -255,9 +254,6 @@ const createUiStyles = (colors: ThemeColors) =>
 export function useUiStyles() {
   return useThemedStyles(createUiStyles);
 }
-
-// Temporary compatibility export while route components migrate to useUiStyles.
-export const uiStyles = createUiStyles(darkColors);
 
 const createSharedStyles = (colors: ThemeColors) =>
   StyleSheet.create({
