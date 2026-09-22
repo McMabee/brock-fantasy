@@ -11,7 +11,7 @@ that must still be supplied. An inactive competition cannot be offered to users.
 | Fantasy authority    | PostgreSQL trusted commands for private league join, snake draft, queue/rank autopick, lineup locks, free agents, waivers, trades, schedules, corrections, moderation, and sponsor counts.                                             |
 | Scoring              | Immutable pre-validation receipts and raw snapshots, provider mappings, normalized statistics, versioned rules, append-only point events, replay, corrections, and standings projections.                                              |
 | Security and privacy | Verified-email configuration, AAL2/TOTP enforcement for administrators, RLS on user/league/operations data, least-privilege command grants, idempotency records, audit events, minimized profiles, and account deletion/anonymization. |
-| Operations           | Sync/error/audit views, JSON manual ingestion, Cron-callable workers, push ticket/receipt audit, backup/restore and game-day runbooks, CI secret and dependency checks.                                                                |
+| Operations           | Sync/error/audit views, JSON and CSV manual ingestion, Cron-callable workers, push ticket/receipt audit, backup/restore and game-day runbooks, CI secret and dependency checks.                                                        |
 | Quality baseline     | Strict TypeScript, ESLint, formatting, deterministic domain tests, SQL parsing, pgTAP schema checks, and universal bundle smoke builds.                                                                                                |
 
 ## Canonical remaining-work checklist
@@ -64,9 +64,9 @@ groups are recorded as submitted and do not imply a primary/backup order.
       synchronization. Add its webhook receiver or scheduled short-running poller, authentication,
       retry/backoff, rate-limit handling, health reporting, and correction semantics without placing
       credentials in the client.
-- [ ] Add CSV-to-canonical-JSON manual import through the existing ingestion pipeline, or obtain a
-      recorded launch-scope approval for JSON-only imports. CSV must not bypass raw receipt storage,
-      validation, mapping, replay, or auditing.
+- [x] Add CSV-to-canonical-JSON manual import through the existing ingestion pipeline. The imported
+      source rows remain embedded in the canonical snapshot so the raw receipt, validation, mapping,
+      replay, and audit controls are shared with JSON/provider input.
 - [ ] Replace synthetic rule/fixture data with approved golden fixtures for hockey, basketball, and
       volleyball. Cover every scoring category/roster position, in-progress/final, duplicate,
       corrected/reversed, unknown-athlete, missing/malformed, postponed, and cancelled inputs.

@@ -23,8 +23,8 @@ empty push dispatcher, exercises account deletion, and removes its other disposa
 never prints local access tokens.
 
 The TypeScript suite validates deterministic scoring/correction deltas, snake order/autopick,
-roster invariants, provider identity/mapping, and both standings formats. PostgreSQL tests validate
-schema security properties and trusted command behavior.
+roster invariants, provider identity/mapping, CSV-to-canonical conversion, and both standings
+formats. PostgreSQL tests validate schema security properties and trusted command behavior.
 
 ## Required fixture matrix
 
