@@ -1,5 +1,5 @@
 begin;
-select plan(56);
+select plan(57);
 
 select has_table('public', 'provider_snapshots', 'raw provider snapshots exist');
 select has_table('public', 'provider_raw_receipts', 'pre-validation raw receipts exist');
@@ -12,6 +12,7 @@ select has_table('public', 'athlete_rankings', 'deterministic athlete rankings e
 select has_table('public', 'draft_queues', 'manager draft queues exist');
 select has_table('public', 'push_deliveries', 'push delivery audit exists');
 select has_table('public', 'competition_ingestion_controls', 'competition ingestion pause state exists');
+select has_trigger('public', 'notifications', 'notifications_add_route', 'notification route enrichment exists');
 
 select ok((select relrowsecurity from pg_class where oid = 'public.profiles'::regclass), 'profiles has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.leagues'::regclass), 'leagues has RLS');

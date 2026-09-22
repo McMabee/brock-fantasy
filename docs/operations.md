@@ -102,6 +102,12 @@ Invoke `dispatch-push-notifications` with the service role on a short schedule a
 credentials are installed. Monitor failed tickets/receipts and disabled device tokens; the in-app
 notification inbox remains authoritative when external push delivery is delayed.
 
+Notification records are enriched with an in-app `data.path` for drafts, leagues, trades, and waiver
+claims. The client accepts only the allowlisted draft, league, transaction, lineup, and commissioner
+route families before navigating from an inbox row or push tap. Keep route creation server-side and
+do not place arbitrary external URLs in notification payloads. Push delivery, cold-start handling,
+and every supported route still require physical-device verification before release.
+
 For every scheduled job, record its environment, cadence, authentication method, timeout, retry
 policy, alert threshold, owner, and pause/resume procedure. Run overlapping invocations in staging to
 prove database locking/idempotency before production. Review job history and ingestion freshness at

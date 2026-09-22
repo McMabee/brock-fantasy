@@ -1,18 +1,52 @@
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { notificationHref } from '@/lib/notification-route';
 import { useSession } from '@/providers/session-provider';
 
 export function usePushRegistration() {
   const { user, demoMode } = useSession();
+  const router = useRouter();
 
   useEffect(() => {
     if (Platform.OS === 'web' || !user || demoMode || !supabase) return;
     const client = supabase;
-    const register = async () => {
+    let active = true;
+    let responseSubscription: { remove: () => void } | undefined;
+    const setup = async () => {
       const Notifications = await import('expo-notifications');
+      if (!active) return;
+      Notifications.setNotificationHandler({
+        handleNotification: () =>
+          Promise.resolve({
+            shouldShowBanner: true,
+            shouldShowList: true,
+            shouldPlaySound: true,
+            shouldSetBadge: false,
+          }),
+      });
+
+      const openNotification = (data: unknown) => {
+        const href = notificationHref(data);
+        if (!href || !active) return false;
+        router.push(href);
+        return true;
+      };
+      responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+        if (response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+        openNotification(response.notification.request.content.data);
+      });
+      const lastResponse = Notifications.getLastNotificationResponse();
+      if (
+        lastResponse?.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER &&
+        openNotification(lastResponse.notification.request.content.data)
+      ) {
+        Notifications.clearLastNotificationResponse();
+      }
+
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('fantasy-updates', {
           name: 'Fantasy updates',
@@ -36,11 +70,15 @@ export function usePushRegistration() {
         p_platform: Platform.OS,
       });
     };
-    void register().catch(() => {
+    void setup().catch(() => {
       // Permission denial and simulator limitations are non-fatal. Delivery
       // failures are surfaced by the server-side notification workflow.
     });
-  }, [demoMode, user]);
+    return () => {
+      active = false;
+      responseSubscription?.remove();
+    };
+  }, [demoMode, router, user]);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

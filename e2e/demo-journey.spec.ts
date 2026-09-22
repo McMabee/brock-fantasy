@@ -65,6 +65,14 @@ test('persists the selected colour theme', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Switch to dark theme' })).toBeVisible();
 });
 
+test('opens a safe destination from the notification inbox', async ({ page }) => {
+  await page.goto('/notifications');
+
+  await page.getByRole('link', { name: 'Open You are on the clock' }).click();
+  await expect(page).toHaveURL(/\/draft\/demo-draft$/);
+  await expect(page.getByRole('heading', { name: 'Badger Ice League Draft' })).toBeVisible();
+});
+
 test('pauses and resumes one competition ingestion feed', async ({ page }) => {
   await page.goto('/admin/incidents');
 

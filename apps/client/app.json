@@ -13,7 +13,7 @@
     "android": {
       "package": "ca.brocku.fantasy",
       "adaptiveIcon": {
-        "backgroundColor": "#071811"
+        "backgroundColor": "#1C2D5D"
       }
     },
     "web": {
@@ -26,7 +26,8 @@
       [
         "expo-notifications",
         {
-          "defaultChannel": "fantasy-updates"
+          "defaultChannel": "fantasy-updates",
+          "color": "#F20014"
         }
       ]
     ],

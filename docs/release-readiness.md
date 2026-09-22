@@ -114,14 +114,14 @@ groups are recorded as submitted and do not imply a primary/backup order.
       retries, concurrent transactions, every provider failure/correction state, and migration tests.
       Automated Chromium, Firefox, and WebKit coverage now protects demo navigation, league
       configuration, draft/queue interaction, tab semantics, theme persistence, competition
-      ingestion incident and mapping controls, and read-only replay previews. A mobile Chromium
-      viewport is also covered; authenticated staging journeys and remaining backend-connected
-      critical flows still need coverage.
+      ingestion incident and mapping controls, notification navigation, and read-only replay
+      previews. A mobile Chromium viewport is also covered; authenticated staging journeys and
+      remaining backend-connected critical flows still need coverage.
 - [ ] Rehearse ingestion through standings for every sport and both league formats. Reconcile expected
       totals with scoring/data owners and retain signed results, including delayed and corrected data.
 - [ ] Pass WCAG 2.2 AA review plus keyboard, focus, screen-reader, resize, contrast, reduced-motion,
       and touch-target testing. Complete supported-browser and physical iOS/Android testing.
-      Automated axe WCAG A/AA checks now pass for ten representative routes across Chromium,
+      Automated axe WCAG A/AA checks now pass for eleven representative routes across Chromium,
       Firefox, WebKit, and a mobile web viewport; manual testing and formal review remain required.
 - [ ] Meet the agreed performance gates: common API p95 near 500 ms, draft commit under one second at
       expected load, usable web near three seconds on typical broadband, and realtime score updates
@@ -147,8 +147,11 @@ groups are recorded as submitted and do not imply a primary/backup order.
 
 ### Mobile beta and submission
 
-- [ ] Complete mobile layouts, physical-device accessibility, deep links, recovery, push permissions
-      and delivery, offline/reconnect behavior, and TestFlight/Play internal testing.
+- [ ] Complete mobile layouts, physical-device accessibility, recovery, push permissions and
+      delivery, offline/reconnect behavior, and TestFlight/Play internal testing. Notification
+      records now receive safe in-app routes, notification inbox rows navigate to them, and native
+      notification taps handle foreground/background and cold-start responses through a route
+      allowlist; verify all of these flows on physical iOS and Android devices.
 - [ ] Create approved app name/copy, icons, screenshots, support/contact details, privacy labels,
       Google Data Safety answers, deletion resource, review notes/accounts, age/content declarations,
       and any rights documentation requested by the stores.

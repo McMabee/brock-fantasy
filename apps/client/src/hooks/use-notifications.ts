@@ -8,6 +8,7 @@ export interface AppNotification {
   kind: string;
   title: string;
   body: string;
+  data: Record<string, unknown>;
   readAt: string | null;
   createdAt: string;
 }
@@ -18,6 +19,7 @@ const demoNotifications: readonly AppNotification[] = [
     kind: 'DRAFT',
     title: 'You are on the clock',
     body: 'Badger Ice League · Pick 17',
+    data: { path: '/draft/demo-draft' },
     readAt: null,
     createdAt: new Date().toISOString(),
   },
@@ -26,6 +28,7 @@ const demoNotifications: readonly AppNotification[] = [
     kind: 'SCORE',
     title: 'Your matchup is live',
     body: 'Power Playmakers lead 78.5–74.0',
+    data: { path: '/league/demo-league' },
     readAt: null,
     createdAt: new Date(Date.now() - 12 * 60_000).toISOString(),
   },
@@ -34,6 +37,7 @@ const demoNotifications: readonly AppNotification[] = [
     kind: 'TRADE',
     title: 'Trade proposal received',
     body: 'Niagara Knights sent you an offer',
+    data: { path: '/transactions/demo-league' },
     readAt: new Date().toISOString(),
     createdAt: new Date(Date.now() - 86_400_000).toISOString(),
   },
@@ -44,6 +48,7 @@ interface NotificationRow {
   kind: string;
   title: string;
   body: string;
+  data: Record<string, unknown>;
   read_at: string | null;
   created_at: string;
 }
@@ -53,6 +58,7 @@ const mapRow = (row: NotificationRow): AppNotification => ({
   kind: row.kind.toUpperCase(),
   title: row.title,
   body: row.body,
+  data: row.data,
   readAt: row.read_at,
   createdAt: row.created_at,
 });
@@ -69,7 +75,7 @@ export function useNotifications() {
     if (demoMode || !supabase || !user) return;
     const result = await supabase
       .from('notifications')
-      .select('id, kind, title, body, read_at, created_at')
+      .select('id, kind, title, body, data, read_at, created_at')
       .order('created_at', { ascending: false })
       .limit(100);
     if (result.error) setError(result.error.message);

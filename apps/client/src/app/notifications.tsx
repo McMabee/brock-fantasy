@@ -1,12 +1,15 @@
+import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppShell, Card, EmptyState, Pill, SectionTitle } from '@/components/ui';
 import { useThemedStyles, type ThemeColors } from '@/theme';
 import { useNotifications } from '@/hooks/use-notifications';
 import { useRequireUser } from '@/hooks/use-route-access';
+import { notificationHref } from '@/lib/notification-route';
 
 export default function NotificationsScreen() {
   useRequireUser();
+  const router = useRouter();
   const styles = useStyles();
   const { notifications, unreadCount, loading, error, markRead } = useNotifications();
   return (
@@ -25,24 +28,32 @@ export default function NotificationsScreen() {
       ) : null}
       {notifications.length > 0 ? (
         <Card style={styles.card}>
-          {notifications.map((notification) => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Mark ${notification.title} as read`}
-              disabled={Boolean(notification.readAt)}
-              key={notification.id}
-              onPress={() => void markRead(notification.id)}
-              style={styles.row}
-            >
-              <View style={[styles.dot, notification.readAt && styles.dotRead]} />
-              <View style={styles.copy}>
-                <Text style={styles.kind}>{notification.kind}</Text>
-                <Text style={styles.title}>{notification.title}</Text>
-                <Text style={styles.body}>{notification.body}</Text>
-              </View>
-              <Text style={styles.time}>{formatRelativeTime(notification.createdAt)}</Text>
-            </Pressable>
-          ))}
+          {notifications.map((notification) => {
+            const href = notificationHref(notification.data);
+            return (
+              <Pressable
+                accessibilityRole={href ? 'link' : 'button'}
+                accessibilityLabel={
+                  href ? `Open ${notification.title}` : `Mark ${notification.title} as read`
+                }
+                disabled={!href && Boolean(notification.readAt)}
+                key={notification.id}
+                onPress={() => {
+                  if (!notification.readAt) void markRead(notification.id);
+                  if (href) router.push(href);
+                }}
+                style={styles.row}
+              >
+                <View style={[styles.dot, notification.readAt && styles.dotRead]} />
+                <View style={styles.copy}>
+                  <Text style={styles.kind}>{notification.kind}</Text>
+                  <Text style={styles.title}>{notification.title}</Text>
+                  <Text style={styles.body}>{notification.body}</Text>
+                </View>
+                <Text style={styles.time}>{formatRelativeTime(notification.createdAt)}</Text>
+              </Pressable>
+            );
+          })}
         </Card>
       ) : null}
     </AppShell>

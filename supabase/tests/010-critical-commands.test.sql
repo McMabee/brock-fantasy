@@ -1,5 +1,5 @@
 begin;
-select plan(38);
+select plan(39);
 
 insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, created_at, updated_at)
 values
@@ -223,6 +223,11 @@ select set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000001
 select lives_ok(
   $$select public.start_draft((select id from public.leagues where name = 'Critical Path League'), 8, 90, 'start-draft-0001')$$,
   'commissioner starts a draft using approved server rules'
+);
+select like(
+  (select data ->> 'path' from public.notifications where kind = 'draft_started' order by created_at desc limit 1),
+  '/draft/%',
+  'draft notification includes an allowlisted in-app route'
 );
 select lives_ok(
   $$select public.start_draft((select id from public.leagues where name = 'Critical Path League'), 8, 90, 'start-draft-0001')$$,

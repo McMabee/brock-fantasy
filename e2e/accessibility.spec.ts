@@ -31,6 +31,7 @@ const routes: readonly AuditedPage[] = [
   },
   route('league setup', '/leagues/new'),
   route('account', '/account'),
+  route('notifications', '/notifications'),
   route('ingestion incident control', '/admin/incidents'),
   route('provider mapping review', '/admin/mappings'),
   route('score replay preview', '/admin/replay'),
