@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -23,6 +24,10 @@ function AppRuntime() {
   const { colors, isDark } = useAppTheme();
   return (
     <>
+      <Head>
+        <title>Brock Fantasy</title>
+        <meta name="description" content="Private fantasy leagues for Brock varsity athletics." />
+      </Head>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{

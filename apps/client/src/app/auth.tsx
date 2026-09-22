@@ -87,7 +87,7 @@ export default function AuthScreen() {
         </View>
 
         <Card style={styles.formCard}>
-          <View style={styles.tabs}>
+          <View accessibilityRole="tablist" style={styles.tabs}>
             <AuthTab
               active={mode === 'sign_in'}
               label="Sign in"

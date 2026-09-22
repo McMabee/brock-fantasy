@@ -326,6 +326,7 @@ function Choice({
   const styles = useStyles();
   return (
     <Pressable
+      aria-checked={selected}
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
       onPress={onPress}

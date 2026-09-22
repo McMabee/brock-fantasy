@@ -12,7 +12,7 @@ that must still be supplied. An inactive competition cannot be offered to users.
 | Scoring              | Immutable pre-validation receipts and raw snapshots, provider mappings, normalized statistics, versioned rules, append-only point events, replay, corrections, and standings projections.                                              |
 | Security and privacy | Verified-email configuration, AAL2/TOTP enforcement for administrators, RLS on user/league/operations data, least-privilege command grants, idempotency records, audit events, minimized profiles, and account deletion/anonymization. |
 | Operations           | Sync/error/audit views, JSON and CSV manual ingestion, Cron-callable workers, push ticket/receipt audit, backup/restore and game-day runbooks, CI secret and dependency checks.                                                        |
-| Quality baseline     | Strict TypeScript, ESLint, formatting, deterministic domain tests, desktop/mobile Chromium journeys, SQL parsing, pgTAP schema checks, and universal bundle smoke builds.                                                              |
+| Quality baseline     | Strict TypeScript, ESLint, formatting, deterministic domain tests, desktop/mobile Chromium journeys and axe WCAG A/AA audits, SQL parsing, pgTAP schema checks, and universal bundle smoke builds.                                     |
 
 ## Canonical remaining-work checklist
 
@@ -119,6 +119,8 @@ groups are recorded as submitted and do not imply a primary/backup order.
       totals with scoring/data owners and retain signed results, including delayed and corrected data.
 - [ ] Pass WCAG 2.2 AA review plus keyboard, focus, screen-reader, resize, contrast, reduced-motion,
       and touch-target testing. Complete supported-browser and physical iOS/Android testing.
+      Automated axe WCAG A/AA checks now pass for seven representative routes at desktop and mobile
+      web sizes; manual testing and formal review remain required.
 - [ ] Meet the agreed performance gates: common API p95 near 500 ms, draft commit under one second at
       expected load, usable web near three seconds on typical broadband, and realtime score updates
       within five seconds. Load-test joins, draft contention, score fan-out, and standings updates.

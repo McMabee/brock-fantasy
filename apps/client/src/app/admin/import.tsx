@@ -64,6 +64,7 @@ export default function AdminImportScreen() {
         <View accessibilityRole="radiogroup" style={styles.formatRow}>
           {(['json', 'csv'] as const).map((item) => (
             <Pressable
+              aria-checked={format === item}
               accessibilityRole="radio"
               accessibilityState={{ checked: format === item }}
               key={item}

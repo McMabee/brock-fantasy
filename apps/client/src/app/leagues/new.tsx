@@ -135,6 +135,7 @@ function Option({
   const styles = useStyles();
   return (
     <Pressable
+      aria-checked={active}
       accessibilityRole="radio"
       accessibilityState={{ checked: active }}
       onPress={onPress}
@@ -159,6 +160,7 @@ function FormatOption({
   const styles = useStyles();
   return (
     <Pressable
+      aria-checked={active}
       accessibilityRole="radio"
       accessibilityState={{ checked: active }}
       onPress={onPress}

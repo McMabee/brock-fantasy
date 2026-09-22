@@ -184,6 +184,7 @@ export default function LineupScreen() {
         <View style={styles.gameList}>
           {games.map((game) => (
             <Pressable
+              aria-checked={game.id === selectedGameId}
               accessibilityRole="radio"
               accessibilityState={{ checked: game.id === selectedGameId }}
               key={game.id}
@@ -211,6 +212,7 @@ export default function LineupScreen() {
                   const usedElsewhere = selectedAthleteIds.has(entry.athleteId) && !selected;
                   return (
                     <Pressable
+                      aria-checked={selected}
                       accessibilityRole="radio"
                       accessibilityState={{ checked: selected, disabled: locked || usedElsewhere }}
                       disabled={locked || usedElsewhere}

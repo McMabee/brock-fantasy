@@ -14,9 +14,9 @@ pnpm exec supabase db lint --local --level warning
 ```
 
 `pnpm check` includes deterministic unit tests, strict typechecking, linting, PostgreSQL syntax
-parsing, a static web export, desktop/mobile Chromium user journeys, and Android/iOS Metro bundle
-smoke tests. Signed native builds still run through EAS on protected preview and production
-profiles.
+parsing, a static web export, desktop/mobile Chromium user journeys, automated axe WCAG A/AA checks
+for representative routes, and Android/iOS Metro bundle smoke tests. Signed native builds still run
+through EAS on protected preview and production profiles.
 
 With local Supabase running, the Edge smoke creates a disposable verified administrator, proves AAL1
 is rejected and completes a TOTP/AAL2 challenge, retains malformed provider input, scores and
@@ -49,7 +49,9 @@ Before activating a competition, replace synthetic rules and fixtures with signe
 - E2E: verify account, create/join a four-team league, draft, set a lineup, transact, ingest and
   correct a fixture, inspect both standings formats, report/mute chat, and delete the account.
 - Accessibility: keyboard-only web, focus order, VoiceOver/TalkBack smoke tests, text resizing,
-  contrast, reduced motion, and touch targets.
+  contrast, reduced motion, and touch targets. Automated axe checks cover home, authentication,
+  dashboard, league, draft, league setup, and account views at desktop and mobile web sizes; they do
+  not replace the manual or physical-device checks in this list.
 - Load: league join bursts, draft contention, score fan-out, and standings recalculation.
 
 No release may ship with failed scoring, access-control, migration, restore, or critical E2E tests.

@@ -46,7 +46,7 @@ export default function HomeScreen() {
           <View style={styles.teamScore}>
             <View style={styles.teamIdentity}>
               <View style={[styles.teamBadge, styles.teamBadgePrimary]}>
-                <Text style={styles.teamBadgeText}>PP</Text>
+                <Text style={[styles.teamBadgeText, styles.teamBadgeTextPrimary]}>PP</Text>
               </View>
               <View>
                 <Text style={styles.teamName}>Power Playmakers</Text>
@@ -182,7 +182,8 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
     },
     teamBadgePrimary: { backgroundColor: colors.brand },
-    teamBadgeText: { color: colors.onBrand, fontWeight: '900', fontSize: 12 },
+    teamBadgeText: { color: colors.text, fontWeight: '900', fontSize: 12 },
+    teamBadgeTextPrimary: { color: colors.onBrand },
     teamName: { color: colors.text, fontSize: 14, fontWeight: '800' },
     teamRecord: { color: colors.muted, fontSize: 11, marginTop: 3 },
     score: { color: colors.brand, fontSize: 30, fontWeight: '900', fontVariant: ['tabular-nums'] },
