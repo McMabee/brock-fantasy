@@ -1,6 +1,6 @@
 # Release Readiness
 
-Status date: September 15, 2026. This file separates code that exists from evidence or approvals
+Status date: September 22, 2026. This file separates code that exists from evidence or approvals
 that must still be supplied. An inactive competition cannot be offered to users.
 
 ## Implemented foundation
@@ -22,9 +22,27 @@ their actionable requirements are repeated here so they do not have to be tracke
 
 ### Ownership, rules, rights, and policy
 
-- [ ] Name accountable owners for product/release, scoring/data, brand/content rights, privacy/legal,
-      support, accessibility, security/incident response, game-day operations, sponsors, and mobile
-      store submission. Record escalation and approval contacts.
+The following owner choices were recorded on September 22, 2026. Entries with multiple people or
+groups are recorded as submitted and do not imply a primary/backup order.
+
+| Responsibility         | Assigned owner(s)                                |
+| ---------------------- | ------------------------------------------------ |
+| Executive Sponsor      | Tarik Merchant & Steve Delaney                   |
+| Product/Release        | Ty Mabee                                         |
+| Scoring/Data           | Tarik Merchant                                   |
+| Data/Provider Contract | Sport Information + Liaison / Gameday Operations |
+| Brand/Content-Rights   | Steve Delaney & Brock Athletics                  |
+| Legal/Privacy          | Steve Delaney & Brock Athletics                  |
+| Support                | Nicholas Zadravec & Tarik Merchant               |
+| Game Day Operations    | Ethan Greatorex & Tarik Merchant                 |
+| Sponsor                | Ryota Wolff                                      |
+| Platform/Operations    | Ty Mabee                                         |
+| Security/Incident      | Ty Mabee & Tarik Merchant                        |
+| Accessibility          | Nick Kocevar & Elio Palozzi                      |
+| Mobile Submission      | Nick Kocevar & Elio Palozzi                      |
+
+- [ ] Complete the ownership record by designating primary and backup contacts, naming the release
+      authority, and recording institutional contact, escalation, and approval-evidence details.
 - [ ] Approve a versioned rule pack for each of the six teams. It must define scoring examples,
       roster slots, locks, draft timer and autopick order, free agents, waivers, trades, matchup
       periods, finalization/corrections, and tiebreakers.

@@ -36,8 +36,8 @@ See `docs/operations.md` for environment, release, backup, and incident procedur
 
 The repository contains the executable product foundation and safe-core/full-target workflows, but
 the six teams remain deliberately inactive. Approved sport rules, sanctioned provider
-payloads and rights, production Supabase/EAS projects, legal copy, support ownership, and store
-accounts are external launch gates rather than values inferred by the application.
+payloads and rights, production Supabase/EAS projects, legal copy, support service and escalation
+details, and store accounts are external launch gates rather than values inferred by the application.
 
 See `docs/release-readiness.md` for the implemented capability map, remaining evidence, and the
 October 2/9/30 release decisions.

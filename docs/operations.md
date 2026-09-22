@@ -12,6 +12,10 @@ record primary/backup contacts plus escalation paths. Use least-privilege named 
 for provider, Supabase, Expo, Apple, Google, DNS, and monitoring consoles, and review access before
 each release. Never put tokens or recovery codes in the repository or release record.
 
+The current owner choices are recorded in `docs/release-readiness.md`. Primary/backup designations,
+institutional contacts, escalation paths, and approval evidence must still be completed before
+production access is granted.
+
 Each release record must identify the immutable commit, selected feature scope, environment, database
 migration version, ruleset/provider-data versions, web/mobile artifact IDs, approvals, test evidence,
 backup/restore evidence, known issues, go/no-go decision, monitoring window, and rollback owner.
