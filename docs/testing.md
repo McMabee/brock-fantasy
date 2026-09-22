@@ -4,6 +4,7 @@
 
 ```bash
 pnpm install
+pnpm exec playwright install chromium
 pnpm check
 pnpm exec supabase start
 pnpm exec supabase db reset
@@ -13,8 +14,9 @@ pnpm exec supabase db lint --local --level warning
 ```
 
 `pnpm check` includes deterministic unit tests, strict typechecking, linting, PostgreSQL syntax
-parsing, a static web export, and Android/iOS Metro bundle smoke tests. Signed native builds still
-run through EAS on protected preview and production profiles.
+parsing, a static web export, desktop/mobile Chromium user journeys, and Android/iOS Metro bundle
+smoke tests. Signed native builds still run through EAS on protected preview and production
+profiles.
 
 With local Supabase running, the Edge smoke creates a disposable verified administrator, proves AAL1
 is rejected and completes a TOTP/AAL2 challenge, retains malformed provider input, scores and

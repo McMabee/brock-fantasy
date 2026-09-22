@@ -12,7 +12,7 @@ that must still be supplied. An inactive competition cannot be offered to users.
 | Scoring              | Immutable pre-validation receipts and raw snapshots, provider mappings, normalized statistics, versioned rules, append-only point events, replay, corrections, and standings projections.                                              |
 | Security and privacy | Verified-email configuration, AAL2/TOTP enforcement for administrators, RLS on user/league/operations data, least-privilege command grants, idempotency records, audit events, minimized profiles, and account deletion/anonymization. |
 | Operations           | Sync/error/audit views, JSON and CSV manual ingestion, Cron-callable workers, push ticket/receipt audit, backup/restore and game-day runbooks, CI secret and dependency checks.                                                        |
-| Quality baseline     | Strict TypeScript, ESLint, formatting, deterministic domain tests, SQL parsing, pgTAP schema checks, and universal bundle smoke builds.                                                                                                |
+| Quality baseline     | Strict TypeScript, ESLint, formatting, deterministic domain tests, desktop/mobile Chromium journeys, SQL parsing, pgTAP schema checks, and universal bundle smoke builds.                                                              |
 
 ## Canonical remaining-work checklist
 
@@ -112,8 +112,9 @@ groups are recorded as submitted and do not imply a primary/backup order.
       adjustment audit, and account deletion.
 - [ ] Complete the release matrices in `docs/testing.md`: role/league-boundary RLS, draft races and
       retries, concurrent transactions, every provider failure/correction state, and migration tests.
-      Add automated browser E2E coverage for critical flows; the repository currently has domain,
-      database, Edge smoke, and bundle tests but no full browser automation suite.
+      Automated desktop/mobile Chromium coverage now protects demo navigation, league configuration,
+      draft/queue interaction, tab semantics, and theme persistence; authenticated staging journeys
+      and the remaining backend-connected critical flows still need coverage.
 - [ ] Rehearse ingestion through standings for every sport and both league formats. Reconcile expected
       totals with scoring/data owners and retain signed results, including delayed and corrected data.
 - [ ] Pass WCAG 2.2 AA review plus keyboard, focus, screen-reader, resize, contrast, reduced-motion,

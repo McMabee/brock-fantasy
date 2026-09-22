@@ -115,6 +115,8 @@ export default function LeagueScreen() {
         {(['overview', 'roster', 'standings', 'chat'] as const).map((item) => (
           <Pressable
             key={item}
+            aria-selected={tab === item}
+            accessibilityLabel={item[0]?.toUpperCase() + item.slice(1)}
             accessibilityRole="tab"
             accessibilityState={{ selected: tab === item }}
             onPress={() => setTab(item)}

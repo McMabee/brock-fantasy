@@ -173,6 +173,7 @@ function AuthTab({
   const styles = useStyles();
   return (
     <Pressable
+      aria-selected={active}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       onPress={onPress}
