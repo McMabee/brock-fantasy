@@ -3,4 +3,7 @@ dist
 coverage
 pnpm-lock.yaml
 pre-development
-
+tmp
+logic
+test-results
+playwright-report

@@ -6,10 +6,10 @@ import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
 
 export function usePushRegistration() {
-  const { user, demoMode } = useSession();
+  const { user } = useSession();
 
   useEffect(() => {
-    if (Platform.OS === 'web' || !user || demoMode || !supabase) return;
+    if (Platform.OS === 'web' || !user || !supabase) return;
     const client = supabase;
     const register = async () => {
       const Notifications = await import('expo-notifications');
@@ -40,7 +40,7 @@ export function usePushRegistration() {
       // Permission denial and simulator limitations are non-fatal. Delivery
       // failures are surfaced by the server-side notification workflow.
     });
-  }, [demoMode, user]);
+  }, [user]);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

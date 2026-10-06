@@ -11,11 +11,11 @@ import {
   SectionTitle,
   uiStyles,
 } from '@/components/ui';
-import { SponsorPlacement } from '@/components/sponsor-placement';
 import { useLeague, type LeagueChatMessage, type LeagueRosterEntry } from '@/hooks/use-league';
 import { colors, heading, radii } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { supabase } from '@/lib/supabase';
+import { betaCommand } from '@/lib/web-api';
 import { useSession } from '@/providers/session-provider';
 import type { FantasyTeam, League, MatchupResult, StandingsRow } from '@brock-fantasy/domain';
 
@@ -26,61 +26,51 @@ export default function LeagueScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const leagueData = useLeague(id);
   const { league, teams, standings, error: loadError } = leagueData;
-  const { demoMode, user } = useSession();
+  const { user } = useSession();
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>('overview');
   const [chatText, setChatText] = useState('');
-  const [localMessages, setLocalMessages] = useState<LeagueChatMessage[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
-  const messages = [...leagueData.messages, ...localMessages];
+  const messages = leagueData.messages;
   const wide = width >= 850;
 
   const sendMessage = async () => {
     const body = chatText.trim();
     if (!body) return;
     setActionError(null);
-    if (supabase && id && id !== 'demo-league') {
-      const result = (await supabase.rpc('post_chat_message', {
-        p_league_id: id,
-        p_body: body,
-        p_idempotency_key: `chat-${Date.now()}`,
-      })) as { error: { message: string } | null };
-      if (result.error) {
-        setActionError(result.error.message);
-        return;
-      }
-      await leagueData.reload();
-    } else {
-      setLocalMessages((current) => [
-        ...current,
-        {
-          id: `m-${Date.now()}`,
-          authorId: 'demo-user',
-          author: 'You',
-          body,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+    if (!supabase || !id) {
+      setActionError('League chat is temporarily unavailable. Please try again shortly.');
+      return;
     }
+    const result = await betaCommand('post_chat_message', {
+      p_league_id: id,
+      p_body: body,
+      p_idempotency_key: `chat-${Date.now()}`,
+    });
+    if (result.error) {
+      setActionError(result.error);
+      return;
+    }
+    await leagueData.reload();
     setChatText('');
   };
 
   const reportMessage = async (messageId: string) => {
-    if (!supabase || demoMode) return;
-    const result = (await supabase.rpc('report_chat_message', {
+    if (!supabase) return;
+    const result = await betaCommand('report_chat_message', {
       p_message_id: messageId,
       p_reason: 'Reported by a league member from the chat interface.',
-    })) as { error: { message: string } | null };
-    setActionError(result.error ? result.error.message : 'Message reported for moderator review.');
+    });
+    setActionError(result.error ?? 'Message reported for moderator review.');
   };
 
   const muteAuthor = async (authorId: string | null) => {
-    if (!supabase || demoMode || !id || !authorId) return;
-    const result = (await supabase.rpc('mute_chat_user', {
+    if (!supabase || !id || !authorId) return;
+    const result = await betaCommand('mute_chat_user', {
       p_league_id: id,
       p_muted_user_id: authorId,
-    })) as { error: { message: string } | null };
-    if (result.error) setActionError(result.error.message);
+    });
+    if (result.error) setActionError(result.error);
     else {
       setActionError('Manager muted in this league.');
       await leagueData.reload();
@@ -131,14 +121,14 @@ export default function LeagueScreen() {
           teams={teams}
           draftId={leagueData.draftId}
           matchups={leagueData.matchups}
-          demoMode={demoMode}
-          isCommissioner={demoMode || league?.commissionerId === user?.id}
+          isCommissioner={league?.commissionerId === user?.id}
         />
       ) : null}
       {tab === 'roster' ? (
         <Roster
           entries={leagueData.roster}
-          leagueId={league?.id ?? 'demo-league'}
+          leagueId={league?.id ?? ''}
+          betaLeague={Boolean(league?.playerPoolId)}
           teamName={teams.find((team) => team.id === leagueData.myTeamId)?.name ?? 'Your roster'}
         />
       ) : null}
@@ -163,7 +153,6 @@ function Overview({
   teams,
   draftId,
   matchups,
-  demoMode,
   isCommissioner,
 }: {
   wide: boolean;
@@ -171,7 +160,6 @@ function Overview({
   teams: readonly FantasyTeam[];
   draftId: string | null;
   matchups: readonly MatchupResult[];
-  demoMode: boolean;
   isCommissioner: boolean;
 }) {
   const matchup = matchups.find((item) => item.status === 'active') ?? matchups[0];
@@ -211,26 +199,10 @@ function Overview({
           />
         )}
         <SectionTitle title="Recent activity" />
-        {demoMode ? (
-          <Card>
-            {[
-              ['+3.0', 'Evan Kelly scored a goal', '2 min ago'],
-              ['ADD', 'Power Playmakers added Cole Martin', 'Yesterday'],
-              ['TRADE', 'Niagara Knights proposed a trade', 'Yesterday'],
-            ].map(([tag, title, time]) => (
-              <View key={`${tag}-${title}`} style={styles.activityRow}>
-                <Text style={styles.activityTag}>{tag}</Text>
-                <Text style={styles.activityTitle}>{title}</Text>
-                <Text style={styles.activityTime}>{time}</Text>
-              </View>
-            ))}
-          </Card>
-        ) : (
-          <EmptyState
-            title="No recent activity"
-            body="Draft, roster, and scoring events will appear after play begins."
-          />
-        )}
+        <EmptyState
+          title="No recent activity"
+          body="Draft, roster, and scoring events will appear after play begins."
+        />
       </View>
       <View style={styles.contentSide}>
         <Card>
@@ -258,7 +230,6 @@ function Overview({
             ) : null}
           </View>
         </Card>
-        <SponsorPlacement placement="league_sidebar" competitionId={league?.competitionId} />
       </View>
     </View>
   );
@@ -268,10 +239,12 @@ function Roster({
   entries,
   teamName,
   leagueId,
+  betaLeague,
 }: {
   entries: readonly LeagueRosterEntry[];
   teamName: string;
   leagueId: string;
+  betaLeague: boolean;
 }) {
   return (
     <View>
@@ -300,7 +273,10 @@ function Roster({
         />
       )}
       <View style={styles.inlineActions}>
-        <ActionButton label="Set lineup" href={`/lineup/${leagueId}`} />
+        <ActionButton
+          label="Set lineup"
+          href={betaLeague ? `/lineup-beta/${leagueId}` : `/lineup/${leagueId}`}
+        />
         <ActionButton
           label="Free agents, waivers & trades"
           href={`/transactions/${leagueId}`}

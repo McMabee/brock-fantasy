@@ -1,7 +1,8 @@
 import type { Athlete, DraftPick, DraftState, FantasyTeam } from '@brock-fantasy/domain';
 import { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
-import { demoAthletes, demoTeams } from '@/data/demo';
+import { firstRelated } from '@/lib/relations';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
 
@@ -12,13 +13,15 @@ interface DraftRow {
   rounds: number;
   current_overall_pick: number;
   pick_deadline: string | null;
+  state_version: number;
   team_order: string[];
 }
 
 interface LeagueRow {
   id: string;
   name: string;
-  competition_id: string;
+  competition_id: string | null;
+  pool_id: string | null;
 }
 
 interface TeamRow {
@@ -56,6 +59,10 @@ interface RankingRow {
   rank: number;
 }
 
+interface PoolRankingRow extends RankingRow {
+  athlete: AthleteRow | readonly AthleteRow[];
+}
+
 interface QueueRow {
   athlete_id: string;
   priority: number;
@@ -75,39 +82,32 @@ export interface DraftViewState {
   reload: () => Promise<void>;
 }
 
-const demoDraft: DraftState = {
-  id: 'demo-draft',
-  leagueId: 'demo-league',
-  status: 'active',
-  rounds: 4,
-  currentOverallPick: 1,
-  pickDeadline: new Date(Date.now() + 30_000).toISOString(),
-  teamIdsInDraftOrder: demoTeams.map((team) => team.id),
-  picks: [],
-};
-
 export function useDraft(draftId: string | undefined): DraftViewState {
-  const { demoMode, user } = useSession();
-  const local = demoMode || draftId === 'demo-draft';
+  const { user } = useSession();
   const [state, setState] = useState<Omit<DraftViewState, 'reload'>>({
-    draft: local ? demoDraft : null,
-    leagueName: local ? 'Badger Ice League' : '',
-    teams: local ? demoTeams : [],
-    athletes: local ? demoAthletes : [],
+    draft: null,
+    leagueName: '',
+    teams: [],
+    athletes: [],
     picks: [],
-    rankings: new Map(demoAthletes.map((athlete, index) => [athlete.id, index + 1])),
-    queuedAthleteIds: local ? demoAthletes.slice(2, 5).map((athlete) => athlete.id) : [],
-    myTeamId: local ? (demoTeams[0]?.id ?? null) : null,
-    loading: !local,
+    rankings: new Map(),
+    queuedAthleteIds: [],
+    myTeamId: null,
+    loading: true,
     error: null,
   });
 
   const reload = useCallback(async () => {
-    if (local || !supabase || !user || !draftId) return;
+    if (!supabase || !user || !draftId) {
+      setState((current) => ({ ...current, loading: false }));
+      return;
+    }
     const client = supabase;
     const draftResult = await client
       .from('drafts')
-      .select('id, league_id, status, rounds, current_overall_pick, pick_deadline, team_order')
+      .select(
+        'id, league_id, status, rounds, current_overall_pick, pick_deadline, state_version, team_order',
+      )
       .eq('id', draftId)
       .single();
     if (draftResult.error) {
@@ -117,7 +117,7 @@ export function useDraft(draftId: string | undefined): DraftViewState {
     const draftRow: DraftRow = draftResult.data;
     const leagueResult = await client
       .from('leagues')
-      .select('id, name, competition_id')
+      .select('id, name, competition_id, pool_id')
       .eq('id', draftRow.league_id)
       .single();
     if (leagueResult.error) {
@@ -131,11 +131,19 @@ export function useDraft(draftId: string | undefined): DraftViewState {
         .select('id, league_id, owner_id, name, draft_position')
         .eq('league_id', draftRow.league_id)
         .order('draft_position'),
-      client
-        .from('athletes')
-        .select('id, competition_id, team_id, display_name, position, jersey_number, status')
-        .eq('competition_id', leagueRow.competition_id)
-        .eq('status', 'active'),
+      leagueRow.pool_id
+        ? client
+            .from('pool_rankings')
+            .select(
+              'athlete_id, rank, athlete:athletes!inner(id, competition_id, team_id, display_name, position, jersey_number, status)',
+            )
+            .eq('pool_id', leagueRow.pool_id)
+            .order('rank')
+        : client
+            .from('athletes')
+            .select('id, competition_id, team_id, display_name, position, jersey_number, status')
+            .eq('competition_id', leagueRow.competition_id!)
+            .eq('status', 'active'),
       client
         .from('draft_picks')
         .select(
@@ -143,11 +151,17 @@ export function useDraft(draftId: string | undefined): DraftViewState {
         )
         .eq('draft_id', draftId)
         .order('overall_pick'),
-      client
-        .from('athlete_rankings')
-        .select('athlete_id, rank')
-        .eq('competition_id', leagueRow.competition_id)
-        .order('rank'),
+      leagueRow.pool_id
+        ? client
+            .from('pool_rankings')
+            .select('athlete_id, rank')
+            .eq('pool_id', leagueRow.pool_id)
+            .order('rank')
+        : client
+            .from('athlete_rankings')
+            .select('athlete_id, rank')
+            .eq('competition_id', leagueRow.competition_id!)
+            .order('rank'),
     ]);
     const teamRows: TeamRow[] = teamResult.data ?? [];
     const myTeam = teamRows.find((team) => team.owner_id === user.id);
@@ -187,6 +201,12 @@ export function useDraft(draftId: string | undefined): DraftViewState {
       name: row.name,
       draftPosition: row.draft_position ?? 0,
     }));
+    const athletes: AthleteRow[] = leagueRow.pool_id
+      ? (athleteResult.data as unknown as PoolRankingRow[]).flatMap((row): AthleteRow[] => {
+          const athlete = firstRelated(row.athlete);
+          return athlete ? [athlete] : [];
+        })
+      : (athleteResult.data as unknown as AthleteRow[]);
     setState({
       draft: {
         id: draftRow.id,
@@ -194,13 +214,14 @@ export function useDraft(draftId: string | undefined): DraftViewState {
         status: draftRow.status,
         rounds: draftRow.rounds,
         currentOverallPick: draftRow.current_overall_pick,
+        stateVersion: draftRow.state_version,
         ...(draftRow.pick_deadline ? { pickDeadline: draftRow.pick_deadline } : {}),
         teamIdsInDraftOrder: draftRow.team_order,
         picks,
       },
       leagueName: leagueRow.name,
       teams,
-      athletes: (athleteResult.data as AthleteRow[]).map<Athlete>((row) => ({
+      athletes: athletes.map<Athlete>((row) => ({
         id: row.id,
         competitionId: row.competition_id,
         teamId: row.team_id,
@@ -218,11 +239,15 @@ export function useDraft(draftId: string | undefined): DraftViewState {
       loading: false,
       error: null,
     });
-  }, [draftId, local, user]);
+  }, [draftId, user]);
 
   useEffect(() => {
     void reload();
-    if (local || !supabase || !draftId) return;
+    if (!supabase || !draftId) return;
+    if (Platform.OS === 'web') {
+      const interval = setInterval(() => void reload(), 2_000);
+      return () => clearInterval(interval);
+    }
     const client = supabase;
     const channel = client
       .channel(`draft:${draftId}`)
@@ -245,7 +270,7 @@ export function useDraft(draftId: string | undefined): DraftViewState {
     return () => {
       void client.removeChannel(channel);
     };
-  }, [draftId, local, reload]);
+  }, [draftId, reload]);
 
   return { ...state, reload };
 }

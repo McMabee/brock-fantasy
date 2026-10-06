@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { webRequest } from '@/lib/web-request';
 import { useSession } from '@/providers/session-provider';
 import { colors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
@@ -15,21 +16,54 @@ interface FactorSetup {
   verified: boolean;
 }
 
+interface WebMfaStatus {
+  aal: 'aal1' | 'aal2';
+  factor: { id: string; verified: boolean } | null;
+}
+
 export default function MfaScreen() {
   useRequireUser();
   const router = useRouter();
-  const { demoMode, user } = useSession();
+  const { user } = useSession();
   const [factor, setFactor] = useState<FactorSetup | null>(null);
   const [code, setCode] = useState('');
-  const [loading, setLoading] = useState(!demoMode);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (demoMode) {
-      setFactor({ id: 'demo-factor', qrCode: null, secret: 'DEMO-ONLY', verified: false });
+    if (!user) return;
+    if (Platform.OS === 'web') {
+      const loadWeb = async () => {
+        const status = await webRequest<WebMfaStatus>('/api/admin/mfa');
+        if (status.error || !status.data) {
+          setMessage(status.error ?? 'Authenticator status is unavailable.');
+          setLoading(false);
+          return;
+        }
+        if (status.data.aal === 'aal2') {
+          router.replace('/admin');
+          return;
+        }
+        if (status.data.factor) {
+          setFactor({ ...status.data.factor, qrCode: null, secret: null });
+          setLoading(false);
+          return;
+        }
+        const enrollment = await webRequest<{ factor: FactorSetup }>('/api/admin/mfa', {
+          method: 'POST',
+          body: { action: 'enroll' },
+        });
+        if (enrollment.error || !enrollment.data?.factor) {
+          setMessage(enrollment.error ?? 'Authenticator enrollment could not be started.');
+        } else {
+          setFactor(enrollment.data.factor);
+        }
+        setLoading(false);
+      };
+      void loadWeb();
       return;
     }
-    if (!supabase || !user) return;
+    if (!supabase) return;
     const client = supabase;
     const load = async () => {
       const assurance = await client.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -69,19 +103,29 @@ export default function MfaScreen() {
       setLoading(false);
     };
     void load();
-  }, [demoMode, router, user]);
+  }, [router, user]);
 
   const verify = async () => {
     if (!factor || code.trim().length !== 6) {
       setMessage('Enter the six-digit code from your authenticator app.');
       return;
     }
-    if (demoMode || !supabase) {
+    setLoading(true);
+    setMessage(null);
+    if (Platform.OS === 'web') {
+      const result = await webRequest<unknown>('/api/admin/mfa', {
+        method: 'POST',
+        body: { action: 'verify', factorId: factor.id, code: code.trim() },
+      });
+      if (result.error) {
+        setMessage(result.error);
+        setLoading(false);
+        return;
+      }
       router.replace('/admin');
       return;
     }
-    setLoading(true);
-    setMessage(null);
+    if (!supabase) return;
     const result = await supabase.auth.mfa.challengeAndVerify({
       factorId: factor.id,
       code: code.trim(),

@@ -21,6 +21,29 @@ select set_config('request.jwt.claim', '{"sub":"30000000-0000-4000-8000-00000000
 select is(public.current_user_is_admin(), true, 'admin role with AAL2 is authorized');
 delete from public.user_roles where user_id = '30000000-0000-4000-8000-000000000001';
 
+-- Isolated command fixture. Runtime seed data is intentionally empty.
+insert into public.sports (id, code, name)
+values ('00000000-0000-4000-8000-000000000001', 'hockey', 'Hockey');
+insert into public.scoring_rulesets (
+  id, sport, name, version, status, draft_config, transaction_config, matchup_config
+) values (
+  '10000000-0000-4000-8000-000000000001', 'hockey', 'Command test hockey', 1, 'draft',
+  '{"pickSeconds":90,"autopickStrategy":"queued_then_ranked_legal"}',
+  '{"freeAgentsEnabled":true,"waiversEnabled":true,"tradesEnabled":true}',
+  '{"periodDays":7,"tiesAllowed":true,"tiebreaker":"points_for"}'
+);
+insert into public.roster_slot_rules (
+  ruleset_id, slot_code, label, allowed_positions, slot_count, is_starter
+) values (
+  '10000000-0000-4000-8000-000000000001', 'BN', 'Bench', array['F','D','G'], 8, false
+);
+insert into public.competitions (
+  id, sport_id, division, name, season_label, ruleset_id, is_active
+) values (
+  '20000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001',
+  'mens', 'Command test hockey', '2026-27', '10000000-0000-4000-8000-000000000001', false
+);
+
 insert into public.teams (id, competition_id, name, short_name, is_brock)
 values
   ('40000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'Brock Test', 'BRO', true),

@@ -5,42 +5,68 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const publishableKey =
+  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const isExpoWebServer = Platform.OS === 'web' && typeof document === 'undefined';
 export const appEnvironment = process.env.EXPO_PUBLIC_APP_ENV ?? 'local';
 export const supportEmail = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
-export const isDemoMode = !url || !anonKey;
+export const hasSupabaseConfig = Boolean(url && publishableKey);
 
-if (appEnvironment === 'production') {
-  if (isDemoMode) {
-    throw new Error(
-      'Production requires EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.',
+function isHttpsOrigin(value: string | undefined): boolean {
+  if (!value) return false;
+  try {
+    return (
+      new URL(value).protocol === 'https:' && new URL(value).origin === value.replace(/\/$/u, '')
     );
-  }
-  if (!supportEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(supportEmail)) {
-    throw new Error('Production requires a valid EXPO_PUBLIC_SUPPORT_EMAIL.');
+  } catch {
+    return false;
   }
 }
 
-const webStorage = {
-  getItem: (key: string) => Promise.resolve(globalThis.localStorage?.getItem(key) ?? null),
-  setItem: (key: string, value: string) => {
-    globalThis.localStorage?.setItem(key, value);
-    return Promise.resolve();
-  },
-  removeItem: (key: string) => {
-    globalThis.localStorage?.removeItem(key);
-    return Promise.resolve();
-  },
-};
+async function cookieAuthenticatedRead(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const request = input instanceof Request ? input : new Request(input, init);
+  const target = new URL(request.url);
+  const path = `${target.pathname}${target.search}`;
+  if (!path.startsWith('/rest/v1/')) return fetch(request);
+  return fetch(`/api/data/supabase?path=${encodeURIComponent(path)}`, {
+    method: request.method,
+    headers: request.headers,
+    credentials: 'include',
+    cache: 'no-store',
+    ...(request.method === 'GET' || request.method === 'HEAD'
+      ? {}
+      : { body: await request.text() }),
+  });
+}
+
+if (appEnvironment === 'production' || appEnvironment === 'staging') {
+  if (!hasSupabaseConfig) {
+    throw new Error(
+      'Staging and production require EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY.',
+    );
+  }
+  if (!supportEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(supportEmail)) {
+    throw new Error('Staging and production require a valid EXPO_PUBLIC_SUPPORT_EMAIL.');
+  }
+  if (!isHttpsOrigin(process.env.EXPO_PUBLIC_APP_ORIGIN)) {
+    throw new Error(
+      'Staging and production require an HTTPS EXPO_PUBLIC_APP_ORIGIN without a path.',
+    );
+  }
+}
 
 export const supabase: SupabaseClient | null =
-  url && anonKey
-    ? createClient(url, anonKey, {
+  !isExpoWebServer && url && publishableKey
+    ? createClient(url, publishableKey, {
         auth: {
-          storage: Platform.OS === 'web' ? webStorage : AsyncStorage,
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: Platform.OS === 'web',
+          storage: AsyncStorage,
+          autoRefreshToken: Platform.OS !== 'web',
+          persistSession: Platform.OS !== 'web',
+          detectSessionInUrl: false,
         },
+        ...(Platform.OS === 'web' ? { global: { fetch: cookieAuthenticatedRead } } : {}),
       })
     : null;

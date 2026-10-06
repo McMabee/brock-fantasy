@@ -147,3 +147,9 @@ vite.config.ts.timestamp-*
 .turbo/
 web-build/
 .DS_Store
+
+# Game Logic CSV Files
+logic/*
+tmp/
+test-results/
+playwright-report/

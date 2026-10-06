@@ -16,6 +16,7 @@ const email = `edge-smoke-${Date.now()}@example.test`;
 const password = `LocalOnly-${crypto.randomUUID()}!`;
 const runLabel = Date.now().toString(36);
 const provider = `edge-smoke-${runLabel}`;
+const sportId = crypto.randomUUID();
 const rulesetId = crypto.randomUUID();
 const competitionId = crypto.randomUUID();
 const homeTeamId = crypto.randomUUID();
@@ -135,9 +136,14 @@ try {
     slot_count: 1,
     is_starter: true,
   });
+  await insertRows('sports', {
+    id: sportId,
+    code: 'hockey',
+    name: `Edge Hockey ${runLabel}`,
+  });
   await insertRows('competitions', {
     id: competitionId,
-    sport_id: '00000000-0000-4000-8000-000000000001',
+    sport_id: sportId,
     division: 'mens',
     name: `Edge Hockey ${runLabel}`,
     season_label: `smoke-${runLabel}`,
@@ -345,10 +351,18 @@ try {
     'Edge smoke passed: auth/admin, rejected receipt, fixture scoring/correction, push, deletion.\n',
   );
 } finally {
+  const rosterEntries = await readRows(`roster_entries?league_id=eq.${leagueId}&select=id`);
+  await deleteRowsByValues(
+    'roster_slot_history',
+    'roster_entry_id',
+    rosterEntries.map((entry) => entry.id),
+  );
+  await deleteRows('period_lineup_locks', `league_id=eq.${leagueId}`);
   await deleteRows('leagues', `id=eq.${leagueId}`);
   await deleteRows('provider_entity_mappings', `provider=eq.${provider}`);
   await deleteRows('competitions', `id=eq.${competitionId}`);
   await deleteRows('scoring_rulesets', `id=eq.${rulesetId}`);
+  await deleteRows('sports', `id=eq.${sportId}`);
   await deleteRows('provider_raw_receipts', `source_hint=eq.${provider}`);
   if (userId) {
     await fetch(`${status.API_URL}/auth/v1/admin/users/${userId}`, {
@@ -394,8 +408,16 @@ async function deleteRows(table, filter) {
     headers: serviceHeaders,
   });
   if (!response.ok) {
-    process.stderr.write(`Cleanup warning: ${table} returned ${response.status}.\n`);
+    process.stderr.write(
+      `Cleanup warning: ${table} returned ${response.status}: ${(await response.text()).slice(0, 240)}\n`,
+    );
   }
+}
+
+async function deleteRowsByValues(table, column, values) {
+  const ids = values.filter((value) => typeof value === 'string');
+  if (ids.length === 0) return;
+  await deleteRows(table, `${column}=in.(${ids.join(',')})`);
 }
 
 async function expectPoints(expected, action) {

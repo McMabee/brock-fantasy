@@ -108,8 +108,12 @@ export default function AdminScreen() {
               data.
             </Text>
             <ActionButton label="Import provider snapshot" href="/admin/import" />
-            <ActionButton label="Review mappings" disabled variant="secondary" />
-            <ActionButton label="Preview score replay" disabled variant="secondary" />
+            <ActionButton
+              label="Review mappings and games"
+              href="/admin/games"
+              variant="secondary"
+            />
+            <ActionButton label="Scorekeeping workspace" href="/admin/games" variant="secondary" />
           </Card>
           <Card style={styles.incident}>
             <Text style={styles.incidentLabel}>INCIDENT CONTROL</Text>
@@ -117,7 +121,11 @@ export default function AdminScreen() {
             <Text style={styles.incidentBody}>
               Pause only the affected competition while preserving raw provider inputs.
             </Text>
-            <ActionButton label="Open incident workflow" disabled variant="danger" />
+            <ActionButton
+              label="Open scorekeeping workspace"
+              href="/admin/games"
+              variant="danger"
+            />
           </Card>
         </View>
       </View>
@@ -190,8 +198,8 @@ const styles = StyleSheet.create({
   auditActor: { color: colors.muted, fontSize: 9, marginTop: 4 },
   actions: { gap: 11 },
   actionTitle: { ...heading, fontSize: 17 },
-  incident: { marginTop: 14, backgroundColor: '#382020', borderColor: '#704040', gap: 8 },
+  incident: { marginTop: 14, backgroundColor: colors.white, borderColor: colors.red, gap: 8 },
   incidentLabel: { color: colors.danger, fontSize: 8, fontWeight: '900', letterSpacing: 1.5 },
   incidentTitle: { ...heading, fontSize: 17 },
-  incidentBody: { color: '#D0AAAA', fontSize: 11, lineHeight: 17, marginBottom: 7 },
+  incidentBody: { color: colors.muted, fontSize: 11, lineHeight: 17, marginBottom: 7 },
 });

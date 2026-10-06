@@ -70,7 +70,9 @@ export interface Athlete {
 
 export interface League {
   id: UUID;
-  competitionId: UUID;
+  /** Legacy leagues retain one competition; beta leagues use playerPoolId. */
+  competitionId: UUID | null;
+  playerPoolId?: UUID;
   commissionerId: UUID;
   name: string;
   format: LeagueFormat;
@@ -78,6 +80,7 @@ export interface League {
   rulesetId: UUID;
   maxMembers: number;
   inviteCode: string;
+  stateVersion?: number;
 }
 
 export interface FantasyTeam {
@@ -116,6 +119,7 @@ export interface DraftState {
   status: DraftStatus;
   rounds: number;
   currentOverallPick: number;
+  stateVersion?: number;
   pickDeadline?: string;
   teamIdsInDraftOrder: readonly UUID[];
   picks: readonly DraftPick[];

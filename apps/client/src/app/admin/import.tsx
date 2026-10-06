@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { webRequest } from '@/lib/web-request';
 import { colors } from '@/theme';
 import { useRequireAdmin } from '@/hooks/use-route-access';
 
@@ -25,12 +26,22 @@ export default function AdminImportScreen() {
       setResult('The import must be a top-level JSON object.');
       return;
     }
-    if (!supabase) {
-      setResult('Demo validation passed. Configure Supabase to persist and score this snapshot.');
+    const client = supabase;
+    if (!client && Platform.OS !== 'web') {
+      setResult('The import service is temporarily unavailable. Please try again shortly.');
       return;
     }
     setWorking(true);
-    const response = (await supabase.functions.invoke<unknown>('ingest-sports-data', {
+    if (Platform.OS === 'web') {
+      const response = await webRequest<unknown>('/api/admin/import', {
+        method: 'POST',
+        body: parsed as Record<string, unknown>,
+      });
+      setWorking(false);
+      setResult(response.error ?? JSON.stringify(response.data, null, 2));
+      return;
+    }
+    const response = (await client!.functions.invoke<unknown>('ingest-sports-data', {
       body: parsed as Record<string, unknown>,
     })) as { data: unknown; error: { message: string } | null };
     setWorking(false);

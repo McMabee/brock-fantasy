@@ -6,6 +6,7 @@ import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/co
 import { useDraft } from '@/hooks/use-draft';
 import { useLeague } from '@/hooks/use-league';
 import { supabase } from '@/lib/supabase';
+import { betaCommand } from '@/lib/web-api';
 import { useSession } from '@/providers/session-provider';
 import { colors, heading } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
@@ -27,22 +28,20 @@ export default function CommissionerScreen() {
   useRequireUser();
   const router = useRouter();
   const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
-  const { demoMode, user } = useSession();
+  const { user } = useSession();
   const leagueData = useLeague(leagueId);
   const draftData = useDraft(leagueData.draftId ?? undefined);
-  const [config, setConfig] = useState<DraftConfig | null>(
-    demoMode ? { rounds: 4, pickSeconds: 30 } : null,
-  );
+  const [config, setConfig] = useState<DraftConfig | null>(null);
   const [scheduleStart, setScheduleStart] = useState(
     new Date(Date.now() + 7 * 86_400_000).toISOString(),
   );
   const [cycles, setCycles] = useState('2');
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const authorized = demoMode || leagueData.league?.commissionerId === user?.id;
+  const authorized = leagueData.league?.commissionerId === user?.id;
 
   useEffect(() => {
-    if (demoMode || !supabase || !leagueData.league) return;
+    if (!supabase || !leagueData.league) return;
     const client = supabase;
     const load = async () => {
       const [rulesetResult, slotsResult] = await Promise.all([
@@ -78,46 +77,46 @@ export default function CommissionerScreen() {
       setConfig({ rounds, pickSeconds: seconds });
     };
     void load();
-  }, [demoMode, leagueData.league]);
+  }, [leagueData.league]);
 
   const startDraft = async () => {
     if (!config || !leagueId) return;
     if (!supabase) {
-      router.push('/draft/demo-draft');
+      setMessage('Draft service is temporarily unavailable. Please try again shortly.');
       return;
     }
     setWorking(true);
-    const result = (await supabase.rpc('start_draft', {
+    const result = await betaCommand<{ draft_id: string }>('start_draft', {
       p_league_id: leagueId,
       p_rounds: config.rounds,
       p_pick_seconds: config.pickSeconds,
       p_idempotency_key: `start-draft-${Date.now()}`,
-    })) as { data: { draft_id: string } | null; error: { message: string } | null };
+    });
     setWorking(false);
-    if (result.error) setMessage(result.error.message);
+    if (result.error) setMessage(result.error);
     else if (result.data) router.push(`/draft/${result.data.draft_id}`);
   };
 
   const changeDraftStatus = async (action: 'pause' | 'resume') => {
     if (!supabase || !leagueData.draftId) {
-      setMessage(`Demo draft ${action}d.`);
+      setMessage('Draft controls are temporarily unavailable. Please try again shortly.');
       return;
     }
     setWorking(true);
-    const result = (await supabase.rpc('set_draft_status', {
+    const result = await betaCommand('set_draft_status', {
       p_draft_id: leagueData.draftId,
-      p_action: action,
+      p_status: action === 'pause' ? 'paused' : 'active',
       p_idempotency_key: `draft-${action}-${Date.now()}`,
-    })) as { error: { message: string } | null };
+    });
     setWorking(false);
-    if (result.error) setMessage(result.error.message);
+    if (result.error) setMessage(result.error);
     else await draftData.reload();
   };
 
   const generateSchedule = async () => {
     if (!leagueId) return;
     if (!supabase) {
-      setMessage('Demo matchup schedule generated.');
+      setMessage('Schedule generation is temporarily unavailable. Please try again shortly.');
       return;
     }
     const parsedCycles = Number(cycles);
@@ -130,14 +129,14 @@ export default function CommissionerScreen() {
       return;
     }
     setWorking(true);
-    const result = (await supabase.rpc('generate_matchup_schedule', {
+    const result = await betaCommand('generate_matchup_schedule', {
       p_league_id: leagueId,
       p_starts_at: new Date(scheduleStart).toISOString(),
       p_cycles: parsedCycles,
       p_idempotency_key: `matchups-${Date.now()}`,
-    })) as { error: { message: string } | null };
+    });
     setWorking(false);
-    if (result.error) setMessage(result.error.message);
+    if (result.error) setMessage(result.error);
     else {
       setMessage('Matchup schedule generated.');
       await leagueData.reload();
@@ -242,7 +241,7 @@ export default function CommissionerScreen() {
       <View style={styles.back}>
         <ActionButton
           label="Back to league"
-          href={`/league/${leagueId ?? 'demo-league'}`}
+          href={leagueId ? `/league/${leagueId}` : '/dashboard'}
           variant="ghost"
         />
       </View>

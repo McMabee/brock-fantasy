@@ -11,8 +11,8 @@ export default function TermsScreen() {
           paid contests, gambling deposits, withdrawals, or cash prizes.
         </Text>
         <Term title="Fair play">
-          Do not manipulate drafts, scoring inputs, sponsor metrics, accounts, or league access.
-          Automated abuse and attempts to bypass authorization may result in suspension.
+          Do not manipulate drafts, scoring inputs, accounts, or league access. Automated abuse and
+          attempts to bypass authorization may result in suspension.
         </Term>
         <Term title="Community conduct">
           League chat is text-only. Harassment, threats, hate, spam, impersonation, and unlawful

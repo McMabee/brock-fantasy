@@ -1,14 +1,15 @@
 import type { FantasyTeam, League, MatchupResult, StandingsRow } from '@brock-fantasy/domain';
 import { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
-import { demoAthletes, demoLeague, demoMatchup, demoStandings, demoTeams } from '@/data/demo';
 import { firstRelated } from '@/lib/relations';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
 
 interface LeagueRow {
   id: string;
-  competition_id: string;
+  competition_id: string | null;
+  pool_id: string | null;
   commissioner_id: string | null;
   ruleset_id: string;
   name: string;
@@ -16,6 +17,7 @@ interface LeagueRow {
   status: League['status'];
   max_members: number;
   invite_code: string;
+  state_version: number;
 }
 
 interface TeamRow {
@@ -104,59 +106,33 @@ interface MessageRow {
   author: { display_name: string } | readonly { display_name: string }[] | null;
 }
 
-const demoRoster: readonly LeagueRosterEntry[] = demoAthletes.slice(0, 6).map((athlete, index) => ({
-  id: `demo-roster-${athlete.id}`,
-  fantasyTeamId: demoTeams[0]?.id ?? '',
-  athleteId: athlete.id,
-  displayName: athlete.displayName,
-  position: athlete.position,
-  jerseyNumber: athlete.jerseyNumber ?? null,
-  slotCode: index < 4 ? athlete.position : 'BN',
-  status: index < 4 ? 'starter' : 'bench',
-}));
-
-const demoMessages: readonly LeagueChatMessage[] = [
-  {
-    id: 'm1',
-    authorId: 'team-green',
-    author: 'Green Machine',
-    body: 'That third-period goal changed everything.',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'm2',
-    authorId: 'team-power',
-    author: 'Power Playmakers',
-    body: 'Still time left. Great matchup!',
-    createdAt: new Date().toISOString(),
-  },
-];
-
 export function useLeague(leagueId: string | undefined): LeagueData {
-  const { demoMode, user } = useSession();
-  const local = demoMode || leagueId === 'demo-league';
+  const { user } = useSession();
   const [data, setData] = useState<Omit<LeagueData, 'reload'>>({
-    league: local ? demoLeague : null,
-    teams: local ? demoTeams : [],
-    standings: local ? demoStandings : [],
-    draftId: local ? 'demo-draft' : null,
-    myTeamId: local ? (demoTeams[0]?.id ?? null) : null,
-    roster: local ? demoRoster : [],
-    matchups: local ? [demoMatchup] : [],
-    messages: local ? demoMessages : [],
-    loading: !local,
+    league: null,
+    teams: [],
+    standings: [],
+    draftId: null,
+    myTeamId: null,
+    roster: [],
+    matchups: [],
+    messages: [],
+    loading: true,
     error: null,
   });
 
   const reload = useCallback(async () => {
-    if (local || !supabase || !leagueId || !user) return;
+    if (!supabase || !leagueId || !user) {
+      setData((current) => ({ ...current, loading: false }));
+      return;
+    }
     const client = supabase;
     const [leagueResult, teamResult, standingsResult, draftResult, matchupResult, messageResult] =
       await Promise.all([
         client
           .from('leagues')
           .select(
-            'id, competition_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code',
+            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version',
           )
           .eq('id', leagueId)
           .single(),
@@ -202,6 +178,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
     const league: League = {
       id: row.id,
       competitionId: row.competition_id,
+      ...(row.pool_id ? { playerPoolId: row.pool_id } : {}),
       commissionerId: row.commissioner_id ?? '',
       rulesetId: row.ruleset_id,
       name: row.name,
@@ -209,6 +186,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       status: row.status,
       maxMembers: row.max_members,
       inviteCode: row.invite_code,
+      stateVersion: row.state_version,
     };
     const teamRows: TeamRow[] = teamResult.data ?? [];
     const teams = teamRows.map<FantasyTeam>((team) => ({
@@ -289,11 +267,15 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       loading: false,
       error: null,
     });
-  }, [leagueId, local, user]);
+  }, [leagueId, user]);
 
   useEffect(() => {
     void reload();
-    if (local || !supabase || !leagueId) return;
+    if (!supabase || !leagueId) return;
+    if (Platform.OS === 'web') {
+      const interval = setInterval(() => void reload(), 5_000);
+      return () => clearInterval(interval);
+    }
     const client = supabase;
     const channel = client
       .channel(`league:${leagueId}`)
@@ -326,7 +308,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
     return () => {
       void client.removeChannel(channel);
     };
-  }, [leagueId, local, reload]);
+  }, [leagueId, reload]);
 
   return { ...data, reload };
 }

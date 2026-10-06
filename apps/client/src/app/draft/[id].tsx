@@ -6,33 +6,27 @@ import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } fro
 import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
 import { useDraft } from '@/hooks/use-draft';
 import { supabase } from '@/lib/supabase';
-import { useSession } from '@/providers/session-provider';
+import { betaCommand } from '@/lib/web-api';
 import { colors, heading, radii } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
-
-const PICK_SECONDS = 30;
 
 export default function DraftRoomScreen() {
   useRequireUser();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { demoMode } = useSession();
   const draftData = useDraft(id);
   const { width } = useWindowDimensions();
-  const [demoPickedIds, setDemoPickedIds] = useState<string[]>([]);
-  const [remaining, setRemaining] = useState(PICK_SECONDS);
+  const [remaining, setRemaining] = useState(0);
   const [queuedIds, setQueuedIds] = useState<readonly string[]>(draftData.queuedAthleteIds);
   const [query, setQuery] = useState('');
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const pickedIds = demoMode ? demoPickedIds : draftData.picks.map((pick) => pick.athleteId);
+  const pickedIds = draftData.picks.map((pick) => pick.athleteId);
   const teamIds = draftData.draft?.teamIdsInDraftOrder ?? [];
   const order = useMemo(
     () => (teamIds.length >= 2 ? buildSnakeOrder(teamIds, draftData.draft?.rounds ?? 1) : []),
     [draftData.draft?.rounds, teamIds],
   );
-  const pickIndex = demoMode
-    ? demoPickedIds.length
-    : Math.max(0, (draftData.draft?.currentOverallPick ?? 1) - 1);
+  const pickIndex = Math.max(0, (draftData.draft?.currentOverallPick ?? 1) - 1);
   const currentTeamId = order[pickIndex];
   const currentTeam = draftData.teams.find((team) => team.id === currentTeamId);
   const available = draftData.athletes
@@ -48,7 +42,7 @@ export default function DraftRoomScreen() {
         left.displayName.localeCompare(right.displayName),
     );
   const wide = width >= 880;
-  const mayPick = demoMode || currentTeamId === draftData.myTeamId;
+  const mayPick = currentTeamId === draftData.myTeamId;
 
   const commitPick = async (athleteId: string) => {
     if (submitting || pickedIds.includes(athleteId) || !currentTeamId) return;
@@ -58,23 +52,24 @@ export default function DraftRoomScreen() {
     }
     setSubmitting(athleteId);
     setError(null);
-    if (supabase) {
-      const result = (await supabase.rpc('make_draft_pick', {
-        p_draft_id: id ?? 'demo-draft',
-        p_athlete_id: athleteId,
-        p_idempotency_key: `pick-${Date.now()}-${athleteId}`,
-        p_source: 'manager',
-      })) as { error: { message: string } | null };
-      if (result.error) {
-        setError(result.error.message);
-        setSubmitting(null);
-        return;
-      }
-      await draftData.reload();
-    } else {
-      setDemoPickedIds((current) => [...current, athleteId]);
-      setRemaining(PICK_SECONDS);
+    if (!supabase || !id) {
+      setError('Draft service is temporarily unavailable. Please try again shortly.');
+      setSubmitting(null);
+      return;
     }
+    const result = await betaCommand('make_draft_pick', {
+      p_draft_id: id,
+      p_athlete_id: athleteId,
+      p_idempotency_key: `pick-${Date.now()}-${athleteId}`,
+      p_source: 'manager',
+      p_expected_version: draftData.draft?.stateVersion ?? null,
+    });
+    if (result.error) {
+      setError(result.error);
+      setSubmitting(null);
+      return;
+    }
+    await draftData.reload();
     setSubmitting(null);
   };
 
@@ -84,14 +79,14 @@ export default function DraftRoomScreen() {
       : [...queuedIds, athleteId];
     setQueuedIds(next);
     if (!supabase || !id) return;
-    const result = (await supabase.rpc('set_draft_queue', {
+    const result = await betaCommand('set_draft_queue', {
       p_draft_id: id,
       p_athlete_ids: next,
       p_idempotency_key: `queue-${Date.now()}`,
-    })) as { error: { message: string } | null };
+    });
     if (result.error) {
       setQueuedIds(queuedIds);
-      setError(result.error.message);
+      setError(result.error);
     }
   };
 
@@ -100,15 +95,7 @@ export default function DraftRoomScreen() {
   }, [draftData.queuedAthleteIds]);
 
   useEffect(() => {
-    if (!demoMode || !currentTeamId || submitting) return;
-    const timer = setInterval(() => {
-      setRemaining((value) => Math.max(0, value - 1));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [currentTeamId, demoMode, submitting]);
-
-  useEffect(() => {
-    if (demoMode || !draftData.draft?.pickDeadline) return;
+    if (!draftData.draft?.pickDeadline) return;
     const updateClock = () =>
       setRemaining(
         Math.max(
@@ -119,13 +106,7 @@ export default function DraftRoomScreen() {
     updateClock();
     const timer = setInterval(updateClock, 1000);
     return () => clearInterval(timer);
-  }, [demoMode, draftData.draft?.pickDeadline]);
-
-  useEffect(() => {
-    if (!demoMode || remaining !== 0 || submitting) return;
-    const autopick = draftData.athletes.find((athlete) => !pickedIds.includes(athlete.id));
-    if (autopick) void commitPick(autopick.id);
-  }, [demoMode, draftData.athletes, pickedIds, remaining, submitting]);
+  }, [draftData.draft?.pickDeadline]);
 
   const round = teamIds.length > 0 ? Math.floor(pickIndex / teamIds.length) + 1 : 1;
 
@@ -284,7 +265,7 @@ export default function DraftRoomScreen() {
           </Card>
           <ActionButton
             label="Return to league"
-            href={`/league/${draftData.draft?.leagueId ?? 'demo-league'}`}
+            href={draftData.draft?.leagueId ? `/league/${draftData.draft.leagueId}` : '/dashboard'}
             variant="secondary"
           />
         </View>
@@ -339,7 +320,7 @@ const styles = StyleSheet.create({
     borderRightColor: colors.border,
     borderRightWidth: 1,
   },
-  orderPickActive: { backgroundColor: '#263D1A' },
+  orderPickActive: { backgroundColor: colors.white, borderColor: colors.red, borderWidth: 1 },
   orderNumber: { color: colors.brand, fontSize: 9, fontWeight: '900' },
   orderTeam: { color: colors.text, fontSize: 10, fontWeight: '700', marginTop: 3 },
   draftGrid: { gap: 16 },

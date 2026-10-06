@@ -1,9 +1,7 @@
 import type { Competition, DivisionCode, SportCode } from '@brock-fantasy/domain';
 import { useEffect, useState } from 'react';
 
-import { demoCompetitions } from '@/data/demo';
 import { supabase } from '@/lib/supabase';
-import { useSession } from '@/providers/session-provider';
 
 interface CompetitionRow {
   id: string;
@@ -16,13 +14,10 @@ interface CompetitionRow {
 }
 
 export function useCompetitions(): readonly Competition[] {
-  const { demoMode } = useSession();
-  const [competitions, setCompetitions] = useState<readonly Competition[]>(
-    demoMode ? demoCompetitions : [],
-  );
+  const [competitions, setCompetitions] = useState<readonly Competition[]>([]);
 
   useEffect(() => {
-    if (demoMode || !supabase) return;
+    if (!supabase) return;
     void supabase
       .from('competitions')
       .select('id, division, name, season_label, is_active, ruleset_id, sports!inner(code)')
@@ -46,7 +41,7 @@ export function useCompetitions(): readonly Competition[] {
           }),
         );
       });
-  }, [demoMode]);
+  }, []);
 
   return competitions;
 }

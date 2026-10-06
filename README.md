@@ -1,8 +1,8 @@
 # Brock Fantasy Sports
 
 Universal web, iOS, and Android fantasy sports platform for Brock varsity athletics. The
-application supports private leagues, head-to-head or points-leaderboard play, auditable scoring,
-snake drafts, roster transactions, sponsor placements, and moderated league chat.
+application supports private combined-program leagues, auditable scoring, snake drafts, roster
+transactions, player history, and moderated league chat. The beta renders no advertising or sponsor content.
 
 ## Repository layout
 
@@ -21,8 +21,18 @@ cp .env.example apps/client/.env.local
 pnpm dev
 ```
 
-Without Supabase variables, the client starts in clearly labelled demo mode. Demo mode is intended
-for local UI development only and is rejected by production configuration validation.
+The application has no demo fallback. Configure a Supabase project before using account, league, or
+data features. If approved data has not been imported, the interface states that the information
+will be provided shortly.
+
+To build the web app and serve the resulting static files locally, run:
+
+```bash
+pnpm preview
+```
+
+Then open the local URL printed by Expo (by default, `http://localhost:8081`) in a browser. Stop the
+preview server with `Ctrl+C`.
 
 Run the full verification suite with:
 

@@ -2,6 +2,7 @@ import { useRouter, type Href } from 'expo-router';
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,7 +14,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import darkLogo from '../../assets/brock-fantasy-logo.png';
+import lightLogo from '../../assets/brock-fantasy-logo-light.png';
 import { useSession } from '@/providers/session-provider';
+import { useTheme } from '@/providers/theme-provider';
 import { colors, heading, radii, shadow } from '@/theme';
 
 export function AppShell({
@@ -29,7 +33,8 @@ export function AppShell({
 }) {
   const { width } = useWindowDimensions();
   const router = useRouter();
-  const { demoMode } = useSession();
+  const { user } = useSession();
+  const { mode, toggleMode, palette } = useTheme();
   const wide = width >= 820;
 
   return (
@@ -43,26 +48,47 @@ export function AppShell({
           onPress={() => router.push('/')}
           style={styles.brandRow}
         >
-          <View style={styles.brandMark}>
-            <Text style={styles.brandMarkText}>B</Text>
-          </View>
-          <View>
-            <Text style={styles.brandName}>BROCK</Text>
-            <Text style={styles.brandSub}>FANTASY</Text>
-          </View>
+          <Image
+            accessibilityLabel="Brock Fantasy logo"
+            accessibilityRole="image"
+            resizeMode="contain"
+            source={mode === 'dark' ? darkLogo : lightLogo}
+            style={styles.logo}
+          />
         </Pressable>
         <View style={styles.topbarActions}>
-          {demoMode ? <Pill label="Demo data" tone="warning" /> : null}
           {wide ? (
             <Pressable accessibilityRole="link" onPress={() => router.push('/dashboard')}>
               <Text style={styles.navLink}>Dashboard</Text>
             </Pressable>
           ) : null}
-          <Pressable accessibilityRole="link" onPress={() => router.push('/notifications')}>
-            <Text style={styles.navLink}>Updates</Text>
+          {wide ? (
+            <Pressable accessibilityRole="link" onPress={() => router.push('/players')}>
+              <Text style={styles.navLink}>Players</Text>
+            </Pressable>
+          ) : null}
+          {user ? (
+            <Pressable accessibilityRole="link" onPress={() => router.push('/notifications')}>
+              <Text style={styles.navLink}>Updates</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            onPress={toggleMode}
+            style={[
+              styles.themeToggle,
+              { borderColor: palette.border, backgroundColor: palette.canvasSoft },
+            ]}
+          >
+            <Text style={[styles.themeToggleText, { color: palette.text }]}>
+              {mode === 'dark' ? 'Light mode' : 'Dark mode'}
+            </Text>
           </Pressable>
-          <Pressable accessibilityRole="link" onPress={() => router.push('/account')}>
-            <Text style={styles.navLink}>Account</Text>
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => router.push(user ? '/account' : '/auth')}
+          >
+            <Text style={styles.navLink}>{user ? 'Account' : 'Sign in'}</Text>
           </Pressable>
         </View>
       </View>
@@ -225,8 +251,8 @@ const styles = StyleSheet.create({
     width: 420,
     height: 420,
     borderRadius: 210,
-    backgroundColor: '#163E2E',
-    opacity: 0.38,
+    backgroundColor: colors.navy,
+    opacity: 0.08,
     top: -250,
     right: -100,
   },
@@ -235,8 +261,8 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 130,
-    backgroundColor: '#2B3313',
-    opacity: 0.22,
+    backgroundColor: colors.red,
+    opacity: 0.06,
     bottom: -180,
     left: -80,
   },
@@ -244,28 +270,24 @@ const styles = StyleSheet.create({
     minHeight: 72,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderBottomColor: '#173529',
+    borderBottomColor: colors.border,
     borderBottomWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(6, 19, 14, 0.92)',
+    backgroundColor: colors.topbar,
     zIndex: 2,
   },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandMark: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    backgroundColor: colors.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    transform: [{ rotate: '-4deg' }],
-  },
-  brandMarkText: { color: colors.canvas, fontWeight: '900', fontSize: 25 },
-  brandName: { color: colors.text, fontWeight: '900', fontSize: 16, letterSpacing: 1.8 },
-  brandSub: { color: colors.brand, fontWeight: '800', fontSize: 9, letterSpacing: 3.1 },
+  brandRow: { alignItems: 'center', justifyContent: 'center' },
+  logo: { width: 54, height: 58 },
   topbarActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  themeToggle: {
+    borderWidth: 1,
+    borderRadius: radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  themeToggleText: { fontSize: 11, fontWeight: '800' },
   navLink: { color: colors.text, fontSize: 14, fontWeight: '700' },
   scrollContent: { flexGrow: 1 },
   page: { width: '100%', maxWidth: 1180, alignSelf: 'center', padding: 20, paddingBottom: 64 },
@@ -294,7 +316,7 @@ const styles = StyleSheet.create({
     padding: 18,
     ...shadow,
   },
-  cardAccent: { borderColor: '#73962A', backgroundColor: '#172F1B' },
+  cardAccent: { borderColor: colors.red, backgroundColor: colors.white },
   pill: {
     borderRadius: radii.pill,
     backgroundColor: colors.panelStrong,
@@ -302,26 +324,26 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     alignSelf: 'flex-start',
   },
-  pillPositive: { backgroundColor: '#285D39' },
-  pillWarning: { backgroundColor: '#604A1E' },
-  pillInfo: { backgroundColor: '#1A4660' },
-  pillText: { color: colors.text, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+  pillPositive: { backgroundColor: colors.navy },
+  pillWarning: { backgroundColor: colors.red },
+  pillInfo: { backgroundColor: colors.navy },
+  pillText: { color: colors.white, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
   button: {
     minHeight: 48,
     borderRadius: radii.sm,
     paddingHorizontal: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.brand,
+    backgroundColor: colors.red,
     borderWidth: 1,
-    borderColor: colors.brand,
+    borderColor: colors.red,
   },
   buttonSecondary: { backgroundColor: colors.panelStrong, borderColor: colors.border },
-  buttonDanger: { backgroundColor: '#582929', borderColor: '#9F4B4B' },
+  buttonDanger: { backgroundColor: colors.red, borderColor: colors.red },
   buttonGhost: { backgroundColor: 'transparent', borderColor: 'transparent' },
   buttonPressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: colors.canvas, fontWeight: '900', fontSize: 14 },
+  buttonText: { color: colors.white, fontWeight: '900', fontSize: 14 },
   sectionTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

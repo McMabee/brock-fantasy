@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { webRequest } from '@/lib/web-request';
 import { useSession } from '@/providers/session-provider';
 import { colors, heading } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
@@ -11,7 +12,7 @@ import { useRequireUser } from '@/hooks/use-route-access';
 export default function AccountScreen() {
   useRequireUser();
   const router = useRouter();
-  const { user, demoMode, signOut } = useSession();
+  const { user, signOut } = useSession();
   const [confirmation, setConfirmation] = useState('');
   const [message, setMessage] = useState<string | null>(null);
 
@@ -22,8 +23,14 @@ export default function AccountScreen() {
 
   const deleteAccount = async () => {
     if (confirmation !== 'DELETE') return;
+    if (Platform.OS === 'web') {
+      const result = await webRequest<unknown>('/api/account/delete', { method: 'POST', body: {} });
+      setMessage(result.error ?? 'Account deletion completed.');
+      if (!result.error) await logout();
+      return;
+    }
     if (!supabase) {
-      setMessage('Demo account deletion request completed locally.');
+      setMessage('Account deletion is temporarily unavailable. Please try again shortly.');
       return;
     }
     const result = (await supabase.functions.invoke<unknown>('delete-account')) as {
@@ -38,15 +45,15 @@ export default function AccountScreen() {
       <View style={styles.grid}>
         <Card style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{(user?.email?.[0] ?? 'D').toUpperCase()}</Text>
+            <Text style={styles.avatarText}>{(user?.email?.[0] ?? '?').toUpperCase()}</Text>
           </View>
           <View style={styles.profileCopy}>
             <Text style={styles.profileName}>
-              {user?.user_metadata.display_name ?? 'Demo manager'}
+              {user?.user_metadata.display_name ?? 'Account holder'}
             </Text>
-            <Text style={styles.profileEmail}>{user?.email ?? 'demo@brockfantasy.local'}</Text>
+            <Text style={styles.profileEmail}>{user?.email ?? 'Email unavailable'}</Text>
           </View>
-          <Pill label={demoMode ? 'DEMO' : 'VERIFIED'} tone={demoMode ? 'warning' : 'positive'} />
+          <Pill label="ACCOUNT" tone="positive" />
         </Card>
         <ActionButton label="Sign out" onPress={() => void logout()} variant="secondary" />
         <ActionButton label="Authenticator security" href="/mfa" variant="ghost" />

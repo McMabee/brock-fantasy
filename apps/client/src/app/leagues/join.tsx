@@ -4,6 +4,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { betaCommand } from '@/lib/web-api';
 import { colors, heading } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
@@ -23,16 +24,17 @@ export default function JoinLeagueScreen() {
     setLoading(true);
     setError(null);
     if (!supabase) {
-      router.replace('/league/demo-league');
+      setError('League service is temporarily unavailable. Please try again shortly.');
+      setLoading(false);
       return;
     }
-    const result = (await supabase.rpc('join_league', {
+    const result = await betaCommand<{ league_id: string }>('join_league', {
       p_invite_code: inviteCode.trim().toUpperCase(),
       p_team_name: teamName.trim(),
       p_idempotency_key: `join-${Date.now()}`,
-    })) as { data: { league_id: string } | null; error: { message: string } | null };
+    });
     setLoading(false);
-    if (result.error) setError(result.error.message);
+    if (result.error) setError(result.error);
     else if (result.data) router.replace(`/league/${result.data.league_id}`);
   };
 

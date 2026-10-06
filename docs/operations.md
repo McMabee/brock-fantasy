@@ -1,153 +1,58 @@
-# Operations and Release
+# Brock Fantasy Web Beta Operations
 
-This is the execution runbook for the unfinished items in `docs/release-readiness.md`. That file is
-the canonical checklist; this file supplies the environment, deployment, scheduling, monitoring,
-backup, incident, and game-day procedure. Record commands, approvers, timestamps, artifact IDs, test
-results, and rollback references in a release record for each staging or production promotion.
+Use this runbook with [release readiness](release-readiness.md). For every release, ingestion, correction, incident, or restore, record the immutable commit, environment, rule version, source hashes/import revisions, operator, timestamps, result, and rollback reference. Do not record credentials, tokens, recovery codes, or unapproved raw athlete data.
 
-## Responsibility and release records
+## Environment and authentication
 
-Before creating production access, assign the owners listed in the release-readiness checklist and
-record primary/backup contacts plus escalation paths. Use least-privilege named accounts, require MFA
-for provider, Supabase, Expo, Apple, Google, DNS, and monitoring consoles, and review access before
-each release. Never put tokens or recovery codes in the repository or release record.
+Create separate staging/production Supabase projects and EAS Hosting deployments. Set `EXPO_PUBLIC_APP_ENV`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `EXPO_PUBLIC_SUPPORT_EMAIL`, and `EXPO_PUBLIC_APP_ORIGIN` per environment. The application has no demo mode; missing configuration or unapproved imports remain unavailable.
 
-Each release record must identify the immutable commit, selected feature scope, environment, database
-migration version, ruleset/provider-data versions, web/mobile artifact IDs, approvals, test evidence,
-backup/restore evidence, known issues, go/no-go decision, monitoring window, and rollback owner.
+Before starting a local server or promoting an environment, run `pnpm verify:auth-config`. It confirms the public Auth endpoint is reachable, signup and email confirmation match the beta policy, and a production/staging origin is HTTPS without exposing credentials. It does not prove SMTP, redirect allow-lists, deployments, RLS, or hosted account journeys.
 
-## Environments
+Set the hosted site URL plus exact callback URLs:
 
-Use separate Supabase projects for staging and production and separate EAS channels/aliases. Local
-development uses synthetic fixtures and no production secrets. Production configuration must set
-the public Supabase values in EAS and server credentials in the Supabase secret store.
-Add the production web reset URL and `brockfantasy://reset-password` to the Supabase Auth redirect
-allowlist, and verify signup confirmation plus recovery on web and physical iOS/Android devices.
-Enable TOTP enrollment and verification in both hosted projects. Granting the database `admin` role
-is insufficient by itself: administrator routes, RLS, and Edge commands require an AAL2 session.
+```text
+https://staging.example/api/auth/callback
+https://staging.example/reset-password
+https://app.example/api/auth/callback
+https://app.example/reset-password
+```
 
-### First-time hosted setup
+Configure SMTP, verified-email/recovery templates, then test signup, confirmation, recovery, password change, refresh, sign-out, revocation, and deletion. Web sessions use HttpOnly, Secure-in-production, SameSite cookies and server validation. Enable TOTP; admins require both the platform role and AAL2.
 
-1. Obtain rules, provider/data rights, brand, privacy/legal, support, accessibility, and operational
-   approvals; do not substitute synthetic values.
-2. Create staging and production Supabase projects, the EAS project, protected EAS channels, DNS/TLS,
-   Apple and Google app records, monitoring, and status/support channels.
-3. Replace the EAS project placeholder in `apps/client/app.json`, confirm the owned iOS/Android
-   identifiers, and configure public client variables from `.env.example` separately per environment.
-4. Put the provider token/webhook secret, Supabase service role, signing and push credentials only in
-   their hosted secret stores. Verify the built client contains no server credentials.
-5. Link the environment, apply migrations, deploy all Edge Functions, configure Auth/email/TOTP and
-   redirects, create named AAL2 administrators/review accounts, and run database/Edge smoke tests.
-6. Load approved rules, teams, athletes, schedules, games, provider mappings, autopick rankings, and
-   sponsor campaigns. Reconcile row counts and sampled identities with the data owner.
-7. Configure recurring jobs, backups, logs, dashboards, freshness/error alerts, on-call routing, and
-   status communication. Witness a restore and rollback/forward-fix rehearsal before launch.
-8. Deploy a staging web preview, run the full release evidence checklist, and promote the exact tested
-   commit only after recorded approval.
+## Data activation and correction
 
-### Provider ingestion and manual imports
+Run `pnpm import:beta-data` to create a reviewable preview of supplied sources. Publishing requires server-side service credentials and records immutable `source_imports`/`source_rows`; it does not activate an unresolved pool.
 
-Implement the selected provider behind `SportsDataProvider`; the repository does not contain a
-provider-specific roster/schedule/stat client because no sanctioned API contract was supplied. Use
-webhooks where supported or short scheduled Edge invocations within the approved polling/rate limits.
-Authenticate requests, retry with bounded backoff, alert on stale/failed runs, and pause only affected
-competitions during an outage.
+Before pool activation, reconcile player identity/team/competition/positions, Toronto timestamps, historical-versus-projection classification, mappings, and ranking review. Preserve manual overrides until an AAL2 admin explicitly changes them. Use the administrator scorekeeper to preview a revision, require a source and reason, and publish through the replay path. Never edit stats or totals directly.
 
-Automated feeds, administrator JSON imports, and the remaining CSV adapter must all produce the same
-canonical payload and enter `ingest-sports-data`. Preserve the pre-validation receipt, validate and
-map IDs, normalize, replay, audit, and then publish committed results. Never write normalized stats
-or point totals directly. Test duplicates, corrections/reversals, malformed/partial data, unknown IDs,
-postponed/cancelled games, rate limits, and delayed finalization in staging.
+## Scheduled work
 
-### Competition activation and recurring jobs
+Install each job independently so it can be paused and audited. Prove overlapping invocation is idempotent before production.
 
-Before enabling a competition, confirm its ruleset is approved, provider mappings are verified,
-athlete content is authorized, historical golden tests pass, and an operations owner is assigned.
+| Job                      | Cadence                            | Behaviour                                                                        |
+| ------------------------ | ---------------------------------- | -------------------------------------------------------------------------------- |
+| Provider schedule/status | Hourly; five-minute game windows   | Approved adapter, bounded backoff, freshness alerts.                             |
+| Provider corrections     | Daily for seven days after final   | Raw import/revision pipeline; do not overwrite manual overrides.                 |
+| Draft autopick           | Every minute or faster worker tick | `select public.process_expired_drafts(25)`.                                      |
+| Waivers                  | Every minute                       | `select public.process_due_waivers(<league id>)`.                                |
+| Trades                   | Every minute                       | `select public.process_due_trades(<league id>, 100)`.                            |
+| Scoring replay           | Retryable bounded worker           | Process pending scoring jobs, reject stale revisions, alert on incomplete stats. |
+| Push                     | Short interval after configuration | Service-side dispatcher; in-app notification remains authoritative.              |
 
-After applying migrations, load and review a complete `athlete_rankings` list for every active
-competition. Schedule `select public.process_expired_drafts(25)` through Supabase Cron every 10
-seconds in staging and production. Prove queue-first selection, rankings fallback, concurrent worker
-execution, and the no-eligible-athlete pause before enabling drafts. The job is intentionally not
-created by migration so each environment has an explicit, independently pausable release control.
-Also schedule `select public.advance_matchup_periods(100)` once per minute and
-`select public.expire_trades(100)` once per minute, plus
-`select public.process_due_waivers(<league-id>)` according to each approved league ruleset. Alert on
-paused drafts, failed sync runs, unresolved mappings, and matchup periods that cannot finalize.
-Invoke `dispatch-push-notifications` with the service role on a short schedule after mobile push
-credentials are installed. Monitor failed tickets/receipts and disabled device tokens; the in-app
-notification inbox remains authoritative when external push delivery is delayed.
+Finalise a period only after all required results resolve. A published playoff advancement can change only through explicit audited adjudication.
 
-For every scheduled job, record its environment, cadence, authentication method, timeout, retry
-policy, alert threshold, owner, and pause/resume procedure. Run overlapping invocations in staging to
-prove database locking/idempotency before production. Review job history and ingestion freshness at
-the start and end of each game-day window.
+## Monitoring and incidents
 
-## Deployment
+Alert on auth/CSRF/AAL2 failures, provider freshness/schema/mapping errors, incomplete lines, job retries/failures, scoring pauses, draft deadlines, API latency/errors, database capacity, backups, and audit anomalies. Do not include secrets, tokens, chat bodies, or unnecessary PII in alert payloads.
 
-1. Merge only a green pull request. Add protected deployment automation and deploy a staging web
-   preview; the current CI workflow verifies artifacts but does not publish them.
-2. Apply migrations to staging, run smoke/E2E tests, and verify the migration rollback or forward-fix.
-3. Back up production before a risky migration.
-4. Promote the tested EAS web deployment only after manual approval.
-5. Build signed mobile artifacts from the exact tested commit and upload them with EAS Submit.
+For a scoring incident, pause the affected pool, preserve raw input, correct mappings/rules through the audited import or admin workflow, replay, reconcile with approved fixtures, record the result, and publish delayed-data messaging if necessary. Never directly modify point totals.
 
-Before web promotion, verify production configuration rejects demo mode; privacy, terms, support,
-deletion, and delayed-data/status pages are approved; email confirmation/recovery works; custom-domain
-DNS/TLS is healthy; monitoring is receiving events; and the previous build/database recovery path is
-available. After promotion, run authentication, league read-only, ingestion, notification, and admin
-AAL2 smoke checks, then observe the recorded release window before closing the release.
+## Promotion and restore
 
-## Monitoring and support
+1. Run `pnpm check`, database reset/pgTAP, Edge tests, dependency/secret checks, browser E2E, and load checks from the release commit. Attach `pnpm audit --prod`; do not bypass unresolved high-severity upstream build-chain findings without a documented owner, exposure assessment, and expiry.
+2. Deploy staging, configure SMTP/redirects/jobs, load reviewed data, and complete the multi-manager rehearsal.
+3. Back up production before migration. Promote exactly the rehearsed server-output build only after release gates have evidence.
+4. Roll back application failures to the previous hosted build. For incorrect data/rules, prefer an additive forward fix plus audited replay; do not reverse production migrations without a restore plan.
+5. Restore the latest backup into an isolated project, execute integrity and critical-journey tests, record achieved RPO/RTO and reviewer sign-off.
 
-Alert on authentication failures, provider freshness and schema errors, unresolved mappings, failed
-syncs/replays, paused drafts, expired draft timers, waiver/trade/matchup worker failures, Edge errors,
-push receipt failures, elevated API latency/error rate, database capacity, backup failures, and
-security/audit anomalies. Do not send personal data, secrets, raw provider credentials, or chat bodies
-to monitoring unless privacy approval explicitly permits it.
-
-Support procedures must cover verification/recovery, invite access, disputed scores, draft reconnects,
-moderation reports, push failure, and deletion requests. Authenticate the requester, use audited
-commands, preserve scoring integrity, and escalate provider/rules disputes to the named data owner.
-Publish a delayed-data message when scoring freshness exceeds the approved threshold.
-
-## Game-day checklist
-
-Before: verify provider health, game/team/athlete mappings, approved ruleset, clear ingestion backlog,
-and a successful recent backup. During: watch provider timestamps, sync errors, scoring errors, and
-spot-check official stats. After: wait for the approved finalization signal, reconcile totals, and
-monitor later corrections.
-
-## Scoring incident
-
-Pause only the affected competition, preserve raw inputs, identify games/leagues, correct mapping or
-normalization/rules, replay from the immutable snapshot, compare totals to golden expectations,
-communicate user-visible changes, and write a postmortem. Never edit point totals directly.
-
-## Backup and restore gate
-
-Configure automated database backups and record retention, RPO, and RTO after the production tier is
-selected. Before public launch, restore the latest backup into an isolated project, run integrity
-queries and critical E2E tests, record duration/results, and verify the production rollback procedure.
-
-Test restore credentials and integrity queries without relying on the failed primary environment.
-The release record must identify the backup restored, isolated target, start/end time, observed RPO
-and RTO, test results, cleanup owner, and approval. A backup that has not been restored is not release
-evidence.
-
-## Mobile beta and submission
-
-Use separate internal/preview testing before production signing. On physical iOS and Android devices,
-test signup/verification/recovery deep links, TOTP administration, league invites, draft reconnect,
-lineup locks, push permission/delivery/receipts, accessibility, text scaling, network loss/recovery,
-and account deletion. Record TestFlight and Play internal-test versions and tester sign-off.
-
-Build the `.ipa` and `.aab` from the same approved commit and production environment. Verify version,
-package IDs, signing, icons, screenshots, store copy, support/privacy/deletion links, privacy labels,
-Google Data Safety, review notes/accounts, and rights declarations before EAS Submit. Upload readiness
-by October 30 is controllable; Apple/Google review completion is not.
-
-## October release cutline
-
-If safe-core hardening lacks three uninterrupted days, defer chat, sponsor metrics, waivers, and
-trades in that order. Never cut authorization tests, account deletion, score replay/corrections,
-draft integrity, monitoring, or restore verification. If those gates fail, delay public release.
+Native store distribution and the finished weekly prediction model are outside the web-beta release.

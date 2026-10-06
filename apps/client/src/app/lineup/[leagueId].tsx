@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, AppShell, Card, EmptyState, Pill, SectionTitle } from '@/components/ui';
 import { useLeague } from '@/hooks/use-league';
 import { supabase } from '@/lib/supabase';
-import { useSession } from '@/providers/session-provider';
+import { betaCommand } from '@/lib/web-api';
 import { colors, heading } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
@@ -41,7 +41,6 @@ interface LineupRow {
 export default function LineupScreen() {
   useRequireUser();
   const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
-  const { demoMode } = useSession();
   const leagueData = useLeague(leagueId);
   const [games, setGames] = useState<readonly GameOption[]>([]);
   const [slots, setSlots] = useState<readonly StarterSlot[]>([]);
@@ -52,31 +51,7 @@ export default function LineupScreen() {
 
   useEffect(() => {
     if (!leagueData.league) return;
-    if (demoMode || !supabase) {
-      const demoGame = {
-        id: 'demo-game',
-        startsAt: new Date(Date.now() + 3_600_000).toISOString(),
-        status: 'scheduled' as const,
-      };
-      const demoSlots = leagueData.roster
-        .filter((entry) => entry.status === 'starter')
-        .map((entry) => ({
-          code: entry.slotCode,
-          label: entry.slotCode,
-          allowedPositions: [entry.position],
-        }));
-      setGames([demoGame]);
-      setSelectedGameId(demoGame.id);
-      setSlots(demoSlots);
-      setSelection(
-        Object.fromEntries(
-          leagueData.roster
-            .filter((entry) => entry.status === 'starter')
-            .map((entry) => [entry.slotCode, entry.athleteId]),
-        ),
-      );
-      return;
-    }
+    if (!supabase) return;
     const client = supabase;
     const load = async () => {
       const [gameResult, slotResult] = await Promise.all([
@@ -116,10 +91,10 @@ export default function LineupScreen() {
       );
     };
     void load();
-  }, [demoMode, leagueData.league, leagueData.roster]);
+  }, [leagueData.league]);
 
   useEffect(() => {
-    if (demoMode || !supabase || !selectedGameId || !leagueData.myTeamId) return;
+    if (!supabase || !selectedGameId || !leagueData.myTeamId) return;
     const client = supabase;
     const load = async () => {
       const result = await client
@@ -136,7 +111,7 @@ export default function LineupScreen() {
         );
     };
     void load();
-  }, [demoMode, leagueData.myTeamId, selectedGameId]);
+  }, [leagueData.myTeamId, selectedGameId]);
 
   const selectedGame = games.find((game) => game.id === selectedGameId);
   const locked = !selectedGame || Date.parse(selectedGame.startsAt) <= Date.now();
@@ -155,19 +130,22 @@ export default function LineupScreen() {
     if (!leagueData.myTeamId || !selectedGameId || locked) return;
     setSaving(true);
     setMessage(null);
-    if (supabase) {
-      const result = (await supabase.rpc('set_lineup', {
-        p_fantasy_team_id: leagueData.myTeamId,
-        p_game_id: selectedGameId,
-        p_entries: Object.entries(selection).map(([slotCode, athleteId]) => ({
-          slot_code: slotCode,
-          athlete_id: athleteId,
-        })),
-        p_idempotency_key: `lineup-${selectedGameId}-${Date.now()}`,
-      })) as { error: { message: string } | null };
-      if (result.error) setMessage(result.error.message);
-      else setMessage('Lineup committed. It will lock at the game start time.');
-    } else setMessage('Demo lineup saved locally.');
+    if (!supabase) {
+      setMessage('Lineup service is temporarily unavailable. Please try again shortly.');
+      setSaving(false);
+      return;
+    }
+    const result = await betaCommand('set_lineup', {
+      p_fantasy_team_id: leagueData.myTeamId,
+      p_game_id: selectedGameId,
+      p_entries: Object.entries(selection).map(([slotCode, athleteId]) => ({
+        slot_code: slotCode,
+        athlete_id: athleteId,
+      })),
+      p_idempotency_key: `lineup-${selectedGameId}-${Date.now()}`,
+    });
+    if (result.error) setMessage(result.error);
+    else setMessage('Lineup committed. It will lock at the game start time.');
     setSaving(false);
   };
 
@@ -240,7 +218,7 @@ export default function LineupScreen() {
       <View style={styles.actions}>
         <ActionButton
           label="Back to league"
-          href={`/league/${leagueId ?? 'demo-league'}`}
+          href={leagueId ? `/league/${leagueId}` : '/dashboard'}
           variant="ghost"
         />
         <ActionButton
@@ -279,7 +257,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  athleteSelected: { borderColor: colors.brand, backgroundColor: '#24371A' },
+  athleteSelected: { borderColor: colors.red, backgroundColor: colors.white },
   athleteName: { color: colors.text, fontSize: 10, fontWeight: '700' },
   athleteNameSelected: { color: colors.brand },
   position: { color: colors.muted, fontSize: 8, marginTop: 2 },

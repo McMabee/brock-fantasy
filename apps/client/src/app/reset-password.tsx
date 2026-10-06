@@ -1,6 +1,6 @@
 import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
@@ -9,7 +9,7 @@ import { colors } from '@/theme';
 
 export default function ResetPasswordScreen() {
   const url = Linking.useURL();
-  const { demoMode, user } = useSession();
+  const { updatePassword: submitPasswordUpdate, user } = useSession();
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,7 @@ export default function ResetPasswordScreen() {
   const [complete, setComplete] = useState(false);
 
   useEffect(() => {
-    if (!url || !supabase || user) return;
+    if (Platform.OS === 'web' || !url || !supabase || user) return;
     const tokens = recoveryTokens(url);
     if (!tokens) return;
     void supabase.auth.setSession(tokens).then(({ error }) => {
@@ -31,19 +31,18 @@ export default function ResetPasswordScreen() {
       setMessage('Use at least eight characters and enter the same password twice.');
       return;
     }
-    if (!supabase) {
-      setComplete(true);
-      setMessage('Demo password updated locally.');
+    if (!supabase && Platform.OS !== 'web') {
+      setMessage('Password recovery is temporarily unavailable. Please try again shortly.');
       return;
     }
-    if (!user) {
+    if (!user && Platform.OS !== 'web') {
       setMessage('Open this page from a current recovery email before choosing a new password.');
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    const error = await submitPasswordUpdate(password);
     setLoading(false);
-    if (error) setMessage(error.message);
+    if (error) setMessage(error);
     else {
       setComplete(true);
       setPassword('');
@@ -55,10 +54,7 @@ export default function ResetPasswordScreen() {
   return (
     <AppShell eyebrow="Account recovery" title="Choose a new password">
       <Card style={styles.card}>
-        <Pill
-          label={user || demoMode ? 'RECOVERY VERIFIED' : 'RECOVERY LINK REQUIRED'}
-          tone="info"
-        />
+        <Pill label={user ? 'RECOVERY VERIFIED' : 'RECOVERY LINK REQUIRED'} tone="info" />
         <Text style={uiStyles.body}>
           Use the newest recovery email. Links are single-purpose and may expire; request another
           from the sign-in page if this one no longer works.

@@ -2,8 +2,8 @@
 
 ## Runtime topology
 
-The Expo Router client runs on web, iOS, and Android. It authenticates with Supabase Auth using the
-public anonymous key. PostgreSQL is the canonical state store; Realtime broadcasts committed draft,
+The Expo Router client runs on web, iOS, and Android. It authenticates with Supabase Auth using a
+public publishable key. PostgreSQL is the canonical state store; Realtime broadcasts committed draft,
 score, notification, and chat changes. Edge Functions perform privileged provider ingestion and
 account deletion.
 
@@ -35,6 +35,6 @@ Approved provider / audited admin import
 - `supabase`: migrations, trusted functions, policies, seed configuration, fixtures, and Edge
   Functions.
 
-The client has a local demo mode when Supabase variables are absent. A production environment fails
-fast if either public Supabase value is missing. Demo data is synthetic and must never be promoted as
-official athlete or scoring data.
+There is no local demo mode or sample application data. Staging and production fail fast if either
+public Supabase value is missing; approved source imports are the only route to visible athlete,
+schedule, or scoring data.

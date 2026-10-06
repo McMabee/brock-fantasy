@@ -1,6 +1,14 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
 import { useSession } from '@/providers/session-provider';
@@ -11,7 +19,7 @@ type AuthMode = 'sign_in' | 'sign_up';
 export default function AuthScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { demoMode, signIn, signUp, requestPasswordReset } = useSession();
+  const { signIn, signUp, requestPasswordReset } = useSession();
   const [mode, setMode] = useState<AuthMode>('sign_in');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -32,11 +40,6 @@ export default function AuthScreen() {
       setError('Enter a valid email, an 8+ character password, and your display name.');
       return;
     }
-    if (demoMode) {
-      router.replace('/dashboard');
-      return;
-    }
-
     setLoading(true);
     const message =
       mode === 'sign_in'
@@ -86,25 +89,14 @@ export default function AuthScreen() {
         </View>
 
         <Card style={styles.formCard}>
-          <View style={styles.tabs}>
-            <AuthTab
-              active={mode === 'sign_in'}
-              label="Sign in"
-              onPress={() => setMode('sign_in')}
-            />
-            <AuthTab
-              active={mode === 'sign_up'}
-              label="Create account"
-              onPress={() => setMode('sign_up')}
-            />
-          </View>
-          {demoMode ? (
-            <View style={styles.demoNotice}>
-              <Text style={styles.demoNoticeText}>
-                Demo mode: any valid-looking credentials open the local preview.
-              </Text>
-            </View>
-          ) : null}
+          <AuthTabs
+            mode={mode}
+            onChange={(nextMode) => {
+              setMode(nextMode);
+              setError(null);
+              setNotice(null);
+            }}
+          />
           {mode === 'sign_up' ? (
             <Field
               label="Display name"
@@ -160,6 +152,41 @@ export default function AuthScreen() {
   );
 }
 
+function AuthTabs({ mode, onChange }: { mode: AuthMode; onChange: (mode: AuthMode) => void }) {
+  const slide = useRef(new Animated.Value(mode === 'sign_up' ? 1 : 0)).current;
+  const [tabWidth, setTabWidth] = useState(0);
+
+  useEffect(() => {
+    Animated.spring(slide, {
+      toValue: mode === 'sign_up' ? 1 : 0,
+      damping: 20,
+      stiffness: 240,
+      mass: 0.65,
+      useNativeDriver: true,
+    }).start();
+  }, [mode, slide]);
+
+  const translateX = slide.interpolate({ inputRange: [0, 1], outputRange: [0, tabWidth] });
+  return (
+    <View
+      accessibilityRole="tablist"
+      onLayout={(event) => setTabWidth(Math.max(0, (event.nativeEvent.layout.width - 8) / 2))}
+      style={styles.tabs}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.tabIndicator, { width: tabWidth, transform: [{ translateX }] }]}
+      />
+      <AuthTab active={mode === 'sign_in'} label="Sign in" onPress={() => onChange('sign_in')} />
+      <AuthTab
+        active={mode === 'sign_up'}
+        label="Create account"
+        onPress={() => onChange('sign_up')}
+      />
+    </View>
+  );
+}
+
 function AuthTab({
   active,
   label,
@@ -174,7 +201,7 @@ function AuthTab({
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       onPress={onPress}
-      style={[styles.tab, active && styles.tabActive]}
+      style={styles.tab}
     >
       <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
     </Pressable>
@@ -212,13 +239,24 @@ const styles = StyleSheet.create({
   check: { color: colors.brand, fontWeight: '900', fontSize: 16 },
   benefitText: { color: colors.text, fontSize: 14, fontWeight: '700' },
   formCard: { flex: 0.8, width: '100%', maxWidth: 440, gap: 17, padding: 24 },
-  tabs: { flexDirection: 'row', backgroundColor: colors.canvasSoft, padding: 4, borderRadius: 12 },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 9 },
-  tabActive: { backgroundColor: colors.panelStrong },
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: colors.canvasSoft,
+    padding: 4,
+    borderRadius: 12,
+    position: 'relative',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    bottom: 4,
+    borderRadius: 9,
+    backgroundColor: colors.panelStrong,
+  },
+  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 9, zIndex: 1 },
   tabText: { color: colors.muted, fontSize: 13, fontWeight: '800' },
-  tabTextActive: { color: colors.text },
-  demoNotice: { backgroundColor: '#604A1E', padding: 10, borderRadius: 8 },
-  demoNoticeText: { color: colors.text, fontSize: 11, lineHeight: 16 },
+  tabTextActive: { color: colors.white },
   field: { gap: 7 },
   error: { color: colors.danger, fontSize: 12, lineHeight: 18 },
   notice: { color: colors.brand, fontSize: 12, lineHeight: 18 },

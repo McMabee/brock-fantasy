@@ -40,7 +40,7 @@ select ok(has_function_privilege('authenticated', 'public.make_draft_pick(uuid,u
 select ok(has_function_privilege('service_role', 'public.process_expired_drafts(integer)', 'EXECUTE'), 'service role can run draft autopick worker');
 select ok(not has_function_privilege('authenticated', 'public.process_expired_drafts(integer)', 'EXECUTE'), 'members cannot run the global autopick worker');
 select ok(not has_function_privilege('authenticated', 'public.rebalance_roster_slots(uuid)', 'EXECUTE'), 'internal roster rebalance is not client callable');
-select ok(has_function_privilege('anon', 'public.record_sponsor_event(uuid,text)', 'EXECUTE'), 'anonymous web visitors can record aggregate sponsor events');
+select ok(not has_function_privilege('anon', 'public.record_sponsor_event(uuid,text)', 'EXECUTE'), 'anonymous web visitors cannot record disabled sponsor events');
 select ok(not has_function_privilege('anon', 'public.replay_game(uuid,text)', 'EXECUTE'), 'anonymous role cannot replay scoring');
 select ok(has_function_privilege('service_role', 'public.replay_game(uuid,text)', 'EXECUTE'), 'service role can replay scoring');
 

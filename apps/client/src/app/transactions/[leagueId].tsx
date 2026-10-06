@@ -13,7 +13,7 @@ import {
 } from '@/components/ui';
 import { useLeague } from '@/hooks/use-league';
 import { useTransactions } from '@/hooks/use-transactions';
-import { supabase } from '@/lib/supabase';
+import { betaCommand } from '@/lib/web-api';
 import { colors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
@@ -24,6 +24,7 @@ export default function TransactionsScreen() {
   const transactions = useTransactions({
     leagueId,
     competitionId: leagueData.league?.competitionId,
+    ...(leagueData.league?.playerPoolId ? { playerPoolId: leagueData.league.playerPoolId } : {}),
     rulesetId: leagueData.league?.rulesetId,
   });
   const [dropAthleteId, setDropAthleteId] = useState<string | null>(null);
@@ -43,14 +44,11 @@ export default function TransactionsScreen() {
     if (!receivingTeamId && otherTeams[0]) setReceivingTeamId(otherTeams[0].id);
   }, [otherTeams, receivingTeamId]);
 
-  const invoke = async (
-    label: string,
-    command: () => Promise<{ error: { message: string } | null }>,
-  ) => {
+  const invoke = async (label: string, command: () => Promise<{ error: string | null }>) => {
     setWorking(label);
     setMessage(null);
     const result = await command();
-    if (result.error) setMessage(result.error.message);
+    if (result.error) setMessage(result.error);
     else {
       setMessage('Transaction committed.');
       await Promise.all([transactions.reload(), leagueData.reload()]);
@@ -60,32 +58,21 @@ export default function TransactionsScreen() {
 
   const addOrClaim = async (athleteId: string, waiver: boolean) => {
     if (!myTeamId) return;
-    if (!supabase) {
-      setMessage(waiver ? 'Demo waiver claim submitted.' : 'Demo free-agent addition committed.');
-      return;
-    }
-    const client = supabase;
     const command = waiver ? 'request_waiver' : 'add_free_agent';
     await invoke(`${command}:${athleteId}`, async () => {
-      const result = await client.rpc(command, {
+      return betaCommand(command, {
         p_fantasy_team_id: myTeamId,
         p_athlete_in_id: athleteId,
         p_athlete_out_id: dropAthleteId,
         p_idempotency_key: `${command}-${Date.now()}-${athleteId}`,
       });
-      return result as { error: { message: string } | null };
     });
   };
 
   const proposeTrade = async () => {
     if (!myTeamId || !receivingTeamId || !offeredAthleteId || !requestedAthleteId) return;
-    if (!supabase) {
-      setMessage('Demo trade proposed.');
-      return;
-    }
-    const client = supabase;
     await invoke('propose-trade', async () => {
-      const result = await client.rpc('propose_trade', {
+      return betaCommand('propose_trade', {
         p_proposing_team_id: myTeamId,
         p_receiving_team_id: receivingTeamId,
         p_offered_athlete_ids: [offeredAthleteId],
@@ -93,38 +80,34 @@ export default function TransactionsScreen() {
         p_expires_at: new Date(Date.now() + 2 * 86_400_000).toISOString(),
         p_idempotency_key: `trade-${Date.now()}`,
       });
-      return result as { error: { message: string } | null };
     });
   };
 
   const respond = async (tradeId: string, accept: boolean) => {
-    if (!supabase) {
-      setMessage(`Demo trade ${accept ? 'accepted' : 'rejected'}.`);
-      return;
-    }
-    const client = supabase;
     await invoke(`trade-response:${tradeId}`, async () => {
-      const result = await client.rpc('respond_to_trade', {
+      return betaCommand('respond_to_trade', {
         p_trade_id: tradeId,
         p_accept: accept,
         p_idempotency_key: `trade-response-${Date.now()}`,
       });
-      return result as { error: { message: string } | null };
     });
   };
 
   const cancel = async (tradeId: string) => {
-    if (!supabase) {
-      setMessage('Demo trade cancelled.');
-      return;
-    }
-    const client = supabase;
     await invoke(`trade-cancel:${tradeId}`, async () => {
-      const result = await client.rpc('cancel_trade', {
+      return betaCommand('cancel_trade', {
         p_trade_id: tradeId,
         p_idempotency_key: `trade-cancel-${Date.now()}`,
       });
-      return result as { error: { message: string } | null };
+    });
+  };
+
+  const vote = async (tradeId: string) => {
+    await invoke(`trade-vote:${tradeId}`, async () => {
+      return betaCommand('vote_trade', {
+        p_trade_id: tradeId,
+        p_idempotency_key: `trade-vote-${tradeId}`,
+      });
     });
   };
 
@@ -270,13 +253,16 @@ export default function TransactionsScreen() {
                       {teamName(trade.proposingTeamId)} ↔ {teamName(trade.receivingTeamId)}
                     </Text>
                     <Pill
-                      label={trade.status.toUpperCase()}
-                      tone={trade.status === 'accepted' ? 'positive' : 'info'}
+                      label={trade.executionStatus.toUpperCase()}
+                      tone={trade.executionStatus === 'completed' ? 'positive' : 'info'}
                     />
                   </View>
                   <Text style={styles.assetMeta}>
                     {offered || '—'} for {requested || '—'} · expires{' '}
                     {new Date(trade.expiresAt).toLocaleDateString()}
+                    {trade.reviewEndsAt
+                      ? ` · review ends ${new Date(trade.reviewEndsAt).toLocaleString()}`
+                      : ''}
                   </Text>
                 </View>
                 {trade.status === 'proposed' && trade.receivingTeamId === myTeamId ? (
@@ -296,6 +282,17 @@ export default function TransactionsScreen() {
                     variant="secondary"
                   />
                 ) : null}
+                {trade.status === 'accepted' &&
+                myTeamId &&
+                trade.proposingTeamId !== myTeamId &&
+                trade.receivingTeamId !== myTeamId ? (
+                  <ActionButton
+                    label="Veto trade"
+                    onPress={() => void vote(trade.id)}
+                    loading={working === `trade-vote:${trade.id}`}
+                    variant="secondary"
+                  />
+                ) : null}
               </View>
             );
           })}
@@ -304,7 +301,7 @@ export default function TransactionsScreen() {
       <View style={styles.footerActions}>
         <ActionButton
           label="Back to league"
-          href={`/league/${leagueId ?? 'demo-league'}`}
+          href={leagueId ? `/league/${leagueId}` : '/dashboard'}
           variant="ghost"
         />
       </View>
@@ -344,7 +341,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: colors.canvasSoft,
   },
-  choiceSelected: { borderColor: colors.brand, backgroundColor: '#24371A' },
+  choiceSelected: { borderColor: colors.red, backgroundColor: colors.white },
   choiceText: { color: colors.muted, fontSize: 10, fontWeight: '700' },
   choiceTextSelected: { color: colors.brand },
   assetRow: {

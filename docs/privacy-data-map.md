@@ -10,8 +10,8 @@
 | Provider snapshots and mappings   | Auditable scoring/replay            | Administrators                | Retained by sports-data policy                                                   |
 | Audit log                         | Security and corrections            | Administrators                | Actor reference anonymized after account deletion                                |
 | Push token                        | Mobile notifications                | User and notification service | Deleted with account                                                             |
-| Sponsor daily counts              | Aggregate campaign reporting        | Sponsor admins                | No user identifier collected                                                     |
 
 Do not collect student number, phone number, birth date, precise location, or unrelated profile data.
-Finalize retention periods, subprocessors, privacy notice, and access roles with Brock's privacy owner
-before production.
+Tarik Merchant owns privacy/legal approval, support, accessibility, and game-day operation. Finalize the
+legal operator, retention periods, subprocessors/data-hosting locations, privacy notice, and access roles
+before production. Ty Mabee owns security-incident escalation and release management.

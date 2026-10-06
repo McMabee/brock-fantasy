@@ -1,4 +1,4 @@
-import type { Session, User } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import {
   createContext,
@@ -9,45 +9,79 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { Platform } from 'react-native';
 
-import { isDemoMode, supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { ensureCsrfToken, webAuth, type WebSessionUser } from '@/lib/web-auth';
 
 interface SessionContextValue {
   user: User | null;
   loading: boolean;
-  demoMode: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
   signUp: (email: string, password: string, displayName: string) => Promise<string | null>;
   requestPasswordReset: (email: string) => Promise<string | null>;
+  updatePassword: (password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(!isDemoMode);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!supabase) return;
+    if (Platform.OS === 'web') {
+      void (async () => {
+        try {
+          await ensureCsrfToken();
+          const result = await webAuth<{ user: WebSessionUser | null }>('session', {
+            method: 'GET',
+            csrf: false,
+          });
+          setUser(result.data?.user ? asSupabaseUser(result.data.user) : null);
+        } finally {
+          setLoading(false);
+        }
+      })();
+      return;
+    }
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     void supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+      setUser(data.session?.user ?? null);
       setLoading(false);
     });
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) =>
-      setSession(nextSession),
+      setUser(nextSession?.user ?? null),
     );
     return () => data.subscription.unsubscribe();
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    if (!supabase) return null;
+    if (Platform.OS === 'web') {
+      await ensureCsrfToken();
+      const result = await webAuth<{ user: WebSessionUser }>('sign-in', {
+        body: { email, password },
+        csrf: false,
+      });
+      if (result.data?.user) setUser(asSupabaseUser(result.data.user));
+      return result.error;
+    }
+    if (!supabase) return 'Authentication is not configured for this environment.';
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return error?.message ?? null;
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, displayName: string) => {
-    if (!supabase) return null;
+    if (Platform.OS === 'web') {
+      await ensureCsrfToken();
+      return (await webAuth('sign-up', { body: { email, password, displayName }, csrf: false }))
+        .error;
+    }
+    if (!supabase) return 'Account registration is not configured for this environment.';
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -57,7 +91,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const requestPasswordReset = useCallback(async (email: string) => {
-    if (!supabase) return null;
+    if (Platform.OS === 'web') {
+      await ensureCsrfToken();
+      return (await webAuth('recover', { body: { email }, csrf: false })).error;
+    }
+    if (!supabase) return 'Password recovery is not configured for this environment.';
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: Linking.createURL('/reset-password'),
     });
@@ -65,23 +103,40 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      await webAuth('sign-out');
+      setUser(null);
+      return;
+    }
     if (supabase) await supabase.auth.signOut();
+  }, []);
+
+  const updatePassword = useCallback(async (password: string) => {
+    if (Platform.OS === 'web')
+      return (await webAuth('update-password', { body: { password } })).error;
+    if (!supabase) return 'Password updates are not configured for this environment.';
+    const { error } = await supabase.auth.updateUser({ password });
+    return error?.message ?? null;
   }, []);
 
   const value = useMemo<SessionContextValue>(
     () => ({
-      user: session?.user ?? null,
+      user,
       loading,
-      demoMode: isDemoMode,
       signIn,
       signUp,
       requestPasswordReset,
+      updatePassword,
       signOut,
     }),
-    [loading, requestPasswordReset, session?.user, signIn, signOut, signUp],
+    [loading, requestPasswordReset, signIn, signOut, signUp, updatePassword, user],
   );
 
   return <SessionContext value={value}>{children}</SessionContext>;
+}
+
+function asSupabaseUser(user: WebSessionUser): User {
+  return { id: user.id, email: user.email ?? undefined } as User;
 }
 
 export function useSession(): SessionContextValue {

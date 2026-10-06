@@ -12,6 +12,7 @@
     "android": "pnpm --filter @brock-fantasy/client android",
     "ios": "pnpm --filter @brock-fantasy/client ios",
     "build:web": "pnpm --filter @brock-fantasy/client build:web",
+    "preview": "pnpm --filter @brock-fantasy/client preview",
     "smoke:mobile": "pnpm --filter @brock-fantasy/client smoke:mobile",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -21,6 +22,8 @@
     "test": "pnpm --filter @brock-fantasy/domain test",
     "test:coverage": "pnpm --filter @brock-fantasy/domain test:coverage",
     "test:edge:local": "node scripts/test-edge-functions.mjs",
+    "verify:auth-config": "node scripts/verify-supabase-auth-config.mjs",
+    "import:beta-data": "node scripts/import-brock-beta-data.mjs",
     "check": "pnpm format:check && pnpm lint && pnpm lint:sql && pnpm typecheck && pnpm test && pnpm build:web && pnpm smoke:mobile"
   },
   "devDependencies": {

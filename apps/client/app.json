@@ -5,7 +5,7 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "brockfantasy",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ca.brocku.fantasy"
@@ -13,12 +13,12 @@
     "android": {
       "package": "ca.brocku.fantasy",
       "adaptiveIcon": {
-        "backgroundColor": "#071811"
+        "backgroundColor": "#1C2D5D"
       }
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "server"
     },
     "plugins": [
       "expo-router",

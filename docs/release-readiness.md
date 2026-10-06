@@ -1,150 +1,51 @@
-# Release Readiness
+# 2026–27 Web Beta Release Readiness
 
-Status date: September 15, 2026. This file separates code that exists from evidence or approvals
-that must still be supplied. An inactive competition cannot be offered to users.
+Status date: October 2, 2026. This checklist distinguishes implemented beta behaviour from required release evidence. A passing local check is not staging or production evidence.
 
-## Implemented foundation
+## Implemented beta foundation
 
-| Area                 | Repository evidence                                                                                                                                                                                                                    |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Universal client     | Expo Router application exports for web, Android, and iOS; responsive auth, dashboard, leagues, drafts, lineups, transactions, notifications, admin, privacy, terms, and deletion routes.                                              |
-| Fantasy authority    | PostgreSQL trusted commands for private league join, snake draft, queue/rank autopick, lineup locks, free agents, waivers, trades, schedules, corrections, moderation, and sponsor counts.                                             |
-| Scoring              | Immutable pre-validation receipts and raw snapshots, provider mappings, normalized statistics, versioned rules, append-only point events, replay, corrections, and standings projections.                                              |
-| Security and privacy | Verified-email configuration, AAL2/TOTP enforcement for administrators, RLS on user/league/operations data, least-privilege command grants, idempotency records, audit events, minimized profiles, and account deletion/anonymization. |
-| Operations           | Sync/error/audit views, JSON manual ingestion, Cron-callable workers, push ticket/receipt audit, backup/restore and game-day runbooks, CI secret and dependency checks.                                                                |
-| Quality baseline     | Strict TypeScript, ESLint, formatting, deterministic domain tests, SQL parsing, pgTAP schema checks, and universal bundle smoke builds.                                                                                                |
+- One six-program player pool with permanent athletes, season membership, verified positions, ten-player rosters, six starters/four benches, explicit fantasy periods, historical totals, supplied projections, import provenance, and reviewed rankings.
+- Versioned combined hockey/basketball/volleyball rules, complete-stat validation, compensating point corrections, period locks, production ADP, ten-round snake drafts, queue-first weighted CPU picks, waivers, and audited trade review commands.
+- Same-origin Expo server routes with HttpOnly cookie web sessions, CSRF/origin checks, authenticated data reads, allowlisted commands, callback handling, account deletion, AAL2/TOTP administration, imports, and score preview/publish.
+- Public web registration, email verification, password recovery, password updates, refresh, and logout use Supabase Auth through the server routes. Browser clients retain no bearer credentials or Supabase session state.
+- Administrator game search and scorekeeper with revision checks, manual reason/source capture, point-difference preview, and atomic replay.
+- Player search and records for current totals, game logs, scoring events, historical/supplied values, ADP, data freshness, next-game locks, season selection, and unavailable weekly forecasts.
+- A persistent light/dark web theme uses the exact Brock tokens: navy `#1C2D5D`, red `#F20014`, white `#FFFFFF`, gray `#C8C9CB`, black `#000000`. The authentication selector has an accessible animated selected state with white selected text. No advertisement, sponsor, solicitation, campaign request, demo mode, or runtime sample data is rendered by the client.
 
-## Canonical remaining-work checklist
+## Local implementation evidence
 
-This is the source of truth for unfinished work. `docs/operations.md` explains how to carry out the
-operational items. `docs/testing.md` and `docs/privacy-data-map.md` provide supporting detail, but
-their actionable requirements are repeated here so they do not have to be tracked separately.
+- [x] Disposable local Supabase rehearsal on October 2, 2026: verified registration, confirmation callback, cookie-authenticated session, logout, password sign-in, and restored authenticated session all succeeded. It is not evidence for a hosted Supabase or SMTP configuration.
+- [x] Current supplied-data preview: 12 CSV files and 273 source rows are captured with hashes and provenance. It identified one unparseable schedule time and 21 combined-schedule time mappings that require review; it was deliberately not published or activated.
 
-### Ownership, rules, rights, and policy
+## Activation gates
 
-- [ ] Name accountable owners for product/release, scoring/data, brand/content rights, privacy/legal,
-      support, accessibility, security/incident response, game-day operations, sponsors, and mobile
-      store submission. Record escalation and approval contacts.
-- [ ] Approve a versioned rule pack for each of the six competitions. It must define scoring examples,
-      roster slots, locks, draft timer and autopick order, free agents, waivers, trades, matchup
-      periods, finalization/corrections, and tiebreakers.
-- [ ] Approve the sports-data provider and contract: credentials, stable athlete/team/game IDs,
-      schemas and sample payloads, polling/webhook limits, corrections, postponements/cancellations,
-      outage/delayed-data behavior, retention, and data/media usage rights.
-- [ ] Approve Brock names, marks, colours, athlete names/media, sponsor creatives/placements, and all
-      public content. Replace every placeholder or synthetic asset before activation.
-- [ ] Finalize the privacy notice and platform terms shown in the client, acceptable-use/moderation
-      policy, retention/deletion schedule, subprocessors, privacy contacts, support email, public
-      account-deletion URL, and incident/status communications. Confirm that sponsor metrics remain
-      aggregate-only and approve any later analytics separately.
-- [ ] Record the October 2 scope decision and the October 8 go/no-go decision, including approvers,
-      accepted evidence, deferred features, and the immutable release commit.
+- [x] Place the supplied licensed logo artwork in app assets and use the approved light/dark variants without regenerating or recolouring them. The web build and Android/iOS export include both assets; visual and assistive-technology review remain staging gates.
+- [ ] Run `pnpm import:beta-data`, reconcile all 12 supplied files, resolve ambiguous combined basketball/volleyball game times and all athlete/team mappings, then materialize reviewed teams, athletes, season membership, games, and pool rankings. Do not activate a pool with incomplete required rosters or mappings.
+- [ ] Resolve the current importer findings: one `SCHEDULE_TIME` error and 21 `COMBINED_SCHEDULE_TIME` warnings. Keep the affected records unavailable to leagues until an administrator records the official mapping.
+- [ ] Obtain official basketball/volleyball rosters and outstanding individual statistics. Preserve source `N/A`, empty, zero, and negative values; never invent detailed historical games or forecasts.
+- [ ] Complete the authorized Brock provider adapter: hourly schedule checks, five-minute scheduled-game checks, seven daily correction sweeps, bounded retry/backoff, health alerts, explicit mapping review, scoring pause/resume, manual-override protection, and idempotent replay.
+- [x] Record accountable owners: Tarik Merchant owns data/rule approval, privacy/legal, accessibility, support, and game-day operations. Ty Mabee owns release management and security incidents.
+- [ ] Assign accountable owners for brand rights and roster/schedule/historical-statistics/provider-data rights. The provided data-rights statement is incomplete and must be finalized before activation.
+- [ ] Have Tarik Merchant and the legal operator approve the public-copy drafts in `docs/public/`, resolve all bracketed operator/contact/retention/jurisdiction details, then publish privacy, terms, support, deletion, moderation, delayed-data, and availability notices.
+- [ ] Resolve or formally accept the current upstream Expo CLI dependency advisories before deployment: `node-forge` (high, no published patched version), `uuid`, and `decode-uri-component`. They are absent from the exported web bundle and occur in the Expo build/CLI tree, but the audit must be rerun and attached to the release record.
 
-### Provider integration and production data
+## Hosted setup
 
-- [ ] Implement the sanctioned `SportsDataProvider` adapter for roster, schedule, game, and game-stat
-      synchronization. Add its webhook receiver or scheduled short-running poller, authentication,
-      retry/backoff, rate-limit handling, health reporting, and correction semantics without placing
-      credentials in the client.
-- [ ] Add CSV-to-canonical-JSON manual import through the existing ingestion pipeline, or obtain a
-      recorded launch-scope approval for JSON-only imports. CSV must not bypass raw receipt storage,
-      validation, mapping, replay, or auditing.
-- [ ] Replace synthetic rule/fixture data with approved golden fixtures for hockey, basketball, and
-      volleyball. Cover every scoring category/roster position, in-progress/final, duplicate,
-      corrected/reversed, unknown-athlete, missing/malformed, postponed, and cancelled inputs.
-- [ ] Load and reconcile all six official competition records, teams, eligible athletes, schedules,
-      games, provider mappings, and complete autopick rankings. Document the basketball activation
-      date separately from its October 9 league/draft readiness.
-- [ ] Keep each competition inactive until its rules, rights, mappings, rankings, golden tests,
-      operations owner, and rehearsal evidence are all approved. Never promote the synthetic records
-      in `supabase/seed.sql`.
-- [ ] Load only approved sponsor campaigns and verify placement windows, click targets, aggregate
-      counting, and privacy behavior.
+- [ ] Create isolated staging/production Supabase and EAS Hosting environments. Configure app environment, Supabase URL/key, support email, and application origin; keep provider/service-role credentials in server secret stores only.
+- [ ] Configure the public Supabase publishable key and exact HTTPS callback origin for each environment. Configure Supabase redirect allow-lists before enabling registration or recovery email.
+- [ ] Configure SMTP and exact HTTPS verification/recovery redirects for `/api/auth/callback` and `/reset-password`. Prove tokens never occur in browser storage, URLs, logs, bundles, or shared caches.
+- [ ] Enable TOTP, assign named platform admins, and prove AAL1 cannot read or execute admin operations.
+- [ ] Replace the process-local authentication request throttle with a shared, monitored rate-limit store appropriate for the final multi-instance hosting topology, then verify its failure and recovery behaviour.
+- [ ] Deploy migrations, Edge Functions, and server-output web builds; configure DNS/TLS, monitoring, alerts, audit review, backups/RPO/RTO, promotion/rollback, and on-call escalation.
 
-### Hosted environments and delivery automation
+## Required release evidence
 
-- [ ] Create separate staging and production Supabase projects plus an EAS project and protected
-      preview/production channels. Replace `REPLACE_WITH_EAS_PROJECT_ID`, verify the iOS bundle ID and
-      Android package ID, and configure production versions/signing ownership.
-- [ ] Configure environment-specific public Supabase URL/anonymous key, support email, provider
-      secrets, webhook secret, service-role access, EAS credentials, Apple/Google credentials, and
-      Expo push credentials in their server-side secret stores. Run a secret scan after setup.
-- [ ] Configure the production domain, DNS, TLS, EAS web hosting, staging previews, and an explicit
-      promotion/rollback path. Add protected CI deployment jobs; current CI verifies builds but does
-      not publish them.
-- [ ] Configure hosted Auth for verified email, approved redirect/deep-link URLs, recovery, email
-      delivery, TOTP enrollment/verification, administrator roles, AAL2 enforcement, review accounts,
-      and least-privilege operator access. Test every flow on web and physical iOS/Android devices.
-- [ ] Apply migrations and deploy all Edge Functions to staging/production. Configure provider sync,
-      draft autopick, matchup advancement, waiver processing, trade expiry, and push dispatch jobs as
-      described in `docs/operations.md`; prove jobs are idempotent and independently pausable.
-- [ ] Configure logs, dashboards, alerts, on-call routing, provider freshness/error thresholds,
-      authentication and ingestion monitoring, status communication, and audit-log review.
-- [ ] Select the production database tier; set backup retention, RPO, and RTO; and document a tested
-      forward-fix/rollback procedure. Perform and witness an isolated restore before launch.
+- [ ] Run aggregate repository, dependency/secret, database reset/pgTAP, Edge, browser E2E, and load checks against disposable infrastructure, then staging. Record commit, command output, data/rule versions, and reviewer.
+- [ ] Complete a multi-manager staging rehearsal: verified signup/invite, drafting/reconnect/autopick, period lineup and bench locks, waiver race, trade acceptance/veto/locked/conflicted states, score correction, standings/playoffs, player history/ADP, chat/moderation, notifications, logout/reopen, and deletion.
+- [ ] Reconcile all three sports with data owners, including every coefficient/bonus, goalie attribution, volleyball errors, missing versus zero, duplicates/corrections, historical separation, DST/winter break, lock boundaries, cancellation/postponement, and playoff adjudication.
+- [ ] Verify cross-league authorization, forged ownership, revoked sessions, CSRF, recovery, cache isolation, accessibility, responsive layouts, contrast, and absence of advertising. Meet p95 ≤500 ms for normal reads, p95 <1 second draft commits, and five-second committed-update visibility for 100 active managers across ten drafts.
+- [ ] Restore a production-like backup into isolation; execute integrity and critical journeys; record backup ID, RPO/RTO, duration, reviewer, and rollback/forward-fix evidence.
 
-### Verification and release evidence
+## Deferred scope
 
-- [ ] Run `pnpm check`, dependency audit, secret scan, Expo Doctor, a clean local database reset,
-      pgTAP, database lint, and the Edge smoke suite from the release commit. Resolve or formally
-      assess every dependency finding.
-- [ ] In staging, complete the four-manager E2E journey: verified registration, private league
-      create/join, both formats, draft/reconnect/autopick, lineup/locks, free agent or waiver, trade,
-      provider import/replay/correction, standings, chat report/mute/moderation, notifications, score
-      adjustment audit, and account deletion.
-- [ ] Complete the release matrices in `docs/testing.md`: role/league-boundary RLS, draft races and
-      retries, concurrent transactions, every provider failure/correction state, and migration tests.
-      Add automated browser E2E coverage for critical flows; the repository currently has domain,
-      database, Edge smoke, and bundle tests but no full browser automation suite.
-- [ ] Rehearse ingestion through standings for every sport and both league formats. Reconcile expected
-      totals with scoring/data owners and retain signed results, including delayed and corrected data.
-- [ ] Pass WCAG 2.2 AA review plus keyboard, focus, screen-reader, resize, contrast, reduced-motion,
-      and touch-target testing. Complete supported-browser and physical iOS/Android testing.
-- [ ] Meet the agreed performance gates: common API p95 near 500 ms, draft commit under one second at
-      expected load, usable web near three seconds on typical broadband, and realtime score updates
-      within five seconds. Load-test joins, draft contention, score fan-out, and standings updates.
-- [ ] Validate push tickets/receipts, in-app fallback, deep links, moderation/retention, sponsor counts,
-      privacy/data deletion, migration rollback/forward-fix, backup restore, and operational alerts.
-- [ ] Require zero known Sev 1/2 defects and green scoring, authorization, concurrency, migration,
-      restore, rollback, monitoring, content-rights, privacy, and admin-MFA evidence. Delay launch if
-      any safe-core gate fails.
-
-### Web launch and game-day readiness
-
-- [ ] Publish approved privacy, terms, support, deletion, and delayed-data/status information; verify
-      custom-domain DNS/TLS and production email flows; load approved production configuration/data.
-- [ ] Rehearse deployment, rollback, scoring incident, provider outage, account support, moderation,
-      backup restore, and the first-game checklist with the named owners.
-- [ ] Preserve at least three uninterrupted hardening days. If unavailable, defer chat, sponsor
-      metrics, waivers, and trades in that order; never cut security, scoring integrity, account
-      deletion, auditing/backups, or draft correctness.
-- [ ] On October 9, promote only the tested immutable build after the documented go/no-go. Monitor
-      authentication and ingestion, reconcile the first game, communicate delays, and make scoring
-      corrections through replay/audited adjustments rather than direct database edits.
-
-### Mobile beta and submission
-
-- [ ] Complete mobile layouts, physical-device accessibility, deep links, recovery, push permissions
-      and delivery, offline/reconnect behavior, and TestFlight/Play internal testing.
-- [ ] Create approved app name/copy, icons, screenshots, support/contact details, privacy labels,
-      Google Data Safety answers, deletion resource, review notes/accounts, age/content declarations,
-      and any rights documentation requested by the stores.
-- [ ] Produce signed `.ipa` and `.aab` artifacts from the tested commit, verify package identifiers and
-      production configuration, and upload review-ready packages by October 30. Record submission
-      evidence; Apple/Google approval timing remains external.
-
-### Stabilization and deferred work
-
-- [ ] Monitor launch defects and provider corrections, activate basketball only after its approved
-      opening schedule, and restore any cut features in this order: trades, waivers, sponsor metrics,
-      then chat (the reverse of the cut order only when risk/owner approval permits).
-- [ ] Keep rich/media chat, public leagues/social feeds, dynasty/keeper play, alternate draft formats,
-      programmatic ads, paid contests/wagering, and broader analytics out of MVP unless a separately
-      approved change updates scope, privacy, testing, and operations.
-
-## Environment promotion rule
-
-Local demo mode is visibly labelled. A production client refuses to start without Supabase public
-configuration and a valid support email. Only server secret stores may contain provider credentials
-or the Supabase service-role key. Production promotion must use a tested immutable commit and the
-operations runbook; corrections use replay or an audited command, never direct total edits.
+Tarik’s completed weekly-prediction algorithm remains deferred; only the versioned provider/backtesting foundation is active. Native store distribution is also deferred. Do not call this beta ready with unresolved roster, mapping, statistic, scoring, security, or restore defects.

@@ -28,52 +28,6 @@ interface OperationsState {
   error: string | null;
 }
 
-const demoState: OperationsState = {
-  competitionCount: 6,
-  unresolvedErrors: 3,
-  loading: false,
-  error: null,
-  syncRows: [
-    {
-      id: 'hockey-men',
-      provider: "Men's Hockey · fixture",
-      status: 'succeeded',
-      finishedAt: new Date(Date.now() - 18_000).toISOString(),
-      changed: 14,
-    },
-    {
-      id: 'hockey-women',
-      provider: "Women's Hockey · fixture",
-      status: 'succeeded',
-      finishedAt: new Date(Date.now() - 42_000).toISOString(),
-      changed: 11,
-    },
-    {
-      id: 'basketball',
-      provider: 'Basketball · fixture',
-      status: 'partial',
-      finishedAt: new Date(Date.now() - 480_000).toISOString(),
-      changed: 4,
-    },
-  ],
-  auditEvents: [
-    {
-      id: '1',
-      action: 'scoring.game_replayed',
-      entityType: 'game',
-      entityId: 'MH-2026-009',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      action: 'provider.athlete_mapped',
-      entityType: 'athlete',
-      entityId: '19842',
-      createdAt: new Date(Date.now() - 780_000).toISOString(),
-    },
-  ],
-};
-
 interface SyncRow {
   id: string;
   provider: string;
@@ -92,22 +46,21 @@ interface AuditRow {
 }
 
 export function useOperations(): OperationsState {
-  const { demoMode, user } = useSession();
-  const [state, setState] = useState<OperationsState>(
-    demoMode
-      ? demoState
-      : {
-          competitionCount: 0,
-          unresolvedErrors: 0,
-          syncRows: [],
-          auditEvents: [],
-          loading: true,
-          error: null,
-        },
-  );
+  const { user } = useSession();
+  const [state, setState] = useState<OperationsState>({
+    competitionCount: 0,
+    unresolvedErrors: 0,
+    syncRows: [],
+    auditEvents: [],
+    loading: true,
+    error: null,
+  });
 
   useEffect(() => {
-    if (demoMode || !supabase || !user) return;
+    if (!supabase || !user) {
+      setState((current) => ({ ...current, loading: false }));
+      return;
+    }
     const client = supabase;
     const load = async () => {
       const [competitions, errors, syncs, audit] = await Promise.all([
@@ -154,7 +107,7 @@ export function useOperations(): OperationsState {
       });
     };
     void load();
-  }, [demoMode, user]);
+  }, [user]);
 
   return state;
 }

@@ -5,3 +5,4 @@ export * from './roster';
 export * from './scoring';
 export * from './standings';
 export * from './types';
+export * from './beta';

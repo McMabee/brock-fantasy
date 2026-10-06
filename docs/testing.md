@@ -18,7 +18,7 @@ run through EAS on protected preview and production profiles.
 
 With local Supabase running, the Edge smoke creates a disposable verified administrator, proves AAL1
 is rejected and completes a TOTP/AAL2 challenge, retains malformed provider input, scores and
-corrects the synthetic hockey fixture into a matchup, rejects a conflicting revision, invokes the
+corrects a disposable hockey test fixture into a matchup, rejects a conflicting revision, invokes the
 empty push dispatcher, exercises account deletion, and removes its other disposable records. It
 never prints local access tokens.
 
@@ -28,7 +28,7 @@ schema security properties and trusted command behavior.
 
 ## Required fixture matrix
 
-Before activating a competition, replace synthetic rules and fixtures with signed-off examples for:
+Before activating a competition, validate signed-off examples for:
 
 - every scoring category and roster position;
 - an in-progress and final game;

@@ -1,49 +1,36 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { LeagueFormat } from '@brock-fantasy/domain';
+import { BETA_PLAYER_POOL_ID, LEAGUE_SIZES } from '@brock-fantasy/domain';
 
 import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
-import { supabase } from '@/lib/supabase';
-import { colors, heading } from '@/theme';
+import { betaCommand } from '@/lib/web-api';
+import { colors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
-import { useCompetitions } from '@/hooks/use-competitions';
 
 export default function NewLeagueScreen() {
   useRequireUser();
-  const competitions = useCompetitions();
   const router = useRouter();
   const [name, setName] = useState('');
-  const [competitionId, setCompetitionId] = useState('');
-  const [format, setFormat] = useState<LeagueFormat>('head_to_head');
+  const [size, setSize] = useState<(typeof LEAGUE_SIZES)[number]>(8);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!competitionId && competitions[0]) setCompetitionId(competitions[0].id);
-  }, [competitionId, competitions]);
-
   const createLeague = async () => {
-    if (name.trim().length < 3 || !competitionId) {
-      setError(
-        'Choose an active competition and enter a league name of at least three characters.',
-      );
+    if (name.trim().length < 3) {
+      setError('Enter a league name of at least three characters.');
       return;
     }
     setLoading(true);
     setError(null);
-    if (!supabase) {
-      router.replace('/league/demo-league');
-      return;
-    }
-    const result = (await supabase.rpc('create_league', {
+    const result = await betaCommand<{ league_id: string }>('create_beta_league', {
       p_name: name.trim(),
-      p_competition_id: competitionId,
-      p_format: format,
+      p_pool_id: BETA_PLAYER_POOL_ID,
+      p_max_members: size,
       p_idempotency_key: `create-${Date.now()}`,
-    })) as { data: { league_id: string } | null; error: { message: string } | null };
+    });
     setLoading(false);
-    if (result.error) setError(result.error.message);
+    if (result.error) setError(result.error);
     else if (result.data) router.replace(`/league/${result.data.league_id}`);
   };
 
@@ -64,42 +51,31 @@ export default function NewLeagueScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={uiStyles.label}>Competition</Text>
+          <Text style={uiStyles.label}>Season player pool</Text>
+          <Text style={styles.poolSummary}>
+            One private league across Brock men’s and women’s hockey, basketball, and volleyball.
+          </Text>
+        </View>
+
+        <View style={styles.field}>
+          <Text style={uiStyles.label}>Managers</Text>
           <View style={styles.options}>
-            {competitions.map((competition) => (
+            {LEAGUE_SIZES.map((leagueSize) => (
               <Option
-                key={competition.id}
-                active={competitionId === competition.id}
-                label={competition.name}
-                onPress={() => setCompetitionId(competition.id)}
+                key={leagueSize}
+                active={size === leagueSize}
+                label={`${leagueSize} teams`}
+                onPress={() => setSize(leagueSize)}
               />
             ))}
           </View>
         </View>
 
-        <View style={styles.field}>
-          <Text style={uiStyles.label}>League format</Text>
-          <View style={styles.formatGrid}>
-            <FormatOption
-              active={format === 'head_to_head'}
-              title="Weekly head-to-head"
-              body="Scheduled opponents, wins and losses, then points-for as the configured tiebreaker."
-              onPress={() => setFormat('head_to_head')}
-            />
-            <FormatOption
-              active={format === 'points_leaderboard'}
-              title="Points leaderboard"
-              body="Every fantasy point counts toward one season-long cumulative ranking."
-              onPress={() => setFormat('points_leaderboard')}
-            />
-          </View>
-        </View>
-
         <View style={styles.ruleSummary}>
-          <Pill label="LOCKED AFTER DRAFT" tone="info" />
+          <Pill label="HEAD-TO-HEAD · 10 ROUNDS" tone="info" />
           <Text style={styles.ruleText}>
-            This league uses the approved, versioned ruleset for its competition. Format and ruleset
-            are pinned once drafting begins.
+            Each roster has six cross-sport starters and four bench positions. Draft order is
+            randomized once, with two-minute snake-draft picks and server-side autopicks.
           </Text>
         </View>
         {error ? (
@@ -141,35 +117,6 @@ function Option({
   );
 }
 
-function FormatOption({
-  active,
-  title,
-  body,
-  onPress,
-}: {
-  active: boolean;
-  title: string;
-  body: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ checked: active }}
-      onPress={onPress}
-      style={[styles.formatOption, active && styles.formatOptionActive]}
-    >
-      <View style={[styles.radio, active && styles.radioActive]}>
-        {active ? <View style={styles.radioDot} /> : null}
-      </View>
-      <View style={styles.formatCopy}>
-        <Text style={styles.formatTitle}>{title}</Text>
-        <Text style={styles.formatBody}>{body}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   form: { maxWidth: 840, width: '100%', alignSelf: 'center', gap: 26, padding: 25 },
   field: { gap: 10 },
@@ -182,35 +129,10 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     backgroundColor: colors.canvasSoft,
   },
-  optionActive: { borderColor: colors.brand, backgroundColor: '#24371A' },
+  optionActive: { borderColor: colors.red, backgroundColor: colors.white },
   optionText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   optionTextActive: { color: colors.brand },
-  formatGrid: { gap: 10 },
-  formatOption: {
-    flexDirection: 'row',
-    gap: 13,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 13,
-    padding: 15,
-    backgroundColor: colors.canvasSoft,
-  },
-  formatOptionActive: { borderColor: colors.brand, backgroundColor: '#1B301A' },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderColor: colors.border,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  radioActive: { borderColor: colors.brand },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.brand },
-  formatCopy: { flex: 1 },
-  formatTitle: { ...heading, fontSize: 15 },
-  formatBody: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
+  poolSummary: { color: colors.muted, fontSize: 13, lineHeight: 20 },
   ruleSummary: {
     flexDirection: 'row',
     flexWrap: 'wrap',
