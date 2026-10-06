@@ -1,9 +1,9 @@
 # Terms and conditions
 
 **Status:** Working draft; eligibility, jurisdiction, and legal wording require operator approval.  
-**Draft version:** 0.1 — October 6, 2026  
+**Draft version:** 0.2 — October 6, 2026\
 **Effective date:** [insert approved effective date]  
-**Operator:** [insert legal name and mailing address]  
+**Operator:** Ty Mabee, 602 Main Street, Port Dover, ON, N0A 1N0\
 **Contact:** [insert monitored support email]
 
 ## Agreement and eligibility

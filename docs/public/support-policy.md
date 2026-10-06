@@ -1,9 +1,9 @@
 # Support policy
 
 **Status:** Working draft; contacts, staffing, and targets are proposed until approved.  
-**Draft version:** 0.1 — October 6, 2026  
+**Draft version:** 0.2 — October 6, 2026\
 **Effective date:** [insert approved effective date]  
-**Support owner:** Tarik Merchant  
+**Support owner:** Ty Mabee\
 **Support/accessibility contact:** [insert monitored support email]  
 **Privacy contact:** [insert monitored privacy email]  
 **Security contact:** [insert monitored security email or disclosure channel]

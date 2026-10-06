@@ -1,7 +1,7 @@
 # Community moderation policy
 
 **Status:** Working draft; moderation authority, staffing, and appeal handling require approval.  
-**Draft version:** 0.1 — October 6, 2026  
+**Draft version:** 0.2 — October 6, 2026\
 **Effective date:** [insert approved effective date]  
 **Community/support owner:** Tarik Merchant  
 **Reports and appeals:** [insert monitored support email]

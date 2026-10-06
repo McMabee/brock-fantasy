@@ -1,7 +1,7 @@
 # Availability notice
 
 **Status:** Working draft; communication channels and operational targets require approval.  
-**Draft version:** 0.1 — October 6, 2026  
+**Draft version:** 0.2 — October 6, 2026\
 **Effective date:** [insert approved effective date]  
 **Service owner:** Tarik Merchant  
 **Release/security-incident owner:** Ty Mabee  

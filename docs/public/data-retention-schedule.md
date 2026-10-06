@@ -1,7 +1,7 @@
 # Data retention schedule
 
 **Status:** Working draft. Except for observed browser expiry periods and the conditional legal minimum identified below, periods are proposed operator limits, not verified cleanup behavior.  
-**Draft version:** 0.1 — October 6, 2026  
+**Draft version:** 0.2 — October 6, 2026\
 **Effective date:** [insert approved effective date]  
 **Accountable owner:** Tarik Merchant  
 **Implementation/security owner:** Ty Mabee  

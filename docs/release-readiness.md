@@ -1,6 +1,6 @@
 # 2026–27 Web Beta Release Readiness
 
-Status date: October 2, 2026. This checklist distinguishes implemented beta behaviour from required release evidence. A passing local check is not staging or production evidence.
+Status date: October 6, 2026. This checklist distinguishes implemented beta behaviour from required release evidence. A passing local check is not staging or production evidence.
 
 ## Implemented beta foundation
 
@@ -15,23 +15,24 @@ Status date: October 2, 2026. This checklist distinguishes implemented beta beha
 ## Local implementation evidence
 
 - [x] Disposable local Supabase rehearsal on October 2, 2026: verified registration, confirmation callback, cookie-authenticated session, logout, password sign-in, and restored authenticated session all succeeded. It is not evidence for a hosted Supabase or SMTP configuration.
-- [x] Current supplied-data preview: 12 CSV files and 273 source rows are captured with hashes and provenance. It identified one unparseable schedule time and 21 combined-schedule time mappings that require review; it was deliberately not published or activated.
+- [x] October 6 preview: all 16 CSVs, 337 normalized records, original/revision hashes and official candidate mappings. Earlier parser/combined-time issues are resolved locally. [Evidence](evidence/2026-10-06-beta-import.json); no publication or activation occurred.
+- [x] Official roster/schedule/statistics pages for all six programs were captured for review; [research](official-data-research.md) records remaining identity and scoring questions. Vercel server-output configuration is prepared locally.
 
 ## Activation gates
 
 - [x] Place the supplied licensed logo artwork in app assets and use the approved light/dark variants without regenerating or recolouring them. The web build and Android/iOS export include both assets; visual and assistive-technology review remain staging gates.
-- [ ] Run `pnpm import:beta-data`, reconcile all 12 supplied files, resolve ambiguous combined basketball/volleyball game times and all athlete/team mappings, then materialize reviewed teams, athletes, season membership, games, and pool rankings. Do not activate a pool with incomplete required rosters or mappings.
-- [ ] Resolve the current importer findings: one `SCHEDULE_TIME` error and 21 `COMBINED_SCHEDULE_TIME` warnings. Keep the affected records unavailable to leagues until an administrator records the official mapping.
-- [ ] Obtain official basketball/volleyball rosters and outstanding individual statistics. Preserve source `N/A`, empty, zero, and negative values; never invent detailed historical games or forecasts.
-- [ ] Complete the authorized Brock provider adapter: hourly schedule checks, five-minute scheduled-game checks, seven daily correction sweeps, bounded retry/backoff, health alerts, explicit mapping review, scoring pause/resume, manual-override protection, and idempotent replay.
-- [x] Record accountable owners: Tarik Merchant owns data/rule approval, privacy/legal, accessibility, support, and game-day operations. Ty Mabee owns release management and security incidents.
-- [ ] Assign accountable owners for brand rights and roster/schedule/historical-statistics/provider-data rights. The provided data-rights statement is incomplete and must be finalized before activation.
+- [ ] Run `pnpm import:beta-data`, reconcile all 16 supplied files, resolve ambiguous combined basketball/volleyball game times and all athlete/team mappings, then materialize reviewed teams, athletes, season membership, games, and pool rankings. Do not activate a pool with incomplete required rosters or mappings.
+- [ ] Approve the prepared official mapping candidates; local parser/mapping errors are resolved. Keep the affected records unavailable to leagues until an administrator records the official mapping.
+- [ ] Approve supplied and official basketball/volleyball rosters and obtain complete game-level statistics. Preserve source `N/A`, empty, zero, and negative values; never invent detailed historical games or forecasts.
+- [ ] Approve and rehearse manual official-source scorekeeping while sports API access is unavailable: named AAL2 scorekeepers, coverage/correction windows, source/reason capture, preview, publication and replay. Automated sports checks are deferred pending an approved access contract.
+- [x] Record accountable owners: Tarik Merchant owns data/rules, privacy, accessibility and game-day operations. Ty Mabee is legal operator and owns support, release and security. Mark Pirog is the recorded logo rights owner; Tarik reports consent September 26, 2026.
+- [ ] Finalize the permission scope and source-by-source rights register before activation. Accountable owners and reported permissions are recorded in [the register](data-rights-register.md); permission references and the athlete opt-out process remain needed.
 - [ ] Have Tarik Merchant and the legal operator approve the public-copy drafts in `docs/public/`, resolve all bracketed operator/contact/retention/jurisdiction details, then publish privacy, terms, support, deletion, moderation, delayed-data, and availability notices.
-- [ ] Resolve or formally accept the current upstream Expo CLI dependency advisories before deployment: `node-forge` (high, no published patched version), `uuid`, and `decode-uri-component`. They are absent from the exported web bundle and occur in the Expo build/CLI tree, but the audit must be rerun and attached to the release record.
+- [ ] Resolve or formally accept the current upstream Expo CLI dependency advisories before deployment: `node-forge` and `braces` (high; no patched version reported), `uuid` and `decode-uri-component` (moderate). The [October 6 audit](evidence/2026-10-06-dependency-audit.json) records 2 high, 2 moderate and 0 critical. Affected dependency paths include the Expo build/CLI tree; assess both hosted server and browser artifacts before a documented risk decision.
 
 ## Hosted setup
 
-- [ ] Create isolated staging/production Supabase and EAS Hosting environments. Configure app environment, Supabase URL/key, support email, and application origin; keep provider/service-role credentials in server secret stores only.
+- [ ] Create isolated staging/production Supabase and Vercel server-output environments. Configure app environment, Supabase URL/key, support email, and application origin; keep provider/service-role credentials in server secret stores only.
 - [ ] Configure the public Supabase publishable key and exact HTTPS callback origin for each environment. Configure Supabase redirect allow-lists before enabling registration or recovery email.
 - [ ] Configure SMTP and exact HTTPS verification/recovery redirects for `/api/auth/callback` and `/reset-password`. Prove tokens never occur in browser storage, URLs, logs, bundles, or shared caches.
 - [ ] Enable TOTP, assign named platform admins, and prove AAL1 cannot read or execute admin operations.

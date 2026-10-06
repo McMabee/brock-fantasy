@@ -1,7 +1,7 @@
 # Public policy drafts
 
 **Drafted:** October 6, 2026  
-**Version:** 0.1  
+**Version:** 0.2\
 **Status:** Working drafts for operator review; not effective or approved for publication.
 
 These documents describe Brock Fantasy's free, ad-free fantasy-sports web beta for private leagues involving Brock varsity athletics. They include conventional service terms and Canadian privacy practices, adapted to the repository. They are starting points for review, not a finding of legal compliance or evidence of a live deployment.
@@ -38,9 +38,9 @@ No general time-based retention cleanup was found. The proposed retention period
 
 ## Decisions before publication
 
-Tarik Merchant is the recorded owner for privacy/legal, data/rules, accessibility, support, and game-day operations. Ty Mabee is the recorded release and security-incident owner.
+Ty Mabee is the legal operator (602 Main Street, Port Dover, ON, N0A 1N0), release, support and security owner. Tarik Merchant owns privacy, data/rules, accessibility and game-day operations. Mark Pirog is the logo rights owner; Tarik reports consent collected September 26, 2026. The selected host is Vercel and intended production site is https://brockfantasy.ca. See [the rights register](../data-rights-register.md).
 
-- Fill in the legal operator, mailing address, effective dates, and monitored support/privacy/security contacts. Do not publish the example address from environment templates.
+- Confirm effective dates and monitored support/privacy/security contacts; operator identity and mailing address have been supplied. Do not publish the example address from environment templates.
 - Confirm the operator's relationship to Brock University and permission to use names, logos, and athlete data. Branding alone does not establish affiliation.
 - Approve the minimum age and service territory. A Canada-focused, adults-only beta is a conservative proposed starting point, not an implemented eligibility restriction. Any youth launch needs an age-appropriate consent process.
 - Confirm applicable privacy law based on the operator and activities. PIPEDA is a drafting baseline; applicability depends on the activities, including their commercial character, rather than free/nonprofit status alone. See the OPC's [commercial-activity guidance](https://www.priv.gc.ca/en/privacy-topics/privacy-laws-in-canada/the-personal-information-protection-and-electronic-documents-act-pipeda/pipeda-compliance-help/pipeda-interpretation-bulletins/interpretations_03_ca/).

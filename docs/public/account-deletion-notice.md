@@ -1,7 +1,7 @@
 # Account-deletion policy
 
 **Status:** Working draft; manual handling and retention targets require approval and verification.  
-**Draft version:** 0.1 — October 6, 2026  
+**Draft version:** 0.2 — October 6, 2026\
 **Effective date:** [insert approved effective date]  
 **Deletion/privacy contact:** [insert monitored support or privacy email]
 

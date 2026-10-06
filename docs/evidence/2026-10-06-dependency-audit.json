@@ -1,0 +1,79 @@
+{
+  "capturedOn": "2026-10-06",
+  "command": "pnpm audit --prod --json",
+  "status": "unresolved",
+  "reviewedBy": null,
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 2,
+      "high": 2,
+      "critical": 0
+    },
+    "dependencies": 608,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 608
+  },
+  "advisories": [
+    {
+      "module": "uuid",
+      "severity": "moderate",
+      "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+      "vulnerableVersions": "<11.1.1",
+      "patchedVersions": ">=11.1.1",
+      "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+      "findings": [
+        {
+          "version": "7.0.3",
+          "paths": ["apps__client>expo>@expo/config-plugins>xcode>uuid"]
+        }
+      ]
+    },
+    {
+      "module": "decode-uri-component",
+      "severity": "moderate",
+      "title": "decode-uri-component: Denial of service via exponential decoding of malformed percent-encoded input",
+      "vulnerableVersions": "<=0.4.2",
+      "patchedVersions": ">=0.5.0",
+      "url": "https://github.com/advisories/GHSA-vcc3-ghjq-m6fr",
+      "findings": [
+        {
+          "version": "0.2.2",
+          "paths": ["apps__client>expo-router>query-string>decode-uri-component"]
+        }
+      ]
+    },
+    {
+      "module": "node-forge",
+      "severity": "high",
+      "title": "node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements",
+      "vulnerableVersions": "<=1.4.0",
+      "patchedVersions": "<0.0.0",
+      "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+      "findings": [
+        {
+          "version": "1.4.0",
+          "paths": ["apps__client>expo>@expo/cli>node-forge"]
+        }
+      ]
+    },
+    {
+      "module": "braces",
+      "severity": "high",
+      "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns",
+      "vulnerableVersions": "<=3.0.3",
+      "patchedVersions": "<0.0.0",
+      "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+      "findings": [
+        {
+          "version": "3.0.3",
+          "paths": [
+            "apps__client>@react-native/metro-config>metro-config>metro>metro-file-map>micromatch>braces"
+          ]
+        }
+      ]
+    }
+  ]
+}

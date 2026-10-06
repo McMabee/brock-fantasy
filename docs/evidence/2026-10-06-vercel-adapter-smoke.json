@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-06",
+  "environment": "local Node HTTP server using transpiled Vercel entry",
+  "hostedVerification": false,
+  "results": [
+    {
+      "route": "/api/auth/csrf",
+      "status": 200,
+      "csrfCookie": true,
+      "noStore": true,
+      "contentType": "application/json; charset=utf-8"
+    },
+    {
+      "route": "/api/auth/session",
+      "status": 200,
+      "csrfCookie": false,
+      "noStore": true,
+      "contentType": "application/json; charset=utf-8",
+      "anonymous": true
+    },
+    {
+      "route": "/api/data/supabase",
+      "status": 401,
+      "csrfCookie": false,
+      "noStore": true,
+      "contentType": "application/json; charset=utf-8"
+    },
+    {
+      "route": "/",
+      "status": 200,
+      "csrfCookie": false,
+      "noStore": false,
+      "contentType": "text/html"
+    },
+    {
+      "route": "POST /api/auth/sign-in, wrong origin",
+      "status": 403
+    }
+  ]
+}

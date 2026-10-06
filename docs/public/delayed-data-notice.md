@@ -1,14 +1,14 @@
 # Delayed-data and scoring-corrections policy
 
 **Status:** Working draft; source permissions, refresh expectations, and user notices require approval.  
-**Draft version:** 0.1 — October 6, 2026  
+**Draft version:** 0.2 — October 6, 2026\
 **Effective date:** [insert approved effective date]  
 **Data/rule owner:** Tarik Merchant  
 **Data reports:** [insert monitored support email]
 
 ## Data freshness and completeness
 
-Brock Fantasy uses reviewed rosters, schedules, results, player statistics, historical records, and authorized administrative imports. Scores are not guaranteed live. Updates depend on source publication, provider access, manual review, mapping accuracy, and complete statistics.
+Brock Fantasy uses reviewed rosters, schedules, results, player statistics, historical records, and authorized administrative imports. The operator has selected manual updates through authorized administrators while sports API access is unavailable. Scores are not guaranteed live. Updates depend on source publication, provider access, manual review, mapping accuracy, and complete statistics.
 
 A delay may last minutes, hours, or longer. No fixed refresh interval is guaranteed for the beta. A screen refresh does not cause an upstream source to publish new data. We keep unresolved or unapproved data unavailable rather than substituting invented figures. An absent statistic must not be assumed to be zero.
 

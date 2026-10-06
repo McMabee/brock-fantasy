@@ -1,9 +1,9 @@
 # Privacy policy
 
 **Status:** Working draft; operator details and proposed practices require approval before publication.  
-**Draft version:** 0.1 — October 6, 2026  
+**Draft version:** 0.2 — October 6, 2026\
 **Effective date:** [insert approved effective date]  
-**Operator:** [insert legal name and mailing address]  
+**Operator:** Ty Mabee, 602 Main Street, Port Dover, ON, N0A 1N0\
 **Privacy contact:** [insert monitored privacy email]
 
 ## Scope and purposes
@@ -40,7 +40,7 @@ The minimum account age is **[insert approved minimum age, consistent with the T
 
 Relevant league members can see your display name, fantasy team and competition activity, and league chat. Email addresses and credentials are not intended to be shared with league members. Administrators and authorized support personnel may access information needed for their duties. A private league cannot prevent participants from copying content; do not share invite codes or another person's private information without permission.
 
-We use Supabase for authentication and database services. Hosting, transactional email, monitoring, backups, and any native push providers process information needed to deliver their services. We limit provider access through appropriate contractual and technical controls and remain accountable for our handling of information.
+We use Supabase for authentication and database services and Vercel for web hosting. Tarik Merchant is the privacy owner; Ty Mabee is the operator and support/security owner. The intended production site is https://brockfantasy.ca. Hosting, transactional email, monitoring, backups, and any native push providers process information needed to deliver their services. We limit provider access through appropriate contractual and technical controls and remain accountable for our handling of information.
 
 **Production provider and location register:** [insert actual provider names, roles, processing countries, and relevant privacy links; include Supabase region, web hosting, SMTP, backups/monitoring, and Expo/Apple/Google if native push is enabled].
 
