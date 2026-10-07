@@ -3,7 +3,7 @@
   "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build:web",
-  "outputDirectory": "dist/client",
+  "outputDirectory": "apps/client/dist",
   "functions": {
     "api/index.ts": {
       "includeFiles": "dist/server/**"
@@ -11,8 +11,8 @@
   },
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/api/index"
+      "source": "/:path*",
+      "destination": "/"
     }
   ]
 }
