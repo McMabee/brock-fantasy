@@ -21,6 +21,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @brock-fantasy/domain test && pnpm test:import",
     "test:import": "node --experimental-strip-types --test scripts/lib/*.test.mjs",
+    "test:publication:local": "node scripts/test-import-publication-local.mjs",
     "test:web-auth:local": "node scripts/test-web-auth-throttle.mjs",
     "test:coverage": "pnpm --filter @brock-fantasy/domain test:coverage",
     "test:edge:local": "node scripts/test-edge-functions.mjs",

@@ -41,7 +41,12 @@ test('preview keeps all sources inactive, maps mixed schedules and versions chan
       'Scoring System',
       'Draft_Waivers_Trade',
     ])
-      files.set(`${name}.csv`, 'Field,Value\nExample,0\n');
+      files.set(
+        `${name}.csv`,
+        name === 'Scoring System'
+          ? 'Volleyball(V_b),Hockey Skater(H_s),Basketball(B_b),Hockey Goalie(H_g)\nKills (K) = 2,Goal (G) = 20,Point (P) = 1,Win (W) = 10\n'
+          : 'Field,Value\nExample,0\n',
+      );
     for (const [name, csv] of files)
       await writeFile(path.join(logic, `Fall.Winter Brock Fantasy Information - ${name}`), csv);
     const game = (program, opponent, date, time, at) => ({
@@ -133,6 +138,61 @@ test('preview keeps all sources inactive, maps mixed schedules and versions chan
     const after = (await run()).imports.find((item) => item.source === before.source);
     assert.equal(after.sourceHash, before.sourceHash);
     assert.notEqual(after.revisionHash, before.revisionHash);
+
+    const { createHash } = await import('node:crypto');
+    const hash = (content) => createHash('sha256').update(content).digest('hex');
+    const approval = {
+      approvalId: 'fixture-approval',
+      season: '2026-27',
+      approvedBy: 'Tarik Merchant',
+      confirmedOn: '2026-10-06',
+      officialEvidenceHash: hash(await readFile(evidencePath)),
+      sources: await Promise.all(
+        [...files.keys()].map(async (name) => ({
+          source: `logic/Fall.Winter Brock Fantasy Information - ${name}`,
+          sourceHash: hash(
+            await readFile(path.join(logic, `Fall.Winter Brock Fantasy Information - ${name}`)),
+          ),
+          scopes: ['beta_data'],
+        })),
+      ),
+    };
+    await mkdir(path.join(directory, 'dev/docs/evidence'), { recursive: true });
+    await writeFile(
+      path.join(directory, 'dev/docs/evidence/2026-10-06-data-approvals.json'),
+      JSON.stringify(approval),
+    );
+    const approved = await run();
+    assert.ok(approved.imports.every((item) => item.approval?.approvedBy === 'Tarik Merchant'));
+    assert.equal(approved.activation.allowed, false);
+    const approvedHockey = approved.imports.find((item) => item.source === hockey.source);
+    assert.equal(approvedHockey.rows[0].normalized.membershipStatus, 'source_owner_confirmed');
+    assert.equal(
+      approvedHockey.rows[1].normalized.membershipStatus,
+      'section_classification_required',
+    );
+    assert.equal(approvedHockey.rows[0].normalized.identityStatus, 'source_owner_confirmed');
+    assert.ok(
+      approved.imports
+        .filter((item) => item.kind.includes('schedule'))
+        .flatMap((item) => item.rows)
+        .every((row) => row.normalized.mappingEvidence.reviewedBy === 'Tarik Merchant'),
+    );
+    await writeFile(evidencePath, JSON.stringify({ ...evidence, note: 'changed evidence' }));
+    const changedEvidence = await run();
+    assert.equal(
+      changedEvidence.imports.find((item) => item.source === before.source).approval,
+      null,
+    );
+    assert.ok(changedEvidence.imports.find((item) => item.source === hockey.source).approval);
+    await writeFile(
+      path.join(logic, "Fall.Winter Brock Fantasy Information - Men's Hockey - Roster.csv"),
+      '#,Full name,Position,25-26 GP,25-26 FP\n1,Changed,GK,2,0\n',
+    );
+    assert.equal(
+      (await run()).imports.find((item) => item.source === hockey.source).approval,
+      null,
+    );
   } finally {
     // mkdtemp returned this exact absolute target inside the OS temporary directory.
     assert.ok(path.resolve(directory).startsWith(path.resolve(os.tmpdir()) + path.sep));

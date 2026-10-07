@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { approvalHash, scoringRow, sourceApproval } from './lib/brock-approvals.mjs';
+import { publishPreview } from './lib/import-publication.mjs';
+import { hashBytes, historicalGoalieDefinition, rosterDefinition } from './lib/brock-decisions.mjs';
 import {
   normalizedPositions,
   parseCsv,
@@ -16,7 +20,20 @@ const outputPath = path.resolve(
   process.env.BROCK_IMPORT_OUTPUT ?? 'dev/tmp/brock-beta-import-preview.json',
 );
 const publish = process.argv.includes('--publish');
-const normalizerVersion = 'brock-import-2026.2';
+const normalizerVersion = 'brock-import-2026.4';
+const decisionsPath = path.resolve(
+  root,
+  process.env.BROCK_DATA_DECISIONS ?? 'dev/docs/evidence/2026-10-06-beta-decisions.json',
+);
+let decisions = null;
+let decisionsHash = null;
+let goalieEvidence = null;
+const approvalsPath = path.resolve(
+  root,
+  process.env.BROCK_DATA_APPROVALS ?? 'dev/docs/evidence/2026-10-06-data-approvals.json',
+);
+let approvals = null;
+let approvalsHash = null;
 const evidencePath = path.resolve(
   root,
   process.env.BROCK_OFFICIAL_EVIDENCE ?? 'dev/docs/evidence/2026-10-06-official-data.json',
@@ -108,6 +125,7 @@ function canonicalRow(file, kind, row, issues) {
   if (kind === 'schedule') return normalizeScheduleRow(program, raw, row.rowNumber, issues);
   if (kind === 'combined_schedule')
     return normalizeCombinedSchedule(file, raw, row.rowNumber, issues);
+  if (kind === 'scoring_rules') return scoringRow(raw, row.rowNumber, issues);
   return {
     type: kind,
     cells: Object.fromEntries(
@@ -262,6 +280,39 @@ function reconcileSchedule(programs, raw, rowNumber, issues) {
 }
 
 export async function buildManifest() {
+  decisions = null;
+  decisionsHash = null;
+  goalieEvidence = null;
+  try {
+    const content = await readFile(decisionsPath, 'utf8');
+    decisions = JSON.parse(content);
+    if (!decisions.decisionId || !decisions.confirmedBy || !Array.isArray(decisions.rosterSources))
+      throw new Error('Definitions need an operator identity, revision and source bindings.');
+    decisionsHash = hashBytes(content);
+    // Preserve approved record bytes/hashes while resolving their original local path.
+    const recordedPath = decisions.goalieLog.evidencePath;
+    const localEvidencePath = recordedPath.startsWith('docs/')
+      ? `dev/${recordedPath}`
+      : recordedPath;
+    const evidenceContent = await readFile(path.resolve(root, localEvidencePath));
+    if (hashBytes(evidenceContent) !== decisions.goalieLog.evidenceHash)
+      throw new Error('Goalie evidence hash changed; record a reviewed definition revision.');
+    goalieEvidence = JSON.parse(evidenceContent.toString());
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    if (decisions) throw new Error('The reviewed goalie evidence file is required.');
+  }
+  try {
+    const content = await readFile(approvalsPath, 'utf8');
+    approvals = JSON.parse(content);
+    if (!Array.isArray(approvals.sources) || !approvals.approvalId)
+      throw new Error('Data approval record must contain an approval ID and source hashes.');
+    approvalsHash = approvalHash(content);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    approvals = null;
+    approvalsHash = null;
+  }
   try {
     const evidenceContent = await readFile(evidencePath, 'utf8');
     officialEvidence = JSON.parse(evidenceContent);
@@ -283,19 +334,61 @@ export async function buildManifest() {
   for (const [file, kind] of fileKinds) {
     const content = await readFile(path.join(logicDir, file), 'utf8');
     const hash = createHash('sha256').update(content).digest('hex');
+    const approval = sourceApproval(approvals, `logic/${file}`, hash, officialEvidenceHash, kind);
     const issues = [];
     const rows = [];
-    let section = 'membership_review_required';
+    let section = approval ? 'current_season' : 'membership_review_required';
+    let previousRecordNumber = 1;
     for (const row of parseCsv(content)) {
-      const normalized = canonicalRow(file, kind, row, issues);
+      if (
+        kind === 'roster' &&
+        section !== 'previous_season' &&
+        row.rowNumber > previousRecordNumber + 1
+      )
+        section = 'unlabelled_after_separator';
+      previousRecordNumber = row.rowNumber;
+      const normalized =
+        kind === 'historical_goalie_stats'
+          ? (historicalGoalieDefinition(decisions, hash, goalieEvidence, row, issues) ??
+            canonicalRow(file, kind, row, issues))
+          : canonicalRow(file, kind, row, issues);
       if (normalized.type === 'roster_section_marker') section = 'previous_season';
       for (const [candidateIndex, item] of (Array.isArray(normalized)
         ? normalized
         : [normalized]
       ).entries()) {
         if (item.type === 'athlete_season_candidate') {
+          const definition = rosterDefinition(
+            decisions,
+            `logic/${file}`,
+            hash,
+            row.rowNumber,
+            item.name,
+          );
+          if (approval && definition?.membership) section = definition.membership;
           item.sourceSection = section;
           item.draftEligible = false;
+          if (approval) {
+            item.identityStatus = 'source_owner_confirmed';
+            item.positionStatus = 'source_owner_confirmed';
+            item.membershipStatus =
+              section === 'current_season'
+                ? 'source_owner_confirmed'
+                : section === 'previous_season'
+                  ? 'previous_season'
+                  : 'section_classification_required';
+            item.reviewedBy = approval.approvedBy;
+            item.approvalId = approval.approvalId;
+          }
+          if (definition) {
+            item.definitionRevision = definition.decisionId;
+            item.historicalAvailabilityReason = definition.historicalReason;
+            item.rankingInput = definition.rankingInput;
+            item.calculationExclusions = {
+              staffAnnotations: definition.ignoreStaffAnnotations,
+              previousTeamValues: definition.ignorePreviousTeamValues,
+            };
+          }
           const nameKey = (name) => name.toLowerCase().replace(/[^a-z]/gu, '');
           // Suggestions only; no permanent identity is assigned by this match.
           item.identityCandidates = (officialEvidence?.rosters ?? [])
@@ -317,6 +410,13 @@ export async function buildManifest() {
               reviewedBy: null,
             }));
         }
+        if (item.type === 'game_candidate' && approval && item.mappingEvidence) {
+          item.status = 'approved_mapping';
+          item.reviewRequired = false;
+          item.mappingEvidence.reviewedBy = approval.approvedBy;
+          item.mappingEvidence.confirmedOn = approval.confirmedOn;
+          item.mappingEvidence.approvalId = approval.approvalId;
+        }
         rows.push({
           ...row,
           sourceRowNumber: row.rowNumber,
@@ -329,11 +429,20 @@ export async function buildManifest() {
       source: `logic/${file}`,
       sourceHash: hash,
       revisionHash: createHash('sha256')
-        .update(JSON.stringify({ sourceHash: hash, normalizerVersion, officialEvidenceHash }))
+        .update(
+          JSON.stringify({
+            sourceHash: hash,
+            normalizerVersion,
+            officialEvidenceHash,
+            approvalsHash,
+            decisionsHash,
+          }),
+        )
         .digest('hex'),
       kind,
       rowCount: rows.length,
       status: 'preview',
+      approval,
       issues,
       rows,
     });
@@ -344,11 +453,29 @@ export async function buildManifest() {
     seasonId,
     season: '2026-27',
     normalizerVersion,
+    dataDefinitions: decisionsHash
+      ? {
+          path: path.relative(root, decisionsPath).replaceAll('\\', '/'),
+          sourceHash: decisionsHash,
+          decisionId: decisions.decisionId,
+          confirmedBy: decisions.confirmedBy,
+        }
+      : null,
+    dataApprovals: approvalsHash
+      ? {
+          path: path.relative(root, approvalsPath).replaceAll('\\', '/'),
+          sourceHash: approvalsHash,
+          approvalId: approvals.approvalId,
+          approvedBy: approvals.approvedBy,
+          confirmedOn: approvals.confirmedOn,
+        }
+      : null,
     officialEvidence: officialEvidenceHash
       ? {
           path: path.relative(root, evidencePath).replaceAll('\\', '/'),
           sourceHash: officialEvidenceHash,
-          reviewedBy: null,
+          reviewedBy:
+            approvals?.officialEvidenceHash === officialEvidenceHash ? approvals.approvedBy : null,
         }
       : null,
     timezone: 'America/Toronto',
@@ -357,86 +484,52 @@ export async function buildManifest() {
     activation: {
       allowed: false,
       reasons: [
-        'Athlete identities, membership, source rights, and eligibility require named human approval.',
-        'Official schedule candidates and corrections require named human review before activation.',
-        'No reviewed rankings or approved permanent athlete mappings are present.',
+        ...(!imports.every((item) => item.approval)
+          ? ['Missing or changed source hashes require an updated source-owner approval record.']
+          : []),
+        'Approved source records still require permanent database identities and materialization.',
+        ...(!decisionsHash
+          ? ['Source-value definitions have not been supplied for this revision.']
+          : []),
+        'No frozen ranking revision or complete draft-allocation rehearsal is present.',
       ],
     },
   };
-}
-
-async function publishManifest(manifest) {
-  const url = process.env.SUPABASE_URL?.replace(/\/$/u, '');
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key)
-    throw new Error(
-      '--publish requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the process environment.',
-    );
-  for (const item of manifest.imports) {
-    const imported = await rest(
-      url,
-      key,
-      'source_imports',
-      {
-        source: item.source,
-        source_hash: item.revisionHash,
-        season_id: seasonId,
-        kind: item.kind,
-        payload: {
-          generatedAt: manifest.generatedAt,
-          rowCount: item.rowCount,
-          sourceHash: item.sourceHash,
-          normalizerVersion,
-          officialEvidenceHash,
-        },
-        issues: item.issues,
-        status: 'preview',
-      },
-      'source,source_hash',
-    );
-    const importId = imported[0]?.id;
-    if (!importId) throw new Error(`Could not create import revision for ${item.source}.`);
-    const rows = item.rows.map((row) => ({
-      import_id: importId,
-      row_number: row.rowNumber,
-      source_key: `${item.revisionHash}:${row.rowNumber}`,
-      raw: row.raw,
-      normalized: row.normalized,
-    }));
-    for (const batch of chunk(rows, 100))
-      await rest(url, key, 'source_rows', batch, 'import_id,row_number');
-  }
-}
-
-async function rest(url, key, table, body, conflict) {
-  const endpoint = `${url}/rest/v1/${table}${conflict ? `?on_conflict=${encodeURIComponent(conflict)}` : ''}`;
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      apikey: key,
-      authorization: `Bearer ${key}`,
-      'content-type': 'application/json',
-      prefer: conflict
-        ? 'resolution=merge-duplicates,return=representation'
-        : 'return=representation',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) throw new Error(`${table} import failed: ${await response.text()}`);
-  return response.json();
-}
-
-function chunk(items, size) {
-  return Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
-    items.slice(index * size, (index + 1) * size),
-  );
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const manifest = await buildManifest();
   await mkdir(path.dirname(outputPath), { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
-  if (publish) await publishManifest(manifest);
+  let publication = null;
+  if (publish) {
+    let release = { commit: null, workingTreeDirty: null };
+    try {
+      release = {
+        commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+        workingTreeDirty: Boolean(
+          execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(),
+        ),
+      };
+    } catch {
+      /* Non-Git environments retain an explicitly unknown release identity. */
+    }
+    publication = await publishPreview(manifest, {
+      url: process.env.SUPABASE_URL,
+      key: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      projectRef: process.env.BROCK_PUBLISH_PROJECT_REF,
+      operatorName: process.env.BROCK_PUBLISH_OPERATOR_NAME,
+      operatorProfileId: process.env.BROCK_PUBLISH_OPERATOR_PROFILE_ID,
+      receiptPath:
+        process.env.BROCK_IMPORT_RECEIPT ??
+        path.join(
+          'logic',
+          'import-receipts',
+          `${new Date().toISOString().replaceAll(':', '-')}.json`,
+        ),
+      release,
+    });
+  }
   console.log(
     JSON.stringify({
       output: outputPath,
@@ -444,6 +537,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
       rows: manifest.imports.reduce((total, item) => total + item.rowCount, 0),
       issues: manifest.issues.length,
       published: publish,
+      publication: publication
+        ? {
+            runId: publication.runId,
+            status: publication.status,
+            verifiedRows: publication.verifiedRows,
+            activation: false,
+          }
+        : null,
     }),
   );
 }
