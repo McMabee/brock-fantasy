@@ -1,3 +1,4 @@
+import { formatFantasyPoints } from '@brock-fantasy/domain';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -216,7 +217,7 @@ export default function PlayerScreen() {
           <View style={styles.summary}>
             <Card style={styles.metric}>
               <Text style={styles.metricLabel}>CURRENT POINTS</Text>
-              <Text style={styles.metricValue}>{total.toFixed(1)}</Text>
+              <Text style={styles.metricValue}>{formatFantasyPoints(total)}</Text>
             </Card>
             <Card style={styles.metric}>
               <Text style={styles.metricLabel}>ADP</Text>
@@ -261,7 +262,7 @@ export default function PlayerScreen() {
                     </Text>
                   </View>
                   <Text style={styles.points}>
-                    {line.complete ? `${line.scored.toFixed(1)} pts` : 'Pending'}
+                    {line.complete ? `${formatFantasyPoints(line.scored)} pts` : 'Pending'}
                   </Text>
                 </View>
               ))}
@@ -277,7 +278,7 @@ export default function PlayerScreen() {
                 <Text style={styles.eventKey}>{event.stat_key.replaceAll('_', ' ')}</Text>
                 <Text style={styles.points}>
                   {event.points >= 0 ? '+' : ''}
-                  {event.points.toFixed(2)}
+                  {formatFantasyPoints(event.points)}
                 </Text>
               </View>
             ))}
@@ -328,7 +329,7 @@ export default function PlayerScreen() {
           <Card>
             <Text style={uiStyles.body}>
               {projection?.status === 'ready'
-                ? `${projection.points?.toFixed(1) ?? '—'} points · ${projection.model_version}`
+                ? `${formatFantasyPoints(projection.points)} points · ${projection.model_version}`
                 : 'Weekly projections are unavailable until the approved model is provided. Historical inputs are retained with an input cutoff for backtesting.'}
             </Text>
           </Card>

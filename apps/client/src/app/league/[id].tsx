@@ -1,3 +1,4 @@
+import { formatFantasyPoints } from '@brock-fantasy/domain';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -183,12 +184,12 @@ function Overview({
             <View style={styles.scoreGrid}>
               <View style={styles.scoreTeam}>
                 <Text style={styles.scoreTeamName}>{homeName}</Text>
-                <Text style={styles.scoreLeading}>{matchup.homePoints.toFixed(1)}</Text>
+                <Text style={styles.scoreLeading}>{formatFantasyPoints(matchup.homePoints)}</Text>
               </View>
               <Text style={styles.scoreDash}>—</Text>
               <View style={styles.scoreTeam}>
                 <Text style={styles.scoreTeamName}>{awayName}</Text>
-                <Text style={styles.scoreValue}>{matchup.awayPoints.toFixed(1)}</Text>
+                <Text style={styles.scoreValue}>{formatFantasyPoints(matchup.awayPoints)}</Text>
               </View>
             </View>
           </Card>
@@ -322,7 +323,7 @@ function Standings({
             <Text style={styles.standingTeam}>{nameFor(row.fantasyTeamId)}</Text>
             <Text style={styles.standingStat}>{row.wins}</Text>
             <Text style={styles.standingStat}>{row.losses}</Text>
-            <Text style={styles.standingPoints}>{row.pointsFor.toFixed(1)}</Text>
+            <Text style={styles.standingPoints}>{formatFantasyPoints(row.pointsFor)}</Text>
           </View>
         ))}
       </Card>

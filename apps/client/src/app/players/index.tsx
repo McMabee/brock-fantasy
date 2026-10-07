@@ -73,7 +73,7 @@ export default function PlayerDirectoryScreen() {
         onChangeText={setQuery}
         placeholder="Search name or position"
         placeholderTextColor={colors.muted}
-        style={uiStyles.input}
+        style={[uiStyles.input, styles.search]}
         value={query}
       />
       {error ? (
@@ -115,8 +115,9 @@ export default function PlayerDirectoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  error: { color: colors.brand, marginTop: 10, fontSize: 12 },
-  list: { marginTop: 14, paddingVertical: 4 },
+  search: { marginBottom: 20 },
+  error: { color: colors.brand, marginBottom: 10, fontSize: 12 },
+  list: { paddingVertical: 4 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
