@@ -1,11 +1,11 @@
 import type { RequestHandler } from 'expo-router/server';
 import { ELIGIBILITY_POLICY_VERSION, registrationYearAt } from '@brock-fantasy/domain';
+import { limitAuthRequest } from '../../../server/auth-rate-limit';
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const REFRESH_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-refresh' : 'bf_refresh';
 const CSRF_COOKIE = 'bf_csrf';
 const encoder = new TextEncoder();
-const rateWindows = new Map<string, { count: number; resetAt: number }>();
 
 type AuthAction =
   | 'csrf'
@@ -96,20 +96,6 @@ function requireSameOrigin(request: Request, requireCsrf: boolean): string | nul
     if (!supplied || !expectedToken || supplied !== expectedToken) return 'Invalid CSRF token.';
   }
   return null;
-}
-
-function allowed(request: Request, action: string, max = 10, seconds = 60): boolean {
-  const address = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const key = `${action}:${address}`;
-  const now = Date.now();
-  const row = rateWindows.get(key);
-  if (!row || row.resetAt <= now) {
-    rateWindows.set(key, { count: 1, resetAt: now + seconds * 1_000 });
-    return true;
-  }
-  if (row.count >= max) return false;
-  row.count += 1;
-  return true;
 }
 
 function csrfCookie(): string {
@@ -213,16 +199,36 @@ export const POST: RequestHandler = async (request, params) => {
   const needsCsrf = !['sign-in', 'sign-up', 'recover'].includes(action);
   const originError = requireSameOrigin(request, needsCsrf);
   if (originError) return response({ error: originError }, 403);
-  if (!allowed(request, action, action === 'sign-in' ? 8 : 5)) return authError(429);
-
   if (action === 'sign-out') {
     const accessToken = cookie(request, ACCESS_COOKIE);
-    if (accessToken)
-      await authFetch('/logout', {
-        method: 'POST',
-        headers: { authorization: `Bearer ${accessToken}` },
-      });
-    return response({ ok: true }, 200, clearSessionCookies());
+    let globalSignoutConfirmed = false;
+    if (accessToken) {
+      try {
+        const signedOut = await authFetch('/logout', {
+          method: 'POST',
+          headers: { authorization: `Bearer ${accessToken}` },
+          signal: AbortSignal.timeout(3000),
+        });
+        globalSignoutConfirmed = signedOut.ok;
+      } catch {
+        // Local logout remains available during provider/limiter outages.
+      }
+    }
+    return response({ ok: true, globalSignoutConfirmed }, 200, clearSessionCookies());
+  }
+  const rate = await limitAuthRequest(request, action);
+  if (rate.status !== 'allowed') {
+    const result = response(
+      {
+        error:
+          rate.status === 'limited'
+            ? 'Too many requests. Please try again shortly.'
+            : 'Authentication is temporarily unavailable. Please try again shortly.',
+      },
+      rate.status === 'limited' ? 429 : 503,
+    );
+    result.headers.set('retry-after', String(rate.retryAfterSeconds));
+    return result;
   }
   if (action === 'refresh') {
     const refreshToken = cookie(request, REFRESH_COOKIE);

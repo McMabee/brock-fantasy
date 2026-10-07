@@ -26,9 +26,24 @@ const required = [
 for (const name of required) {
   if (!values.get(name)) throw new Error(`${name} is required in ${path.basename(envPath)}.`);
 }
-if (values.get('EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY')) {
-  throw new Error('A service-role credential must never use an EXPO_PUBLIC_ name.');
+if (
+  [...values].some(
+    ([name, value]) => value && /^EXPO_PUBLIC_.*(?:SERVICE_ROLE|SECRET|PASSWORD|TOKEN)/u.test(name),
+  )
+) {
+  throw new Error('A private credential must never use an EXPO_PUBLIC_ name.');
 }
+const publicKey = values.get('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
+let publicRole;
+try {
+  publicRole = JSON.parse(
+    Buffer.from(publicKey.split('.')[1] ?? '', 'base64url').toString('utf8'),
+  ).role;
+} catch {
+  /* Publishable keys are not JWTs. */
+}
+if (publicKey.startsWith('sb_secret_') || publicRole === 'service_role')
+  throw new Error('The public Supabase key contains a privileged server credential.');
 
 const environment = values.get('EXPO_PUBLIC_APP_ENV');
 const baseUrl = new URL(values.get('EXPO_PUBLIC_SUPABASE_URL'));
@@ -42,6 +57,27 @@ if (
   (origin.protocol !== 'https:' || origin.pathname !== '/' || origin.search || origin.hash)
 ) {
   throw new Error('Staging and production require an HTTPS EXPO_PUBLIC_APP_ORIGIN without a path.');
+}
+if (environment === 'staging' || environment === 'production') {
+  if (
+    !values.get('SUPABASE_SECRET_KEY') ||
+    (values.get('AUTH_RATE_LIMIT_HMAC_SECRET')?.length ?? 0) < 32
+  )
+    throw new Error(
+      'Hosted authentication needs server-only Supabase and shared HMAC credentials in the Vercel runtime store.',
+    );
+  const expectedOrigin =
+    environment === 'staging' ? 'https://beta.brockfantasy.ca' : 'https://brockfantasy.ca';
+  if (origin.origin !== expectedOrigin)
+    throw new Error('The app origin does not match the approved environment hostname.');
+  if (baseUrl.origin !== 'https://fdovowiihxowzatewxgv.supabase.co')
+    throw new Error('Staging and production must use the approved shared Brock Supabase project.');
+  const recipients = values
+    .get('EXPO_PUBLIC_SUPPORT_EMAIL')
+    .split(',')
+    .map((value) => value.trim().toLowerCase());
+  if (!['tymabee@proton.me', 'gt22me@brocku.ca'].every((value) => recipients.includes(value)))
+    throw new Error('The support setting must route requests to both Ty and Tarik.');
 }
 
 const response = await fetch(new URL('/auth/v1/settings', baseUrl), {
@@ -59,6 +95,7 @@ if (settings.mailer_autoconfirm === true) {
 console.log(
   JSON.stringify({
     environment,
+    projectHost: baseUrl.hostname,
     authReachable: true,
     publicRegistration: true,
     emailConfirmationRequired: true,

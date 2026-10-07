@@ -20,13 +20,14 @@
     "lint:sql": "node scripts/validate-sql.mjs",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @brock-fantasy/domain test && pnpm test:import",
-    "test:import": "node --test scripts/lib/*.test.mjs",
+    "test:import": "node --experimental-strip-types --test scripts/lib/*.test.mjs",
+    "test:web-auth:local": "node scripts/test-web-auth-throttle.mjs",
     "test:coverage": "pnpm --filter @brock-fantasy/domain test:coverage",
     "test:edge:local": "node scripts/test-edge-functions.mjs",
     "verify:auth-config": "node scripts/verify-supabase-auth-config.mjs",
     "import:beta-data": "node scripts/import-brock-beta-data.mjs",
     "research:official-data": "node scripts/research-brock-official-data.mjs",
-    "check": "pnpm format:check && pnpm lint && pnpm lint:sql && pnpm typecheck && pnpm test && pnpm build:web && pnpm smoke:mobile"
+    "check": "pnpm format:check && pnpm lint && pnpm lint:sql && pnpm typecheck && pnpm test && pnpm build:web && pnpm test:web-auth:local && pnpm smoke:mobile"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
