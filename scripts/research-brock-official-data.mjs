@@ -5,9 +5,9 @@ import path from 'node:path';
 import { htmlText, parseOfficialSchedule } from './lib/brock-data.mjs';
 
 const output = path.resolve(
-  process.env.BROCK_RESEARCH_OUTPUT ?? 'tmp/brock-official-research.json',
+  process.env.BROCK_RESEARCH_OUTPUT ?? 'dev/tmp/brock-official-research.json',
 );
-const rawDirectory = path.resolve('tmp/official-research');
+const rawDirectory = path.resolve('dev/tmp/official-research');
 const programs = {
   mens_hockey: 'mens-ice-hockey',
   womens_hockey: 'womens-ice-hockey',

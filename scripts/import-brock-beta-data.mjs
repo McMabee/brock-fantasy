@@ -13,13 +13,13 @@ const root = process.cwd();
 const logicDir = path.join(root, 'logic');
 const outputPath = path.resolve(
   root,
-  process.env.BROCK_IMPORT_OUTPUT ?? 'tmp/brock-beta-import-preview.json',
+  process.env.BROCK_IMPORT_OUTPUT ?? 'dev/tmp/brock-beta-import-preview.json',
 );
 const publish = process.argv.includes('--publish');
 const normalizerVersion = 'brock-import-2026.2';
 const evidencePath = path.resolve(
   root,
-  process.env.BROCK_OFFICIAL_EVIDENCE ?? 'docs/evidence/2026-10-06-official-data.json',
+  process.env.BROCK_OFFICIAL_EVIDENCE ?? 'dev/docs/evidence/2026-10-06-official-data.json',
 );
 let officialEvidence = null;
 let officialEvidenceHash = null;

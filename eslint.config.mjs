@@ -10,6 +10,7 @@ export default tseslint.config(
       '**/coverage/**',
       '**/.expo/**',
       'tmp/**',
+      'dev/**',
       'supabase/functions/**',
     ],
   },
