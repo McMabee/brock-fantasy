@@ -1,6 +1,6 @@
 import type { DivisionCode, SportCode, UUID } from './types';
 
-export const BETA_RULE_VERSION = 'brock-2026.1';
+export const BETA_RULE_VERSION = 'brock-2026.2';
 export const BETA_SEASON = '2026-27';
 export const BETA_PLAYER_POOL_ID = 'b0000000-0000-4000-8000-000000000003';
 export const LEAGUE_SIZES = [4, 6, 8, 10] as const;
@@ -158,6 +158,7 @@ export const VOLLEYBALL_ERRORS = [
   'blocking_errors',
 ] as const;
 const DERIVED = new Set([
+  'shutouts',
   'multi_point',
   'double_double',
   'hitter_bonus',
@@ -185,20 +186,42 @@ export function scoreBetaGame(
   const missing: string[] = [];
   for (const key of Object.keys(weights).filter((key) => !DERIVED.has(key))) {
     const value = input[key];
-    if (category === 'volleyball' && key === 'errors' && value == null) {
-      for (const error of VOLLEYBALL_ERRORS) if (input[error] == null) missing.push(error);
-      if (VOLLEYBALL_ERRORS.every((e) => input[e] != null))
-        normalized.errors = VOLLEYBALL_ERRORS.reduce((sum, e) => sum + input[e]!, 0);
+    if (category === 'volleyball' && key === 'errors') {
+      if (VOLLEYBALL_ERRORS.every((error) => input[error] != null)) {
+        normalized.errors = VOLLEYBALL_ERRORS.reduce((sum, error) => sum + input[error]!, 0);
+        if (value != null && value !== normalized.errors)
+          throw new Error('Aggregate errors must equal all individual error categories');
+      } else if (value != null) normalized.errors = value;
+      else for (const error of VOLLEYBALL_ERRORS) if (input[error] == null) missing.push(error);
     } else if (value == null) missing.push(key);
     else normalized[key] = value;
+  }
+  if (category === 'goalie') {
+    for (const key of ['losses', 'full_game_solo', 'shootout']) {
+      if (input[key] == null) missing.push(key);
+      else normalized[key] = input[key]!;
+    }
   }
   for (const [key, value] of Object.entries(input)) {
     if (value != null && (!Number.isFinite(value) || value < 0))
       throw new Error(`Invalid statistic: ${key}`);
   }
-  for (const flag of ['wins', 'shutouts', 'foul_out']) {
-    const value = normalized[flag];
-    if (value !== undefined && ![0, 1].includes(value)) throw new Error(`${flag} must be 0 or 1`);
+  for (const flag of ['wins', 'losses', 'shutouts', 'full_game_solo', 'shootout', 'foul_out']) {
+    const value = input[flag];
+    if (value != null && ![0, 1].includes(value)) throw new Error(`${flag} must be 0 or 1`);
+  }
+  if (category === 'goalie') {
+    if ((normalized.wins ?? 0) + (normalized.losses ?? 0) > 1)
+      throw new Error('A goalie cannot receive both a win and a loss');
+    if (['full_game_solo', 'shootout', 'goals_allowed'].every((key) => normalized[key] != null)) {
+      normalized.shutouts =
+        normalized.full_game_solo === 1 &&
+        (normalized.shootout === 1 || normalized.goals_allowed === 0)
+          ? 1
+          : 0;
+      if (input.shutouts != null && input.shutouts !== normalized.shutouts)
+        throw new Error('Shutout credit conflicts with full-game solo participation');
+    }
   }
   if (category === 'skater')
     normalized.multi_point = (normalized.goals ?? 0) + (normalized.assists ?? 0) >= 2 ? 1 : 0;

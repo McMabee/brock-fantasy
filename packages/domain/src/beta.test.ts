@@ -24,12 +24,52 @@ describe('approved beta rules', () => {
     expect(scoreBetaGame('hockey', ['F'], base).total).toBe(38);
     expect(scoreBetaGame('hockey', ['D'], { ...base, assists: 0 }).total).toBe(23);
     expect(
-      scoreBetaGame('hockey', ['G'], { wins: 1, goals_allowed: 0, saves: 25, shutouts: 1 }).total,
+      scoreBetaGame('hockey', ['G'], {
+        wins: 1,
+        losses: 0,
+        goals_allowed: 0,
+        saves: 25,
+        full_game_solo: 1,
+        shootout: 0,
+      }).total,
     ).toBe(35);
     expect(scoreBetaGame('hockey', ['G'], { goals_allowed: 0, saves: 25 }).missing).toEqual([
       'wins',
-      'shutouts',
+      'losses',
+      'full_game_solo',
+      'shootout',
     ]);
+  });
+  it('requires full-game solo participation for every shutout, including shootouts', () => {
+    const base = {
+      wins: 1,
+      losses: 0,
+      goals_allowed: 2,
+      saves: 25,
+      full_game_solo: 1,
+      shootout: 1,
+    };
+    expect(scoreBetaGame('hockey', ['G'], base).total).toBe(31);
+    expect(scoreBetaGame('hockey', ['G'], { ...base, wins: 0, losses: 1 }).total).toBe(21);
+    expect(scoreBetaGame('hockey', ['G'], { ...base, full_game_solo: 0 }).total).toBe(16);
+    expect(scoreBetaGame('hockey', ['G'], { ...base, wins: 0, full_game_solo: 0 }).total).toBe(6);
+    expect(
+      scoreBetaGame('hockey', ['G'], { ...base, goals_allowed: 0, full_game_solo: 0 }).normalized
+        .shutouts,
+    ).toBe(0);
+    expect(scoreBetaGame('hockey', ['G'], { ...base, shootout: 0 }).normalized.shutouts).toBe(0);
+    expect(
+      scoreBetaGame('hockey', ['G'], { ...base, shootout: 0, goals_allowed: 0 }).normalized
+        .shutouts,
+    ).toBe(1);
+    expect(scoreBetaGame('hockey', ['G'], { ...base, full_game_solo: null }).total).toBeNull();
+    expect(() => scoreBetaGame('hockey', ['G'], { ...base, full_game_solo: 2 })).toThrow('0 or 1');
+    expect(() => scoreBetaGame('hockey', ['G'], { ...base, losses: 1 })).toThrow(
+      'both a win and a loss',
+    );
+    expect(() =>
+      scoreBetaGame('hockey', ['G'], { ...base, full_game_solo: 0, shutouts: 1 }),
+    ).toThrow('Shutout credit conflicts');
   });
   it('uses all individual volleyball errors without double counting aggregate errors', () => {
     const line = {
@@ -50,6 +90,20 @@ describe('approved beta rules', () => {
     expect(scoreBetaGame('volleyball', ['S'], line).total).toBe(28.5);
     expect(scoreBetaGame('volleyball', ['L'], line).total).toBe(32.5);
     expect(scoreBetaGame('volleyball', ['HT'], { ...line, errors: 15 }).total).toBe(26.5);
+    expect(() => scoreBetaGame('volleyball', ['HT'], { ...line, errors: 1 })).toThrow(
+      'Aggregate errors',
+    );
+    expect(
+      scoreBetaGame('volleyball', ['HT'], {
+        kills: 10,
+        aces: 2,
+        solo_blocks: 1,
+        assisted_blocks: 2,
+        assists: 40,
+        digs: 8,
+        errors: 15,
+      }).total,
+    ).toBe(26.5);
     expect(
       scoreBetaGame('volleyball', ['HT'], { ...line, blocking_errors: null }).total,
     ).toBeNull();
@@ -60,6 +114,36 @@ describe('approved beta rules', () => {
       0,
     );
   });
+  it.each([
+    ['HT', 'kills', 10, 'hitter_bonus'],
+    ['S', 'assists', 40, 'setter_bonus'],
+    ['L', 'digs', 8, 'libero_bonus'],
+  ] as const)(
+    'tests below, at and above the %s bonus threshold',
+    (position, stat, threshold, bonus) => {
+      const base = {
+        kills: 0,
+        aces: 0,
+        solo_blocks: 0,
+        assisted_blocks: 0,
+        assists: 0,
+        digs: 0,
+        errors: 0,
+      };
+      for (const [value, expected] of [
+        [threshold - 1, 0],
+        [threshold, 1],
+        [threshold + 1, 1],
+      ]) {
+        expect(
+          scoreBetaGame('volleyball', [position], { ...base, [stat]: value }).normalized[bonus],
+        ).toBe(expected);
+      }
+      expect(
+        scoreBetaGame('volleyball', ['HT'], { ...base, digs: 8 }).normalized.libero_bonus,
+      ).toBe(0);
+    },
+  );
   it('scores one double-double, total rebounds, and additive foul-out', () => {
     const line = {
       points: 10,
@@ -78,6 +162,21 @@ describe('approved beta rules', () => {
         .double_double,
     ).toBe(0);
     expect(() => scoreBetaGame('basketball', ['BC'], { ...line, fouls: -1 })).toThrow();
+    expect(scoreBetaGame('basketball', ['BC'], { ...line, foul_out: 0 }).total).toBe(28);
+    expect(() => scoreBetaGame('basketball', ['BC'], { ...line, foul_out: 2 })).toThrow('0 or 1');
+    expect(
+      scoreBetaGame('basketball', ['BC'], {
+        points: 0,
+        offensive_rebounds: 0,
+        defensive_rebounds: 0,
+        assists: 0,
+        blocks: 10,
+        steals: 10,
+        turnovers: 0,
+        fouls: 0,
+        foul_out: 0,
+      }).normalized.double_double,
+    ).toBe(1);
   });
   it('keeps periods exclusive at their ends and handles the winter gap and DST', () => {
     expect(periodAt('2026-11-01T04:00:00Z')?.number).toBe(2);
