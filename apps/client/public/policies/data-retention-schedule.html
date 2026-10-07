@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Data retention schedule | Brock Fantasy</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+        line-height: 1.6;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        color: #242a34;
+      }
+      header,
+      footer {
+        background: #1c2d5d;
+        color: #fff;
+        padding: 1.25rem max(1rem, calc((100% - 76rem) / 2));
+      }
+      header a,
+      footer a {
+        color: #fff;
+      }
+      main {
+        max-width: 76rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 3rem;
+      }
+      main > p,
+      main > ul,
+      main > ol {
+        max-width: 78ch;
+      }
+      h1,
+      h2,
+      h3 {
+        line-height: 1.3;
+        color: #1c2d5d;
+      }
+      h2 {
+        margin-top: 2rem;
+      }
+      a {
+        color: #1c2d5d;
+        text-decoration-thickness: 0.1em;
+        text-underline-offset: 0.15em;
+        overflow-wrap: anywhere;
+      }
+      a:focus-visible {
+        outline: 3px solid #f20014;
+        outline-offset: 4px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+      }
+      th,
+      td {
+        padding: 0.7rem;
+        border: 1px solid #59616e;
+        text-align: left;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+      }
+      code {
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 40rem) {
+        table {
+          display: block;
+          overflow-x: auto;
+        }
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #111827;
+          color: #f3f4f6;
+        }
+        h1,
+        h2,
+        h3,
+        main a {
+          color: #c8d6ff;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header><a href="/">Brock Fantasy</a> · Draft for operator publication</header>
+    <main>
+      <h1 id="data-retention-schedule">Data retention schedule</h1>
+      <p>
+        <strong>Status:</strong> Unapproved policy draft; approval and publication remain
+        pending.<br />
+        <strong>Draft version:</strong> 0.5 - October 7, 2026<br />
+        <strong>Effective date:</strong> [insert approved effective date]<br />
+        <strong>Accountable owner:</strong> Tarik Merchant<br />
+        <strong>Implementation/security owner:</strong> Ty Mabee<br />
+        <strong>Privacy contact:</strong> <a href="mailto:tymabee@proton.me">Ty Mabee</a> and
+        <a href="mailto:gt22me@brocku.ca">Tarik Merchant</a> — email both
+      </p>
+      <h2 id="rules-and-scope">Rules and scope</h2>
+      <p>
+        This schedule covers personal information in live systems, operational records, support
+        correspondence, processor copies, and backups. Retain only what is needed for a defined
+        purpose. A listed maximum is not a reason to keep unnecessary information until that date. A
+        valid deletion request may require earlier removal; a documented legal or dispute hold may
+        require longer retention.
+      </p>
+      <p>
+        Periods below are measured from the stated trigger. Unless stated otherwise, cleanup must
+        finish by the end of the period, including routine processing time. Account deletion is
+        governed by the <a href="account-deletion-notice.html">account-deletion policy</a>.
+      </p>
+      <h2 id="proposed-record-schedule">Proposed record schedule</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Record category</th>
+            <th>Proposed period and trigger</th>
+            <th>End-of-period action and purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Account profile, email, credentials, memberships, roles, and mute settings</td>
+            <td>
+              While the account is active; remove on successful deletion. Verified manual requests:
+              target completion within 30 calendar days after verification.
+            </td>
+            <td>
+              Delete authentication/profile records and associated personal settings. Retain
+              exceptions separately and minimally.
+            </td>
+          </tr>
+          <tr>
+            <td>Unverified registrations</td>
+            <td>30 calendar days after registration if verification is incomplete.</td>
+            <td>
+              Delete unused identity and related profile, subject to a necessary security hold.
+            </td>
+          </tr>
+          <tr>
+            <td>Inactive accounts</td>
+            <td>
+              Review after 24 months without sign-in. Give 30 calendar days' notice before proposed
+              closure.
+            </td>
+            <td>
+              Close/delete if inactivity continues and no active league obligation or documented
+              exception exists. Do not infer that current code already performs this review.
+            </td>
+          </tr>
+          <tr>
+            <td>Notifications and push-delivery records</td>
+            <td>90 calendar days after creation; earlier on account deletion.</td>
+            <td>Delete message/delivery history after troubleshooting need ends.</td>
+          </tr>
+          <tr>
+            <td>Push tokens</td>
+            <td>
+              While enabled and needed; delete within 30 calendar days after disablement or
+              confirmed invalidation, and on account deletion.
+            </td>
+            <td>
+              Stop delivery and delete unused token. Disabling currently marks a token disabled
+              rather than immediately deleting it.
+            </td>
+          </tr>
+          <tr>
+            <td>Chat messages</td>
+            <td>
+              12 months after posting, or earlier after reviewed deletion of unnecessary identifying
+              text.
+            </td>
+            <td>
+              Delete routine chat; preserve only evidence needed for an open case under its own
+              limit. An author reference cleared on deletion does not erase the body.
+            </td>
+          </tr>
+          <tr>
+            <td>Moderation reports, evidence, decisions, and appeals</td>
+            <td>Until case/appeal closure, then at most 24 months.</td>
+            <td>
+              Delete or effectively anonymize; use restricted records to explain decisions and
+              prevent repeated abuse. Account cascades may remove ordinary reports earlier.
+            </td>
+          </tr>
+          <tr>
+            <td>Routine support correspondence</td>
+            <td>12 months after case closure.</td>
+            <td>
+              Delete correspondence and attachments; move necessary privacy/security evidence into
+              the appropriate restricted record first.
+            </td>
+          </tr>
+          <tr>
+            <td>Privacy requests and deletion confirmations</td>
+            <td>
+              24 months after closure. Temporary verification evidence: delete within 30 calendar
+              days after verification unless needed for a documented dispute.
+            </td>
+            <td>
+              Keep a minimal outcome/verification record, not copies of credentials or unnecessary
+              identity documents.
+            </td>
+          </tr>
+          <tr>
+            <td>Request, diagnostic, email-delivery, and routine Auth-provider logs</td>
+            <td>At most 90 calendar days after event; use shorter periods where sufficient.</td>
+            <td>
+              Delete or aggregate without identifying information. Provider configuration/contracts
+              must enforce the actual limit.
+            </td>
+          </tr>
+          <tr>
+            <td>Security and administrative audit records, including score-change reasons</td>
+            <td>
+              At most 24 months after event, unless an open investigation, legal minimum, or
+              necessary replay record justifies a documented exception.
+            </td>
+            <td>
+              Remove unnecessary identity/free text; delete expired records or retain only
+              effectively anonymous evidence. Preserve enough explanation for retained league
+              results.
+            </td>
+          </tr>
+          <tr>
+            <td>Privacy-breach register</td>
+            <td>
+              Where PIPEDA applies: at least 24 months after the organization determines the breach
+              occurred; proposed routine expiry at that point if no hold remains.
+            </td>
+            <td>
+              Retain the minimal required record of every breach, including ones that do not require
+              notification; delete after the minimum and any documented hold.
+            </td>
+          </tr>
+          <tr>
+            <td>Draft/roster/transaction/lineup/standings history linked to fantasy managers</td>
+            <td>
+              Season duration plus 24 months after the season is finalized. Clear direct account
+              references earlier on deletion and review identifying names/payloads within 30
+              calendar days after verification.
+            </td>
+            <td>
+              Delete or effectively anonymize manager-linked history. Coordinate scoring inputs and
+              derived outputs; keep no unnecessary manager identifier in cross-league aggregates.
+            </td>
+          </tr>
+          <tr>
+            <td>Retry/idempotency command records</td>
+            <td>
+              Until 90 calendar days after the related draft, transaction, or league season is
+              closed; earlier on account deletion where safe.
+            </td>
+            <td>
+              Delete with a control that rejects stale retries and cannot recreate an expired
+              action. Do not introduce arbitrary cleanup that compromises competition integrity.
+            </td>
+          </tr>
+          <tr>
+            <td>
+              Approved athlete records, statistics, source snapshots/imports, mappings, and scoring
+              revisions
+            </td>
+            <td>
+              Up to 5 years after the covered season ends, with annual purpose/rights review and any
+              shorter source-licence limit.
+            </td>
+            <td>
+              Delete unneeded personal/source data; coordinate derived results and replay inputs.
+              Reject unused preview imports within 90 calendar days unless a documented review
+              remains open. Athlete data is not automatically anonymous.
+            </td>
+          </tr>
+          <tr>
+            <td>Effectively anonymous aggregate statistics</td>
+            <td>While useful, with annual review.</td>
+            <td>
+              Retain only if individuals cannot reasonably be identified, including in small
+              leagues; otherwise apply the relevant personal-data limit.
+            </td>
+          </tr>
+          <tr>
+            <td>Backups, exports, replicas, and recovery copies</td>
+            <td>
+              Proposed maximum: 90 calendar days after information is removed from live systems.
+              Temporary operational exports: delete within 30 calendar days after their task
+              completes.
+            </td>
+            <td>
+              Restrict recovery copies, expire them, and reapply deletions before a restore is made
+              available. Confirm provider snapshots, point-in-time recovery, and exported copies all
+              meet the limit.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        There is no universal statutory retention period for ordinary fantasy-league or chat
+        records. The operational periods above are proposals chosen for review against actual
+        necessity, source rights, and costs. Purpose-based disposal follows the OPC's
+        <a
+          href="https://www.priv.gc.ca/en/privacy-topics/privacy-laws-in-canada/the-personal-information-protection-and-electronic-documents-act-pipeda/p_principle/principles/p_use/"
+          >retention guidance</a
+        >.
+      </p>
+      <p>
+        The conditional breach-record minimum comes from
+        <a href="https://laws.justice.gc.ca/eng/regulations/SOR-2018-64/FullText.html"
+          >Breach of Security Safeguards Regulations, section 6</a
+        >. It is measured from determination of the breach, rather than case closure.
+      </p>
+      <h2 id="browser-and-device-storage">Browser and device storage</h2>
+      <p>
+        These browser lifetimes are observed in the current repository, not evidence of
+        Auth-provider database/log expiry. Renewing or using a session can set a fresh cookie.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Storage</th>
+            <th>Current configured lifetime</th>
+            <th>Purpose and user control</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Access-session cookie</td>
+            <td>Up to 1 hour, with a 60-second minimum cookie lifetime</td>
+            <td>
+              Authenticated requests; sign out or clear browser storage. Token validity is
+              separately enforced.
+            </td>
+          </tr>
+          <tr>
+            <td>Refresh-session cookie</td>
+            <td>30 days each time set</td>
+            <td>Session renewal; sign out or clear browser storage.</td>
+          </tr>
+          <tr>
+            <td>Request-security cookie</td>
+            <td>1 day each time set</td>
+            <td>Protect account actions from forged requests; cleared by sign-out flow.</td>
+          </tr>
+          <tr>
+            <td>Account-confirmation/recovery flow cookies</td>
+            <td>15 minutes</td>
+            <td>Complete the authentication flow; clear browser storage.</td>
+          </tr>
+          <tr>
+            <td>Light/dark theme cookie</td>
+            <td>1 year each time set</td>
+            <td>Remember appearance; change preference or clear browser storage.</td>
+          </tr>
+          <tr>
+            <td>Native app session storage, if distributed</td>
+            <td>Until sign-out or app/device storage removal, subject to Auth session validity</td>
+            <td>
+              Maintain the session on the device. Confirm platform behavior before native release.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Account deletion does not guarantee removal of every cookie or independently stored local
+        copy. The theme preference can remain until expiry or clearing.
+      </p>
+      <h2 id="holds-disposal-and-oversight">Holds, disposal, and oversight</h2>
+      <p>
+        A legal, security, moderation, or privacy-access hold must identify its basis, relevant
+        records, owner, start date, and review date. Review at least every 90 calendar days;
+        restrict access and retain only the relevant subset. A pending access request requires
+        preservation long enough for applicable access/complaint rights. When a hold ends, dispose
+        of records already beyond their normal expiry promptly.
+      </p>
+      <p>
+        Removing an account reference, hashing a user identifier, or using a substitute name may be
+        pseudonymization rather than anonymization. Treat linkable records, audit entity IDs, chat
+        text, and team names as personal information until a documented assessment establishes
+        otherwise.
+      </p>
+      <p>
+        Before publication, inventory every copy and processor, configure cleanup, test both
+        ordinary and administrator deletion, and verify that retained source references do not block
+        deletion. Maintain a minimal deletion/restriction record long enough to prevent restoration
+        during the backup window. Record disposal results without copying the deleted content into
+        the audit record.
+      </p>
+      <p>
+        Review this schedule at least annually and after significant feature, provider, legal, or
+        processing changes. Material changes must also be reflected in the privacy and deletion
+        policies.
+      </p>
+    </main>
+    <footer>
+      Requests: <a href="mailto:tymabee@proton.me,gt22me@brocku.ca">email Ty and Tarik</a>.
+    </footer>
+  </body>
+</html>

@@ -9,7 +9,9 @@ const publishableKey =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 const isExpoWebServer = Platform.OS === 'web' && typeof document === 'undefined';
 export const appEnvironment = process.env.EXPO_PUBLIC_APP_ENV ?? 'local';
-export const supportEmail = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
+const requiredSupportRecipients = ['tymabee@proton.me', 'gt22me@brocku.ca'] as const;
+export const supportEmail =
+  process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? requiredSupportRecipients.join(',');
 export const hasSupabaseConfig = Boolean(url && publishableKey);
 
 function isHttpsOrigin(value: string | undefined): boolean {
@@ -48,8 +50,14 @@ if (appEnvironment === 'production' || appEnvironment === 'staging') {
       'Staging and production require EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY.',
     );
   }
-  if (!supportEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(supportEmail)) {
-    throw new Error('Staging and production require a valid EXPO_PUBLIC_SUPPORT_EMAIL.');
+  const supportRecipients = supportEmail.split(',').map((value) => value.trim().toLowerCase());
+  if (
+    !supportRecipients.every((value) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) ||
+    !requiredSupportRecipients.every((value) => supportRecipients.includes(value))
+  ) {
+    throw new Error(
+      'EXPO_PUBLIC_SUPPORT_EMAIL must include both Ty and Tarik, separated by commas.',
+    );
   }
   if (!isHttpsOrigin(process.env.EXPO_PUBLIC_APP_ORIGIN)) {
     throw new Error(
