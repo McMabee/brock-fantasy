@@ -114,6 +114,7 @@ export default function AdminScreen() {
               variant="secondary"
             />
             <ActionButton label="Scorekeeping workspace" href="/admin/games" variant="secondary" />
+            <ActionButton label="Staff accounts" href="/admin/accounts" variant="secondary" />
           </Card>
           <Card style={styles.incident}>
             <Text style={styles.incidentLabel}>INCIDENT CONTROL</Text>
