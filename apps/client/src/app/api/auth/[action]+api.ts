@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'expo-router/server';
+import { ELIGIBILITY_POLICY_VERSION, registrationYearAt } from '@brock-fantasy/domain';
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const REFRESH_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-refresh' : 'bf_refresh';
@@ -285,13 +286,20 @@ export const POST: RequestHandler = async (request, params) => {
     const displayName = string(body.displayName, 80)?.trim();
     if (!password || password.length < 8 || !displayName)
       return response({ error: 'Display name and an 8+ character password are required.' }, 400);
+    if (body.eligibilityAttested !== true)
+      return response({ error: 'Confirm that you are 18 or turn 18 this calendar year.' }, 400);
     const signedUp = await authFetch(`/signup?redirect_to=${encodeURIComponent(redirectTo)}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         email,
         password,
-        data: { display_name: displayName },
+        data: {
+          display_name: displayName,
+          beta_age_eligible: true,
+          beta_eligibility_year: registrationYearAt(),
+          beta_eligibility_policy_version: ELIGIBILITY_POLICY_VERSION,
+        },
         code_challenge: challenge,
         code_challenge_method: 's256',
       }),

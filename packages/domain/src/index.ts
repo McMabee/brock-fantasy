@@ -4,6 +4,7 @@ export * from './provider';
 export * from './roster';
 export * from './scoring';
 export * from './format';
+export * from './eligibility';
 export * from './standings';
 export * from './types';
 export * from './beta';

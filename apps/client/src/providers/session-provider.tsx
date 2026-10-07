@@ -1,4 +1,5 @@
 import type { User } from '@supabase/supabase-js';
+import { ELIGIBILITY_POLICY_VERSION, registrationYearAt } from '@brock-fantasy/domain';
 import * as Linking from 'expo-linking';
 import {
   createContext,
@@ -18,7 +19,12 @@ interface SessionContextValue {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
-  signUp: (email: string, password: string, displayName: string) => Promise<string | null>;
+  signUp: (
+    email: string,
+    password: string,
+    displayName: string,
+    eligibilityAttested: boolean,
+  ) => Promise<string | null>;
   requestPasswordReset: (email: string) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
@@ -75,20 +81,35 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return error?.message ?? null;
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, displayName: string) => {
-    if (Platform.OS === 'web') {
-      await ensureCsrfToken();
-      return (await webAuth('sign-up', { body: { email, password, displayName }, csrf: false }))
-        .error;
-    }
-    if (!supabase) return 'Account registration is not configured for this environment.';
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { display_name: displayName } },
-    });
-    return error?.message ?? null;
-  }, []);
+  const signUp = useCallback(
+    async (email: string, password: string, displayName: string, eligibilityAttested: boolean) => {
+      if (!eligibilityAttested) return 'Confirm that you are 18 or turn 18 this calendar year.';
+      if (Platform.OS === 'web') {
+        await ensureCsrfToken();
+        return (
+          await webAuth('sign-up', {
+            body: { email, password, displayName, eligibilityAttested },
+            csrf: false,
+          })
+        ).error;
+      }
+      if (!supabase) return 'Account registration is not configured for this environment.';
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName,
+            beta_age_eligible: true,
+            beta_eligibility_year: registrationYearAt(),
+            beta_eligibility_policy_version: ELIGIBILITY_POLICY_VERSION,
+          },
+        },
+      });
+      return error?.message ?? null;
+    },
+    [],
+  );
 
   const requestPasswordReset = useCallback(async (email: string) => {
     if (Platform.OS === 'web') {

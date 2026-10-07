@@ -1,4 +1,5 @@
 import { Link, useRouter } from 'expo-router';
+import { registrationYearAt } from '@brock-fantasy/domain';
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -24,6 +25,7 @@ export default function AuthScreen() {
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [eligibilityAttested, setEligibilityAttested] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,11 +42,15 @@ export default function AuthScreen() {
       setError('Enter a valid email, an 8+ character password, and your display name.');
       return;
     }
+    if (mode === 'sign_up' && !eligibilityAttested) {
+      setError(`Confirm that you are 18 or turn 18 by December 31, ${registrationYearAt()}.`);
+      return;
+    }
     setLoading(true);
     const message =
       mode === 'sign_in'
         ? await signIn(email.trim(), password)
-        : await signUp(email.trim(), password, displayName.trim());
+        : await signUp(email.trim(), password, displayName.trim(), eligibilityAttested);
     setLoading(false);
     if (message) setError(message);
     else if (mode === 'sign_up')
@@ -119,6 +125,19 @@ export default function AuthScreen() {
             autoComplete={mode === 'sign_in' ? 'current-password' : 'new-password'}
             secureTextEntry
           />
+          {mode === 'sign_up' ? (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: eligibilityAttested }}
+              onPress={() => setEligibilityAttested((value) => !value)}
+              style={styles.eligibility}
+            >
+              <Text style={styles.eligibilityCheck}>{eligibilityAttested ? '☑' : '☐'}</Text>
+              <Text style={styles.eligibilityText}>
+                I am 18 or will turn 18 by December 31, {registrationYearAt()}.
+              </Text>
+            </Pressable>
+          ) : null}
           {error ? (
             <Text accessibilityRole="alert" style={styles.error}>
               {error}
@@ -270,5 +289,8 @@ const styles = StyleSheet.create({
   notice: { color: colors.brand, fontSize: 12, lineHeight: 18 },
   forgotButton: { alignSelf: 'center', padding: 6 },
   forgotText: { color: colors.brand, fontWeight: '700', fontSize: 12 },
+  eligibility: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  eligibilityCheck: { color: colors.brand, fontSize: 22 },
+  eligibilityText: { color: colors.text, fontSize: 12, lineHeight: 18, flex: 1 },
   terms: { color: colors.muted, textAlign: 'center', fontSize: 10, lineHeight: 15 },
 });
