@@ -1,13 +1,10 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { createRequire } from 'node:module';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import handler from '../api/index.js';
 
 const root = process.cwd();
-const require = createRequire(path.join(root, 'apps/client/package.json'));
-const { createRequestHandler } = require('expo-server/adapter/vercel');
-const handler = createRequestHandler({ build: path.join(root, 'apps/client/dist/server') });
 const names = [
   'EXPO_PUBLIC_APP_ENV',
   'EXPO_PUBLIC_APP_ORIGIN',
@@ -38,6 +35,15 @@ try {
     origin: 'http://localhost:8081',
     'x-forwarded-proto': 'http',
   };
+  for (const route of ['/', '/dashboard']) {
+    const page = await fetch(`${url}${route}`, { headers });
+    assert.equal(page.status, 200);
+    assert.ok(page.headers.get('content-type').includes('text/html'));
+  }
+  results.push({ scenario: 'root Vercel entry serves home and dashboard HTML', status: 200 });
+  const protectedData = await fetch(`${url}/api/data/supabase`, { headers });
+  assert.equal(protectedData.status, 401);
+  results.push({ scenario: 'anonymous data access remains protected', status: 401 });
   // Invalid credentials are rejected before a provider call, allowing a real
   // exported-route throttle test without sending signup/email/login requests.
   for (let index = 0; index < 9; index++) {
@@ -101,7 +107,7 @@ try {
   results.push({ scenario: 'wrong-origin mutation rejected before counter', status: 403 });
   const evidence = {
     checkedAt: new Date().toISOString(),
-    environment: 'local Node HTTP server with actual Expo export and Vercel adapter',
+    environment: 'local Node HTTP server with actual root Vercel entry and Expo server export',
     status: 'verified',
     actualVercelDeployment: false,
     providerAuthRequestsMade: false,

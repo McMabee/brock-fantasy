@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      expo-server:
+        specifier: 57.0.3
+        version: 57.0.3
     devDependencies:
       '@eslint/js':
         specifier: 9.39.5
