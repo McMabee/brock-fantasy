@@ -227,6 +227,7 @@ export function EmptyState({ title, body }: { title: string; body: string }) {
 
 export const uiStyles = StyleSheet.create({
   body: { color: colors.muted, fontSize: 15, lineHeight: 23 },
+  link: { color: colors.link, textDecorationLine: 'underline' },
   title: { ...heading, fontSize: 22 },
   label: { color: colors.text, fontSize: 13, fontWeight: '700' },
   input: {
@@ -377,5 +378,10 @@ const styles = StyleSheet.create({
   },
   footerBrand: { color: colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1.8 },
   footerLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: 18 },
-  footerLink: { color: colors.muted, fontSize: 11, fontWeight: '700' },
+  footerLink: {
+    color: colors.link,
+    fontSize: 11,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
 });

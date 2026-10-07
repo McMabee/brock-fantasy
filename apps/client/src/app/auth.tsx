@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -144,7 +144,15 @@ export default function AuthScreen() {
             </Pressable>
           ) : null}
           <Text style={styles.terms}>
-            By continuing, you agree to the platform terms and privacy notice.
+            By creating an account, you agree to the{' '}
+            <Link href="/terms" style={uiStyles.link}>
+              Terms
+            </Link>
+            . Read our{' '}
+            <Link href="/privacy" style={uiStyles.link}>
+              Privacy notice
+            </Link>{' '}
+            to learn how we use your information.
           </Text>
         </Card>
       </View>
