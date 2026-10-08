@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { approvalHash, scoringRow, sourceApproval } from './lib/brock-approvals.mjs';
 import { publishPreview } from './lib/import-publication.mjs';
 import { hashBytes, historicalGoalieDefinition, rosterDefinition } from './lib/brock-decisions.mjs';
+import { rosterParticipation, suppliedRanking } from './lib/brock-rosters.mjs';
 import {
   normalizedPositions,
   parseCsv,
@@ -20,17 +21,17 @@ const outputPath = path.resolve(
   process.env.BROCK_IMPORT_OUTPUT ?? 'dev/tmp/brock-beta-import-preview.json',
 );
 const publish = process.argv.includes('--publish');
-const normalizerVersion = 'brock-import-2026.4';
+const normalizerVersion = 'brock-import-2026.5';
 const decisionsPath = path.resolve(
   root,
-  process.env.BROCK_DATA_DECISIONS ?? 'dev/docs/evidence/2026-10-06-beta-decisions.json',
+  process.env.BROCK_DATA_DECISIONS ?? 'dev/docs/evidence/2026-10-08-beta-decisions.json',
 );
 let decisions = null;
 let decisionsHash = null;
 let goalieEvidence = null;
 const approvalsPath = path.resolve(
   root,
-  process.env.BROCK_DATA_APPROVALS ?? 'dev/docs/evidence/2026-10-06-data-approvals.json',
+  process.env.BROCK_DATA_APPROVALS ?? 'dev/docs/evidence/2026-10-08-data-approvals.json',
 );
 let approvals = null;
 let approvalsHash = null;
@@ -40,6 +41,12 @@ const evidencePath = path.resolve(
 );
 let officialEvidence = null;
 let officialEvidenceHash = null;
+const suppressionsPath = path.resolve(
+  root,
+  process.env.BROCK_ROSTER_SUPPRESSIONS ?? 'dev/docs/evidence/2026-10-08-roster-suppressions.json',
+);
+let suppressions = null;
+let suppressionsHash = null;
 
 const seasonId = 'b0000000-0000-4000-8000-000000000002';
 
@@ -84,7 +91,9 @@ function canonicalRow(file, kind, row, issues) {
   const program = programForFile.get(file);
   if (kind === 'roster' && program) {
     const sport = inferSport(program);
-    const name = (raw['Full name'] ?? raw.Name ?? '').trim();
+    const sourceName = (raw['Full name'] ?? raw.Name ?? '').trim();
+    const participation = rosterParticipation(program, sourceName, suppressions);
+    const name = participation.name;
     if (/^players from last (?:year|season)$/iu.test(name))
       return { type: 'roster_section_marker', label: name };
     const field = (...keys) =>
@@ -102,6 +111,7 @@ function canonicalRow(file, kind, row, issues) {
       program,
       sport,
       name,
+      ...participation,
       positions,
       sourcePosition: raw.Position ?? '',
       jerseyNumber: raw['#']?.trim() || null,
@@ -280,6 +290,17 @@ function reconcileSchedule(programs, raw, rowNumber, issues) {
 }
 
 export async function buildManifest() {
+  suppressions = null;
+  suppressionsHash = null;
+  try {
+    const content = await readFile(suppressionsPath, 'utf8');
+    suppressions = JSON.parse(content);
+    if (!suppressions.revision || !Array.isArray(suppressions.athletes))
+      throw new Error('Roster suppressions need a revision and athlete list.');
+    suppressionsHash = hashBytes(content);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
   decisions = null;
   decisionsHash = null;
   goalieEvidence = null;
@@ -383,15 +404,20 @@ export async function buildManifest() {
           if (definition) {
             item.definitionRevision = definition.decisionId;
             item.historicalAvailabilityReason = definition.historicalReason;
-            item.rankingInput = definition.rankingInput;
+            item.rankingInput = suppliedRanking(item, definition.rankingInput);
             item.calculationExclusions = {
               staffAnnotations: definition.ignoreStaffAnnotations,
               previousTeamValues: definition.ignorePreviousTeamValues,
             };
           }
+          if (item.excludedFromFantasy) {
+            item.rankingInput = suppliedRanking(item, definition?.rankingInput);
+          }
           const nameKey = (name) => name.toLowerCase().replace(/[^a-z]/gu, '');
           // Suggestions only; no permanent identity is assigned by this match.
-          item.identityCandidates = (officialEvidence?.rosters ?? [])
+          item.identityCandidates = (
+            item.excludedFromFantasy ? [] : (officialEvidence?.rosters ?? [])
+          )
             .filter(
               (athlete) =>
                 athlete.program === item.program &&
@@ -436,6 +462,7 @@ export async function buildManifest() {
             officialEvidenceHash,
             approvalsHash,
             decisionsHash,
+            suppressionsHash,
           }),
         )
         .digest('hex'),
@@ -453,6 +480,13 @@ export async function buildManifest() {
     seasonId,
     season: '2026-27',
     normalizerVersion,
+    rosterSuppressions: suppressionsHash
+      ? {
+          path: path.relative(root, suppressionsPath).replaceAll('\\', '/'),
+          sourceHash: suppressionsHash,
+          revision: suppressions.revision,
+        }
+      : null,
     dataDefinitions: decisionsHash
       ? {
           path: path.relative(root, decisionsPath).replaceAll('\\', '/'),

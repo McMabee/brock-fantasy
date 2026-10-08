@@ -99,6 +99,9 @@ test('preview keeps all sources inactive, maps mixed schedules and versions chan
             ...process.env,
             BROCK_OFFICIAL_EVIDENCE: evidencePath,
             BROCK_IMPORT_OUTPUT: 'preview.json',
+            BROCK_DATA_APPROVALS: 'dev/docs/evidence/2026-10-06-data-approvals.json',
+            BROCK_DATA_DECISIONS: 'absent-decisions.json',
+            BROCK_ROSTER_SUPPRESSIONS: 'suppressions.json',
           },
           stdio: 'pipe',
         },
@@ -193,6 +196,39 @@ test('preview keeps all sources inactive, maps mixed schedules and versions chan
       (await run()).imports.find((item) => item.source === hockey.source).approval,
       null,
     );
+    const optedOutSource = path.join(
+      logic,
+      "Fall.Winter Brock Fantasy Information - Men's Hockey - Roster.csv",
+    );
+    await writeFile(
+      optedOutSource,
+      '#,Full name,Position,26-27 Proj GP,26-27 Proj FP\n1,Changed**,GK,20,999\n',
+    );
+    const optedOut = (await run()).imports.find((item) => item.source === hockey.source).rows[0];
+    assert.equal(optedOut.raw['Full name'], 'Changed**');
+    assert.equal(optedOut.normalized.name, 'Changed');
+    assert.equal(optedOut.normalized.excludedFromFantasy, true);
+    assert.equal(optedOut.normalized.rankingInput.status, 'excluded');
+    assert.equal(optedOut.normalized.draftEligible, false);
+    assert.deepEqual(optedOut.normalized.identityCandidates, []);
+    await writeFile(
+      path.join(directory, 'suppressions.json'),
+      JSON.stringify({
+        revision: 'retained-withdrawal',
+        athletes: [{ program: 'mens_hockey', name: 'Changed' }],
+      }),
+    );
+    await writeFile(
+      optedOutSource,
+      '#,Full name,Position,26-27 Proj GP,26-27 Proj FP\n99,Changed,GK,20,999\n',
+    );
+    const retained = await run();
+    assert.equal(
+      retained.imports.find((item) => item.source === hockey.source).rows[0].normalized
+        .excludedFromFantasy,
+      true,
+    );
+    assert.ok(retained.rosterSuppressions.sourceHash);
   } finally {
     // mkdtemp returned this exact absolute target inside the OS temporary directory.
     assert.ok(path.resolve(directory).startsWith(path.resolve(os.tmpdir()) + path.sep));
