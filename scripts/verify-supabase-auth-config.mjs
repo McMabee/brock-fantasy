@@ -1,20 +1,24 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { parseEnv } from 'node:util';
+import { randomUUID } from 'node:crypto';
+import { validatePublicAuthConfig } from '../apps/client/src/lib/public-auth-config.ts';
 
 const root = process.cwd();
 const envPath = path.resolve(root, process.env.BROCK_AUTH_ENV_FILE ?? '.env');
-const source = await readFile(envPath, 'utf8');
-const values = new Map(
-  source
-    .split(/\r?\n/u)
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('#'))
-    .map((line) => {
-      const index = line.indexOf('=');
-      return index < 1 ? [] : [line.slice(0, index).trim(), line.slice(index + 1).trim()];
-    })
-    .filter((entry) => entry.length === 2),
-);
+const publicOnly = process.argv.includes('--public-only');
+const checkRateLimit = process.argv.includes('--check-rate-limit');
+if (publicOnly && checkRateLimit) throw new Error('RPC verification needs server configuration.');
+let fileValues = {};
+if (process.env.BROCK_AUTH_ENV_FILE || process.env.VERCEL !== '1') {
+  try {
+    fileValues = parseEnv(await readFile(envPath, 'utf8'));
+  } catch (error) {
+    if (error.code !== 'ENOENT' || process.env.BROCK_AUTH_ENV_FILE) throw error;
+  }
+}
+// Vercel provides process variables; no checked-in .env or Secret visibility is needed.
+const values = new Map(Object.entries({ ...fileValues, ...process.env }));
 
 const required = [
   'EXPO_PUBLIC_SUPABASE_URL',
@@ -24,7 +28,7 @@ const required = [
   'EXPO_PUBLIC_SUPPORT_EMAIL',
 ];
 for (const name of required) {
-  if (!values.get(name)) throw new Error(`${name} is required in ${path.basename(envPath)}.`);
+  if (!values.get(name)) throw new Error(`${name} is required in the selected environment.`);
 }
 if (
   [...values].some(
@@ -33,17 +37,7 @@ if (
 ) {
   throw new Error('A private credential must never use an EXPO_PUBLIC_ name.');
 }
-const publicKey = values.get('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
-let publicRole;
-try {
-  publicRole = JSON.parse(
-    Buffer.from(publicKey.split('.')[1] ?? '', 'base64url').toString('utf8'),
-  ).role;
-} catch {
-  /* Publishable keys are not JWTs. */
-}
-if (publicKey.startsWith('sb_secret_') || publicRole === 'service_role')
-  throw new Error('The public Supabase key contains a privileged server credential.');
+validatePublicAuthConfig(Object.fromEntries(values));
 
 const environment = values.get('EXPO_PUBLIC_APP_ENV');
 const baseUrl = new URL(values.get('EXPO_PUBLIC_SUPABASE_URL'));
@@ -60,8 +54,9 @@ if (
 }
 if (environment === 'staging' || environment === 'production') {
   if (
-    !values.get('SUPABASE_SECRET_KEY') ||
-    (values.get('AUTH_RATE_LIMIT_HMAC_SECRET')?.length ?? 0) < 32
+    !publicOnly &&
+    (!values.get('SUPABASE_SECRET_KEY') ||
+      (values.get('AUTH_RATE_LIMIT_HMAC_SECRET')?.trim().length ?? 0) < 32)
   )
     throw new Error(
       'Hosted authentication needs server-only Supabase and shared HMAC credentials in the Vercel runtime store.',
@@ -82,6 +77,8 @@ if (environment === 'staging' || environment === 'production') {
 
 const response = await fetch(new URL('/auth/v1/settings', baseUrl), {
   headers: { apikey: values.get('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY') },
+  signal: AbortSignal.timeout(5000),
+  redirect: 'error',
 });
 if (!response.ok)
   throw new Error(`Supabase Auth settings request failed with HTTP ${response.status}.`);
@@ -92,6 +89,42 @@ if (settings.mailer_autoconfirm === true) {
   throw new Error('Supabase Auth email confirmation must remain enabled for this beta.');
 }
 
+if (checkRateLimit) {
+  const credential = values.get('SUPABASE_SECRET_KEY');
+  if (!credential) throw new Error('SUPABASE_SECRET_KEY is required for RPC verification.');
+  const headers = { apikey: credential, 'content-type': 'application/json' };
+  if (!credential.startsWith('sb_secret_')) {
+    let role;
+    try {
+      role = JSON.parse(
+        Buffer.from(credential.split('.')[1] ?? '', 'base64url').toString('utf8'),
+      ).role;
+    } catch {
+      /* Only a service-role JWT is permitted below. */
+    }
+    if (role !== 'service_role') throw new Error('Invalid server credential type.');
+    headers.authorization = `Bearer ${credential}`;
+  }
+  // Isolated random test bucket, no login/account/IP. It expires via normal RPC cleanup.
+  const body = JSON.stringify({
+    p_key: `config-probe:${randomUUID()}`,
+    p_limit: 1,
+    p_seconds: 86400,
+  });
+  for (const expected of [true, false]) {
+    const result = await fetch(new URL('/rest/v1/rpc/consume_rate_limit', baseUrl), {
+      method: 'POST',
+      headers,
+      body,
+      signal: AbortSignal.timeout(5000),
+      redirect: 'error',
+    });
+    if (!result.ok) throw new Error(`Rate-limit RPC failed with HTTP ${result.status}.`);
+    if ((await result.json()) !== expected)
+      throw new Error('Rate-limit RPC must return boolean allow then deny.');
+  }
+}
+
 console.log(
   JSON.stringify({
     environment,
@@ -100,5 +133,7 @@ console.log(
     publicRegistration: true,
     emailConfirmationRequired: true,
     originProtocol: origin.protocol.slice(0, -1),
+    serverConfigurationChecked: !publicOnly && environment !== 'local',
+    rateLimitRpcVerified: checkRateLimit,
   }),
 );

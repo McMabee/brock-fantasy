@@ -9,6 +9,7 @@ export default tseslint.config(
       '**/dist/**',
       '**/coverage/**',
       '**/.expo/**',
+      '**/.vercel/**',
       'tmp/**',
       'dev/**',
       'supabase/functions/**',

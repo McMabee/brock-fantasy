@@ -29,6 +29,7 @@ jobs:
       - run: pnpm test:coverage
       - run: pnpm test:import
       - run: pnpm build:web
+      - run: pnpm verify:web-env-boundary
       - run: pnpm test:web-auth:local
       - run: pnpm smoke:mobile
       - run: pnpm audit --audit-level high

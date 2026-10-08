@@ -153,3 +153,60 @@ test('legacy service-role JWT support rejects ordinary user/public keys', async 
   });
   assert.equal((await denied(request(), 'sign-in')).status, 'unavailable');
 });
+
+test('Vercel Preview beta works and diagnostics distinguish failures without private data', async () => {
+  const diagnostics = [];
+  const preview = { ...env, VERCEL_ENV: 'preview', EXPO_PUBLIC_APP_ENV: 'staging' };
+  const limit = createAuthRateLimiter({
+    env: () => preview,
+    onUnavailable: (entry) => diagnostics.push(entry),
+    fetchImpl: async () => new Response('true'),
+  });
+  assert.equal(
+    (await limit(request({}, 'https://beta.brockfantasy.ca'), 'sign-in')).status,
+    'allowed',
+  );
+  assert.equal(diagnostics.length, 0);
+  for (const [change, reason] of [
+    [{ VERCEL: '' }, 'vercel_runtime_missing'],
+    [{ EXPO_PUBLIC_APP_ENV: 'local' }, 'app_environment_invalid'],
+    [{ EXPO_PUBLIC_SUPABASE_URL: 'https://other.supabase.co' }, 'supabase_project_mismatch'],
+    [{ AUTH_RATE_LIMIT_HMAC_SECRET: 'short' }, 'hmac_secret_missing_or_short'],
+    [{ SUPABASE_SECRET_KEY: '' }, 'server_credential_missing'],
+    [{ SUPABASE_SECRET_KEY: 'sb_publishable_wrong_key' }, 'server_credential_invalid'],
+  ]) {
+    await createAuthRateLimiter({
+      env: () => ({ ...preview, ...change }),
+      onUnavailable: (entry) => diagnostics.push(entry),
+    })(request(), 'sign-in');
+    assert.equal(diagnostics.at(-1).reason, reason);
+  }
+  for (const [fetchImpl, reason, httpStatus] of [
+    [async () => new Response('private provider body', { status: 403 }), 'rpc_http_error', 403],
+    [
+      async () => {
+        throw new Error('private provider error');
+      },
+      'rpc_network_or_timeout',
+      undefined,
+    ],
+    [async () => new Response('{invalid private body'), 'rpc_invalid_response', undefined],
+  ]) {
+    await createAuthRateLimiter({
+      env: () => preview,
+      fetchImpl,
+      onUnavailable: (entry) => diagnostics.push(entry),
+    })(request(), 'sign-in');
+    assert.equal(diagnostics.at(-1).reason, reason);
+    assert.equal(diagnostics.at(-1).httpStatus, httpStatus);
+  }
+  const logged = JSON.stringify(diagnostics);
+  for (const forbidden of [
+    env.SUPABASE_SECRET_KEY,
+    env.AUTH_RATE_LIMIT_HMAC_SECRET,
+    '198.51.100.23',
+    'private provider',
+    'sb_publishable_wrong_key',
+  ])
+    assert.ok(!logged.includes(forbidden));
+});

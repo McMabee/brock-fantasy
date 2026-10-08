@@ -11,7 +11,7 @@
     "web": "pnpm --filter @brock-fantasy/client web",
     "android": "pnpm --filter @brock-fantasy/client android",
     "ios": "pnpm --filter @brock-fantasy/client ios",
-    "build:web": "pnpm --filter @brock-fantasy/client build:web",
+    "build:web": "node --experimental-strip-types scripts/verify-web-build-config.mjs && pnpm --filter @brock-fantasy/client build:web",
     "preview": "pnpm --filter @brock-fantasy/client preview",
     "smoke:mobile": "pnpm --filter @brock-fantasy/client smoke:mobile",
     "format": "prettier --write .",
@@ -25,10 +25,11 @@
     "test:web-auth:local": "node scripts/test-web-auth-throttle.mjs",
     "test:coverage": "pnpm --filter @brock-fantasy/domain test:coverage",
     "test:edge:local": "node scripts/test-edge-functions.mjs",
-    "verify:auth-config": "node scripts/verify-supabase-auth-config.mjs",
+    "verify:auth-config": "node --experimental-strip-types scripts/verify-supabase-auth-config.mjs",
+    "verify:web-env-boundary": "node scripts/verify-web-env-boundary.mjs",
     "import:beta-data": "node scripts/import-brock-beta-data.mjs",
     "research:official-data": "node scripts/research-brock-official-data.mjs",
-    "check": "pnpm format:check && pnpm lint && pnpm lint:sql && pnpm typecheck && pnpm test && pnpm build:web && pnpm test:web-auth:local && pnpm smoke:mobile"
+    "check": "pnpm format:check && pnpm lint && pnpm lint:sql && pnpm typecheck && pnpm test && pnpm build:web && pnpm verify:web-env-boundary && pnpm test:web-auth:local && pnpm smoke:mobile"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

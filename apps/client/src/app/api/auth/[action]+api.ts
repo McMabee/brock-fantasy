@@ -6,6 +6,15 @@ const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access'
 const REFRESH_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-refresh' : 'bf_refresh';
 const CSRF_COOKIE = 'bf_csrf';
 const encoder = new TextEncoder();
+class AuthUnavailableError extends Error {}
+
+function unavailable(reason: string, httpStatus?: number): AuthUnavailableError {
+  // Callers supply fixed codes only; never log provider bodies or request/error objects.
+  console.error(JSON.stringify({ event: 'brock_auth_provider_unavailable', reason, httpStatus }));
+  return new AuthUnavailableError(
+    'Authentication is temporarily unavailable. Please try again shortly.',
+  );
+}
 
 type AuthAction =
   | 'csrf'
@@ -27,7 +36,8 @@ function config() {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const key =
     process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error('Supabase web authentication is not configured.');
+  if (!url) throw unavailable('public_supabase_url_missing');
+  if (!key) throw unavailable('public_supabase_key_missing');
   return { url: url.replace(/\/$/u, ''), key };
 }
 
@@ -150,7 +160,42 @@ async function authFetch(path: string, init: RequestInit = {}): Promise<Response
   const { url, key } = config();
   const headers = new Headers(init.headers);
   headers.set('apikey', key);
-  return fetch(`${url}/auth/v1${path}`, { ...init, headers });
+  let result: Response;
+  try {
+    result = await fetch(`${url}/auth/v1${path}`, {
+      ...init,
+      headers,
+      signal: init.signal ?? AbortSignal.timeout(5000),
+      redirect: 'error',
+    });
+  } catch {
+    throw unavailable('provider_network_or_timeout');
+  }
+  if (result.status >= 500) throw unavailable('provider_http_error', result.status);
+  return result;
+}
+
+async function providerJson<T>(result: Response): Promise<T> {
+  try {
+    return (await result.json()) as T;
+  } catch {
+    throw unavailable('provider_invalid_response');
+  }
+}
+
+async function providerTokens(result: Response): Promise<AuthTokens> {
+  const tokens = await providerJson<AuthTokens | null>(result);
+  if (
+    !tokens ||
+    typeof tokens.access_token !== 'string' ||
+    !tokens.access_token ||
+    typeof tokens.refresh_token !== 'string' ||
+    !tokens.refresh_token ||
+    (tokens.expires_in !== undefined &&
+      (typeof tokens.expires_in !== 'number' || !Number.isFinite(tokens.expires_in)))
+  )
+    throw unavailable('provider_invalid_response');
+  return tokens;
 }
 
 async function currentUser(
@@ -158,11 +203,12 @@ async function currentUser(
 ): Promise<{ id: string; email: string | null; emailConfirmedAt: string | null } | null> {
   const result = await authFetch('/user', { headers: { authorization: `Bearer ${accessToken}` } });
   if (!result.ok) return null;
-  const user = (await result.json()) as {
+  const user = await providerJson<{
     id?: unknown;
     email?: unknown;
     email_confirmed_at?: unknown;
-  };
+  } | null>(result);
+  if (!user || typeof user.id !== 'string') throw unavailable('provider_invalid_response');
   return typeof user.id === 'string'
     ? {
         id: user.id,
@@ -179,7 +225,7 @@ function authError(status: number): Response {
   return response({ error: 'Authentication could not be completed.' }, status >= 500 ? 503 : 401);
 }
 
-export const GET: RequestHandler = async (request, params) => {
+const get: RequestHandler = async (request, params) => {
   const action = params.action as AuthAction;
   if (action === 'csrf') return response({ ok: true }, 200, [csrfCookie()]);
   if (action !== 'session') return response({ error: 'Not found.' }, 404);
@@ -189,7 +235,7 @@ export const GET: RequestHandler = async (request, params) => {
   return user ? response({ user }) : response({ user: null }, 200, clearSessionCookies());
 };
 
-export const POST: RequestHandler = async (request, params) => {
+const post: RequestHandler = async (request, params) => {
   const action = params.action as AuthAction;
   if (
     !['sign-in', 'sign-up', 'recover', 'refresh', 'sign-out', 'update-password'].includes(action)
@@ -239,7 +285,7 @@ export const POST: RequestHandler = async (request, params) => {
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
     if (!refreshed.ok) return authError(refreshed.status);
-    const tokens = (await refreshed.json()) as AuthTokens;
+    const tokens = await providerTokens(refreshed);
     const user = await currentUser(tokens.access_token);
     return user ? response({ user }, 200, sessionCookies(tokens)) : authError(401);
   }
@@ -257,7 +303,7 @@ export const POST: RequestHandler = async (request, params) => {
       body: JSON.stringify({ email, password }),
     });
     if (!signedIn.ok) return authError(signedIn.status);
-    const tokens = (await signedIn.json()) as AuthTokens;
+    const tokens = await providerTokens(signedIn);
     const user = await currentUser(tokens.access_token);
     if (!user?.emailConfirmedAt)
       return response(
@@ -327,3 +373,19 @@ export const POST: RequestHandler = async (request, params) => {
   });
   return updated.ok ? response({ ok: true }, 200) : authError(updated.status);
 };
+
+function withAvailabilityHandling(handler: RequestHandler): RequestHandler {
+  return async (request, params) => {
+    try {
+      return await handler(request, params);
+    } catch (error) {
+      if (!(error instanceof AuthUnavailableError)) throw error;
+      const result = response({ error: error.message }, 503);
+      result.headers.set('retry-after', '30');
+      return result;
+    }
+  };
+}
+
+export const GET = withAvailabilityHandling(get);
+export const POST = withAvailabilityHandling(post);

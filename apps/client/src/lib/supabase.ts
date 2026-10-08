@@ -3,6 +3,17 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
+import { validatePublicAuthConfig } from './public-auth-config';
+
+// Expo inlines these public values at build time. No server secrets belong here.
+validatePublicAuthConfig({
+  EXPO_PUBLIC_APP_ENV: process.env.EXPO_PUBLIC_APP_ENV,
+  EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  EXPO_PUBLIC_APP_ORIGIN: process.env.EXPO_PUBLIC_APP_ORIGIN,
+  EXPO_PUBLIC_SUPPORT_EMAIL: process.env.EXPO_PUBLIC_SUPPORT_EMAIL,
+});
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const publishableKey =
@@ -13,17 +24,6 @@ const requiredSupportRecipients = ['tymabee@proton.me', 'gt22me@brocku.ca'] as c
 export const supportEmail =
   process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? requiredSupportRecipients.join(',');
 export const hasSupabaseConfig = Boolean(url && publishableKey);
-
-function isHttpsOrigin(value: string | undefined): boolean {
-  if (!value) return false;
-  try {
-    return (
-      new URL(value).protocol === 'https:' && new URL(value).origin === value.replace(/\/$/u, '')
-    );
-  } catch {
-    return false;
-  }
-}
 
 async function cookieAuthenticatedRead(
   input: RequestInfo | URL,
@@ -42,28 +42,6 @@ async function cookieAuthenticatedRead(
       ? {}
       : { body: await request.text() }),
   });
-}
-
-if (appEnvironment === 'production' || appEnvironment === 'staging') {
-  if (!hasSupabaseConfig) {
-    throw new Error(
-      'Staging and production require EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY.',
-    );
-  }
-  const supportRecipients = supportEmail.split(',').map((value) => value.trim().toLowerCase());
-  if (
-    !supportRecipients.every((value) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) ||
-    !requiredSupportRecipients.every((value) => supportRecipients.includes(value))
-  ) {
-    throw new Error(
-      'EXPO_PUBLIC_SUPPORT_EMAIL must include both Ty and Tarik, separated by commas.',
-    );
-  }
-  if (!isHttpsOrigin(process.env.EXPO_PUBLIC_APP_ORIGIN)) {
-    throw new Error(
-      'Staging and production require an HTTPS EXPO_PUBLIC_APP_ORIGIN without a path.',
-    );
-  }
 }
 
 export const supabase: SupabaseClient | null =

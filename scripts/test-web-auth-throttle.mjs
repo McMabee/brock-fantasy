@@ -9,6 +9,8 @@ const names = [
   'EXPO_PUBLIC_APP_ENV',
   'EXPO_PUBLIC_APP_ORIGIN',
   'EXPO_PUBLIC_SUPABASE_URL',
+  'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+  'EXPO_PUBLIC_SUPABASE_ANON_KEY',
   'VERCEL',
   'SUPABASE_SECRET_KEY',
   'AUTH_RATE_LIMIT_HMAC_SECRET',
@@ -26,6 +28,10 @@ const server = createServer((request, response) => {
   });
 });
 const results = [];
+const networkFetch = globalThis.fetch;
+const originalError = console.error;
+const diagnostics = [];
+console.error = (entry) => diagnostics.push(String(entry));
 try {
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const url = `http://127.0.0.1:${server.address().port}`;
@@ -105,6 +111,112 @@ try {
   });
   assert.equal(wrongOrigin.status, 403);
   results.push({ scenario: 'wrong-origin mutation rejected before counter', status: 403 });
+
+  process.env.EXPO_PUBLIC_APP_ENV = 'staging';
+  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_auth_route_fixture';
+  delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  process.env.SUPABASE_SECRET_KEY = 'sb_secret_auth_route_fixture';
+  process.env.AUTH_RATE_LIMIT_HMAC_SECRET = 'private-auth-route-fixture-32-characters';
+  const calls = [];
+  let scenario = 'success';
+  globalThis.fetch = async (input, init) => {
+    const target = String(input);
+    assert.ok(target.startsWith('https://fdovowiihxowzatewxgv.supabase.co/'));
+    calls.push(target);
+    if (target.endsWith('/rpc/consume_rate_limit')) {
+      assert.equal(init.headers.apikey, process.env.SUPABASE_SECRET_KEY);
+      assert.ok(!init.body.includes('198.51.100.23'));
+      if (scenario === 'rpc-error') return new Response('private RPC diagnostic', { status: 403 });
+      return new Response(scenario === 'limited' ? 'false' : 'true');
+    }
+    assert.equal(init.headers.get('apikey'), process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+    assert.equal(init.redirect, 'error');
+    if (target.includes('grant_type=password')) {
+      assert.deepEqual(JSON.parse(init.body), {
+        email: 'fixture@example.invalid',
+        password: 'private-password-fixture',
+      });
+      if (scenario === 'invalid-login')
+        return new Response('private provider rejection', { status: 400 });
+      if (scenario === 'auth-error')
+        return new Response('private provider diagnostic', { status: 503 });
+      if (scenario === 'network-error') throw new Error('private network diagnostic');
+      if (scenario === 'malformed-tokens') return new Response('{"access_token":null}');
+      return Response.json({
+        access_token: 'private-access-token-fixture',
+        refresh_token: 'private-refresh-token-fixture',
+        expires_in: 3600,
+      });
+    }
+    assert.ok(target.endsWith('/auth/v1/user'));
+    assert.equal(init.headers.get('authorization'), 'Bearer private-access-token-fixture');
+    if (scenario === 'user-error') return new Response('private user diagnostic', { status: 503 });
+    return Response.json({
+      id: 'fixture-user',
+      email: 'fixture@example.invalid',
+      email_confirmed_at: '2026-10-08T00:00:00Z',
+    });
+  };
+  for (const [name, expected] of [
+    ['success', 200],
+    ['limited', 429],
+    ['rpc-error', 503],
+    ['invalid-login', 401],
+    ['auth-error', 503],
+    ['network-error', 503],
+    ['malformed-tokens', 503],
+    ['user-error', 503],
+    ['missing-public-key', 503],
+  ]) {
+    scenario = name;
+    calls.length = 0;
+    if (name === 'missing-public-key') delete process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    const result = await networkFetch(`${url}/api/auth/sign-in`, {
+      method: 'POST',
+      headers: { ...headers, 'x-vercel-forwarded-for': '198.51.100.23' },
+      body: JSON.stringify({
+        email: 'fixture@example.invalid',
+        password: 'private-password-fixture',
+      }),
+    });
+    assert.equal(result.status, expected, name);
+    const payload = await result.json();
+    if (name === 'success') {
+      assert.equal(payload.user.id, 'fixture-user');
+      assert.equal(calls.length, 3, 'counter, password grant, user lookup');
+      assert.ok(result.headers.getSetCookie().some((value) => value.includes('HttpOnly')));
+    } else {
+      assert.ok(!JSON.stringify(payload).includes('private'));
+      if (['limited', 'rpc-error'].includes(name)) assert.equal(calls.length, 1);
+      if (expected === 503) assert.equal(result.headers.get('retry-after'), '30');
+    }
+    results.push({
+      scenario: `staging exported sign-in with mocked provider: ${name}`,
+      status: expected,
+    });
+  }
+  const logged = diagnostics.join('\n');
+  for (const code of [
+    'hmac_secret_missing_or_short',
+    'rpc_http_error',
+    'provider_http_error',
+    'provider_network_or_timeout',
+    'provider_invalid_response',
+    'public_supabase_key_missing',
+  ])
+    assert.ok(logged.includes(code), code);
+  for (const forbidden of [
+    'private-password-fixture',
+    'private-access-token-fixture',
+    'private-refresh-token-fixture',
+    process.env.SUPABASE_SECRET_KEY,
+    process.env.AUTH_RATE_LIMIT_HMAC_SECRET,
+    '198.51.100.23',
+    'private provider',
+    'private network',
+    'private RPC',
+  ])
+    assert.ok(!logged.includes(forbidden));
   const evidence = {
     checkedAt: new Date().toISOString(),
     environment: 'local Node HTTP server with actual root Vercel entry and Expo server export',
@@ -120,6 +232,8 @@ try {
   );
   process.stdout.write(JSON.stringify(evidence, null, 2) + '\n');
 } finally {
+  globalThis.fetch = networkFetch;
+  console.error = originalError;
   server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));
   for (const [name, value] of previous) {

@@ -2,6 +2,23 @@ import { isIP } from 'node:net';
 
 type Environment = Record<string, string | undefined>;
 type RateResult = { status: 'allowed' | 'limited' | 'unavailable'; retryAfterSeconds: number };
+type Diagnostic = {
+  event: 'brock_auth_rate_limit_unavailable';
+  reason:
+    | 'unsupported_action'
+    | 'vercel_runtime_missing'
+    | 'app_environment_invalid'
+    | 'supabase_project_mismatch'
+    | 'hmac_secret_missing_or_short'
+    | 'server_credential_missing'
+    | 'server_credential_invalid'
+    | 'trusted_ip_missing_or_invalid'
+    | 'hmac_failed'
+    | 'rpc_network_or_timeout'
+    | 'rpc_http_error'
+    | 'rpc_invalid_response';
+  httpStatus?: number;
+};
 const actions = new Set(['sign-in', 'sign-up', 'recover', 'refresh', 'update-password']);
 
 /** Server-only: both Vercel hosts must use the same private HMAC secret. */
@@ -10,15 +27,26 @@ export function createAuthRateLimiter(
     env?: () => Environment;
     fetchImpl?: typeof fetch;
     now?: () => number;
+    onUnavailable?: (diagnostic: Diagnostic) => void;
   } = {},
 ) {
   const readEnv: () => Environment = options.env ?? (() => process.env);
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl: typeof fetch = options.fetchImpl ?? ((input, init) => fetch(input, init));
   const now = options.now ?? Date.now;
+  const onUnavailable = options.onUnavailable ?? ((entry) => console.error(JSON.stringify(entry)));
+  function unavailable(reason: Diagnostic['reason'], httpStatus?: number): RateResult {
+    // Allowlisted codes/status only: never log inputs, IPs, keys, tokens or error bodies.
+    onUnavailable({
+      event: 'brock_auth_rate_limit_unavailable',
+      reason,
+      ...(httpStatus === undefined ? {} : { httpStatus }),
+    });
+    return { status: 'unavailable', retryAfterSeconds: 30 };
+  }
   const localWindows = new Map<string, { count: number; window: number }>();
 
   return async function limit(request: Request, action: string): Promise<RateResult> {
-    if (!actions.has(action)) return { status: 'unavailable', retryAfterSeconds: 30 };
+    if (!actions.has(action)) return unavailable('unsupported_action');
     const env = readEnv();
     const local = env.EXPO_PUBLIC_APP_ENV === 'local' && env.VERCEL !== '1';
     const seconds = 60;
@@ -34,23 +62,26 @@ export function createAuthRateLimiter(
       localWindows.set(action, { count, window });
       return { status: count <= maximum ? 'allowed' : 'limited', retryAfterSeconds };
     }
+    if (env.VERCEL !== '1') return unavailable('vercel_runtime_missing');
+    // VERCEL_ENV=preview is supported; application staging is independent of Vercel's target.
+    if (!['staging', 'production'].includes(env.EXPO_PUBLIC_APP_ENV ?? ''))
+      return unavailable('app_environment_invalid');
     if (
-      env.VERCEL !== '1' ||
-      !['staging', 'production'].includes(env.EXPO_PUBLIC_APP_ENV ?? '') ||
       env.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/$/u, '') !==
-        'https://fdovowiihxowzatewxgv.supabase.co' ||
-      !env.AUTH_RATE_LIMIT_HMAC_SECRET ||
-      env.AUTH_RATE_LIMIT_HMAC_SECRET.length < 32 ||
-      !env.SUPABASE_SECRET_KEY
+      'https://fdovowiihxowzatewxgv.supabase.co'
     )
-      return { status: 'unavailable', retryAfterSeconds: 30 };
+      return unavailable('supabase_project_mismatch');
+    if (!env.AUTH_RATE_LIMIT_HMAC_SECRET || env.AUTH_RATE_LIMIT_HMAC_SECRET.trim().length < 32)
+      return unavailable('hmac_secret_missing_or_short');
+    if (!env.SUPABASE_SECRET_KEY) return unavailable('server_credential_missing');
 
     // Vercel supplies/overwrites these headers. Other hosting needs its own
     // verified ingress adapter; arbitrary proxies cannot opt into this trust.
     const address = (
       request.headers.get('x-vercel-forwarded-for') ?? request.headers.get('x-forwarded-for')
     )?.trim();
-    if (!address || !isIP(address)) return { status: 'unavailable', retryAfterSeconds: 30 };
+    if (!address || !isIP(address)) return unavailable('trusted_ip_missing_or_invalid');
+    let failure: Diagnostic['reason'] = 'hmac_failed';
     try {
       const key = await crypto.subtle.importKey(
         'raw',
@@ -71,6 +102,7 @@ export function createAuthRateLimiter(
         byte.toString(16).padStart(2, '0'),
       ).join('');
       const credential = env.SUPABASE_SECRET_KEY;
+      failure = 'server_credential_invalid';
       const headers: Record<string, string> = {
         apikey: credential,
         'content-type': 'application/json',
@@ -87,9 +119,10 @@ export function createAuthRateLimiter(
           !('role' in payload) ||
           payload.role !== 'service_role'
         )
-          return { status: 'unavailable', retryAfterSeconds: 30 };
+          return unavailable('server_credential_invalid');
         headers.authorization = `Bearer ${credential}`;
       }
+      failure = 'rpc_network_or_timeout';
       const response = await fetchImpl(
         `${env.EXPO_PUBLIC_SUPABASE_URL.replace(/\/$/u, '')}/rest/v1/rpc/consume_rate_limit`,
         {
@@ -100,13 +133,14 @@ export function createAuthRateLimiter(
           redirect: 'error',
         },
       );
-      if (!response.ok) return { status: 'unavailable', retryAfterSeconds: 30 };
+      if (!response.ok) return unavailable('rpc_http_error', response.status);
+      failure = 'rpc_invalid_response';
       const allowed: unknown = await response.json();
-      if (typeof allowed !== 'boolean') return { status: 'unavailable', retryAfterSeconds: 30 };
+      if (typeof allowed !== 'boolean') return unavailable('rpc_invalid_response');
       return { status: allowed ? 'allowed' : 'limited', retryAfterSeconds };
     } catch {
       // No IP, credential or provider response body enters application logs.
-      return { status: 'unavailable', retryAfterSeconds: 30 };
+      return unavailable(failure);
     }
   };
 }
