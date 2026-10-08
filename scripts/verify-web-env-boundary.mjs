@@ -1,7 +1,12 @@
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
-const names = ['SUPABASE_SECRET_KEY', 'AUTH_RATE_LIMIT_HMAC_SECRET'];
+const names = [
+  'SUPABASE_SECRET_KEY',
+  'AUTH_RATE_LIMIT_HMAC_SECRET',
+  'RESEND_API_KEY',
+  'ADMIN_INVITE_EMAIL_FROM',
+];
 const privateValues = names.map((name) => process.env[name]).filter((value) => value?.length >= 16);
 async function inspect(directory, browser) {
   let count = 0;

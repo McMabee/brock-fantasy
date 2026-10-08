@@ -14,7 +14,7 @@ import {
 import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
 import { useSession } from '@/providers/session-provider';
 import { colors, heading } from '@/theme';
-import { adminReturnPath } from '@/lib/admin-navigation';
+import { authReturnPath } from '@/lib/admin-navigation';
 
 type AuthMode = 'sign_in' | 'sign_up';
 
@@ -57,7 +57,7 @@ export default function AuthScreen() {
     if (message) setError(message);
     else if (mode === 'sign_up')
       setNotice('Check your email to verify your account, then sign in.');
-    else router.replace(next ? adminReturnPath(next) : '/dashboard');
+    else router.replace(next ? authReturnPath(next) : '/dashboard');
   };
 
   const reset = async () => {

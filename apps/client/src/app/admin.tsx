@@ -13,9 +13,11 @@ import { colors, heading } from '@/theme';
 import { useOperations } from '@/hooks/use-operations';
 import { useRequireAdmin } from '@/hooks/use-route-access';
 import { AdminAccess } from '@/components/admin-access';
+import { useAdminAccountManager } from '@/hooks/use-admin-account-manager';
 
 export default function AdminScreen() {
   const access = useRequireAdmin();
+  const canManageAccounts = useAdminAccountManager(access.allowed);
   const operations = useOperations(access.allowed);
   const { width } = useWindowDimensions();
   const wide = width >= 850;
@@ -111,7 +113,13 @@ export default function AdminScreen() {
             </Text>
             <ActionButton label="Import provider snapshot" href="/admin/import" />
             <ActionButton label="Scorekeeping workspace" href="/admin/games" variant="secondary" />
-            <ActionButton label="Staff accounts" href="/admin/accounts" variant="secondary" />
+            {canManageAccounts ? (
+              <ActionButton
+                label="Administrator invitations"
+                href="/admin/accounts"
+                variant="secondary"
+              />
+            ) : null}
           </Card>
         </View>
       </View>

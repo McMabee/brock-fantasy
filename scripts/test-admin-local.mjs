@@ -2,17 +2,21 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { mkdir, writeFile } from 'node:fs/promises';
 import handler from '../api/index.js';
-import { adminReturnPath } from '../apps/client/src/lib/admin-navigation.ts';
+import { adminReturnPath, authReturnPath } from '../apps/client/src/lib/admin-navigation.ts';
 
 const names = [
   'EXPO_PUBLIC_SUPABASE_URL',
   'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
   'EXPO_PUBLIC_APP_ORIGIN',
+  'RESEND_API_KEY',
+  'ADMIN_INVITE_EMAIL_FROM',
 ];
 const previous = new Map(names.map((name) => [name, process.env[name]]));
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://fdovowiihxowzatewxgv.supabase.co';
 process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_admin_fixture';
 process.env.EXPO_PUBLIC_APP_ORIGIN = 'https://beta.brockfantasy.ca';
+process.env.RESEND_API_KEY = 're_private_admin_invite_fixture';
+process.env.ADMIN_INVITE_EMAIL_FROM = 'Brock Fantasy <admin@example.test>';
 const networkFetch = globalThis.fetch;
 const server = createServer((request, response) => {
   handler(request, response).catch(() => {
@@ -25,7 +29,11 @@ const userId = '11111111-1111-4111-8111-111111111111';
 const factorId = '22222222-2222-4222-8222-222222222222';
 const gameId = '33333333-3333-4333-8333-333333333333';
 const teamId = '44444444-4444-4444-8444-444444444444';
+const invitationId = '55555555-5555-4555-8555-555555555555';
 let role = false;
+let canManage = false;
+let invitationSent = false;
+const emails = [];
 let entries = [];
 let failure = '';
 const calls = [];
@@ -50,18 +58,56 @@ try {
   globalThis.fetch = async (input, init = {}) => {
     const target = String(input);
     const method = init.method ?? 'GET';
+    if (target === 'https://api.resend.com/emails') {
+      const headers = new Headers(init.headers);
+      assert.equal(headers.get('authorization'), 'Bearer re_private_admin_invite_fixture');
+      assert.equal(headers.get('idempotency-key'), `brock-admin-invitation/${invitationId}`);
+      emails.push(JSON.parse(init.body));
+      return failure === 'email'
+        ? Response.json({ error: 'private email provider detail' }, { status: 503 })
+        : Response.json({ id: 'email-fixture' });
+    }
     assert.ok(
       target.startsWith('https://fdovowiihxowzatewxgv.supabase.co/'),
       'all upstream requests stay on the configured project',
     );
     const headers = new Headers(init.headers);
     assert.equal(headers.get('apikey'), 'sb_publishable_admin_fixture');
+    if (
+      target.endsWith('/auth/v1/user') &&
+      headers.get('authorization') === 'Bearer invalid-fixture'
+    )
+      return Response.json({ error: 'Invalid bearer token' }, { status: 401 });
     assert.ok(headers.get('authorization')?.startsWith('Bearer fixture.'));
     calls.push({ target, method });
     if (failure === 'network') throw new Error('private upstream detail');
     if (target.endsWith('/auth/v1/user')) return Response.json({ id: userId, factors: entries });
     if (target.includes('/rest/v1/user_roles?'))
       return Response.json(role ? [{ role: 'admin' }] : []);
+    if (target.endsWith('/rest/v1/rpc/can_manage_admin_accounts')) return Response.json(canManage);
+    if (target.endsWith('/rest/v1/rpc/admin_create_invitation')) {
+      const body = JSON.parse(init.body);
+      assert.equal(body.p_email, 'staff@example.test');
+      return Response.json({
+        invitationId,
+        email: 'staff@example.test',
+        expiresAt: '2026-10-15T18:00:00Z',
+        alreadySent: invitationSent,
+      });
+    }
+    if (target.endsWith('/rest/v1/rpc/admin_mark_invitation_sent')) {
+      if (failure === 'sent-marker') return new Response('private marker error', { status: 503 });
+      invitationSent = true;
+      return Response.json({ sent: true });
+    }
+    if (target.endsWith('/rest/v1/rpc/admin_invitation_status'))
+      return failure === 'invitation'
+        ? Response.json({ message: 'private account detail' }, { status: 403 })
+        : Response.json({ invitationId, accepted: false });
+    if (target.endsWith('/rest/v1/rpc/admin_accept_invitation')) {
+      role = true;
+      return Response.json({ enabled: true });
+    }
     if (target.endsWith('/auth/v1/factors') && method === 'POST')
       return Response.json({
         id: factorId,
@@ -94,7 +140,14 @@ try {
   };
   const request = async (
     route,
-    { aal = null, method = 'GET', body, origin = 'https://beta.brockfantasy.ca', csrf = true } = {},
+    {
+      aal = null,
+      method = 'GET',
+      body,
+      origin = 'https://beta.brockfantasy.ca',
+      csrf = true,
+      bearer,
+    } = {},
   ) => {
     const response = await networkFetch(`${base}${route}`, {
       method,
@@ -104,6 +157,7 @@ try {
         origin,
         cookie: `${aal ? `${accessCookie}=${jwt(aal)}; ` : ''}bf_csrf=csrf-fixture`,
         ...(csrf ? { 'x-csrf-token': 'csrf-fixture' } : {}),
+        ...(bearer ? { authorization: `Bearer ${bearer}` } : {}),
         ...(body ? { 'content-type': 'application/json' } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
@@ -213,6 +267,153 @@ try {
     'Failed detail reads do not become empty editable stats; MFA outages return safe errors',
   );
 
+  failure = '';
+  const invitationBody = {
+    email: 'staff@example.test',
+    reason: 'Staff onboarding',
+    idempotencyKey: 'admin-invite-test',
+  };
+  result = await request('/api/admin/accounts', {
+    aal: 'aal2',
+    method: 'POST',
+    body: invitationBody,
+  });
+  assert.equal(result.response.status, 403);
+  assert.equal(emails.length, 0);
+  result = await request('/api/admin/accounts', {
+    aal: 'aal1',
+    method: 'POST',
+    body: invitationBody,
+  });
+  assert.equal(result.response.status, 403);
+  canManage = true;
+  for (const change of [{ origin: 'https://evil.example' }, { csrf: false }]) {
+    const before = calls.length;
+    result = await request('/api/admin/accounts', {
+      aal: 'aal2',
+      method: 'POST',
+      body: invitationBody,
+      ...change,
+    });
+    assert.equal(result.response.status, 403);
+    assert.equal(calls.length, before);
+  }
+  results.push(
+    'Invitation sending requires super administrator AAL2 and web Origin/CSRF; standard admins cannot send',
+  );
+
+  delete process.env.RESEND_API_KEY;
+  const beforeMissingSender = calls.length;
+  result = await request('/api/admin/accounts', {
+    aal: 'aal2',
+    method: 'POST',
+    body: invitationBody,
+  });
+  assert.equal(result.response.status, 503);
+  assert.ok(
+    calls
+      .slice(beforeMissingSender)
+      .every((call) => !call.target.endsWith('/admin_create_invitation')),
+  );
+  process.env.RESEND_API_KEY = 're_private_admin_invite_fixture';
+  failure = 'email';
+  result = await request('/api/admin/accounts', {
+    aal: 'aal2',
+    method: 'POST',
+    body: invitationBody,
+  });
+  assert.equal(result.response.status, 503);
+  assert.equal(invitationSent, false);
+  assert.ok(!JSON.stringify(result.data).includes('private'));
+  failure = '';
+  result = await request('/api/admin/accounts', {
+    aal: 'aal2',
+    method: 'POST',
+    body: invitationBody,
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.data.sent, true);
+  assert.equal(invitationSent, true);
+  assert.deepEqual(emails.at(-1).to, ['staff@example.test']);
+  assert.ok(
+    emails.at(-1).text.includes(`https://beta.brockfantasy.ca/mfa?invitation=${invitationId}`),
+  );
+  assert.ok(!emails.at(-1).text.includes('private'));
+  const sentCount = emails.length;
+  result = await request('/api/admin/accounts', {
+    aal: 'aal2',
+    method: 'POST',
+    body: invitationBody,
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(emails.length, sentCount);
+  results.push(
+    'Missing sender and email failures do not activate invitations; successful retry uses provider idempotency and completed requests do not resend',
+  );
+
+  result = await request('/api/admin/accounts', {
+    method: 'POST',
+    body: invitationBody,
+    origin: 'null',
+    csrf: false,
+    bearer: jwt('aal2'),
+  });
+  assert.equal(result.response.status, 200);
+  result = await request('/api/admin/accounts', {
+    aal: 'aal2',
+    method: 'POST',
+    body: invitationBody,
+    origin: 'null',
+    csrf: false,
+    bearer: 'invalid-fixture',
+  });
+  assert.equal(result.response.status, 403);
+  results.push(
+    'Native invitations validate explicit bearer tokens; an invalid bearer cannot fall back to an authenticated cookie',
+  );
+
+  invitationSent = false;
+  failure = 'sent-marker';
+  result = await request('/api/admin/accounts', {
+    aal: 'aal2',
+    method: 'POST',
+    body: invitationBody,
+  });
+  assert.equal(result.response.status, 503);
+  assert.equal(invitationSent, false);
+  failure = '';
+  result = await request('/api/admin/accounts', {
+    aal: 'aal2',
+    method: 'POST',
+    body: invitationBody,
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(invitationSent, true);
+  results.push(
+    'Database confirmation failure is reported after email send; retry confirms the same invitation',
+  );
+
+  result = await request(`/api/admin/invitation?id=${invitationId}`, { aal: 'aal1' });
+  assert.equal(result.response.status, 200);
+  failure = 'invitation';
+  result = await request(`/api/admin/invitation?id=${invitationId}`, { aal: 'aal1' });
+  assert.equal(result.response.status, 403);
+  assert.ok(!JSON.stringify(result.data).includes('private'));
+  failure = '';
+  role = false;
+  result = await request('/api/command/admin_accept_invitation', {
+    aal: 'aal2',
+    method: 'POST',
+    body: { p_invitation_id: invitationId },
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.data.enabled, true);
+  result = await request(`/api/admin/games?gameId=${gameId}`, { aal: 'aal2' });
+  assert.equal(result.response.status, 200);
+  results.push(
+    'Recipient can check an invitation at AAL1; authenticated acceptance uses the protected database command and unlocks standard admin operations',
+  );
+
   for (const value of [
     'https://evil.example',
     '//evil.example',
@@ -221,6 +422,17 @@ try {
   ])
     assert.equal(adminReturnPath(value), '/admin');
   assert.equal(adminReturnPath('/admin/games'), '/admin/games');
+  assert.equal(
+    authReturnPath(`/mfa?invitation=${invitationId}`),
+    `/mfa?invitation=${invitationId}`,
+  );
+  for (const value of [
+    'https://evil.example/mfa',
+    '/mfa?invitation=invalid',
+    `/mfa?invitation=${invitationId}&next=https://evil.example`,
+    ['/mfa'],
+  ])
+    assert.equal(authReturnPath(value), '/admin');
   process.env.EXPO_PUBLIC_APP_ORIGIN = 'https://play.brockfantasy.ca';
   failure = '';
   result = await request('/api/admin/mfa', {

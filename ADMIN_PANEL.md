@@ -29,21 +29,34 @@ deployment to preserve this implementation.
    alone does not grant admin access. If access is missing, the page identifies
    the signed-in account and directs you to the operator.
 
-The operator's existing admin account is `tymabee@proton.me`. Staff must register,
-verify their email and eligibility, then enroll their own authenticator through
-**Account → Authenticator security**. The operator grants or revokes staff access
-through **Admin panel → Staff accounts**, with a recorded reason and audit
-reference. Ordinary administrators cannot manage staff roles.
+Ty Mabee (`tymabee@proton.me`) is the sole super administrator. Staff register,
+verify their email and confirm eligibility first. Ty completes MFA, opens
+**Admin panel → Administrator invitations**, enters their email and selects
+**Send admin invitation**. The emailed link asks them to sign in with that account,
+then opens the existing QR-code/six-digit authenticator setup. An existing
+authenticator can be verified instead. Successful verification and invitation
+acceptance activate their admin access automatically.
+
+Standard admins have the same import, scorekeeping and operations privileges.
+Only Ty can invite admins, cancel invitations or revoke staff admin access.
+Invitations expire after seven days and are bound to the recipient's account and
+verified email. Forwarded, cancelled and expired links cannot grant access.
+
+This invitation change is locally validated and requires the new database
+migration, web deployment, and server-only `RESEND_API_KEY` plus
+`ADMIN_INVITE_EMAIL_FROM` from a verified sender domain before it is live.
+Supabase's existing SMTP setup continues to handle registration and recovery.
+See [administrator onboarding](dev/docs/admin-account-management.md) for setup.
 
 ## Workspaces
 
-| Path              | Purpose                                                            |
-| ----------------- | ------------------------------------------------------------------ |
-| `/admin`          | Ingestion health and recent audit events                           |
-| `/admin/games`    | Search games, enter scores/stat lines, preview and publish changes |
-| `/admin/import`   | Ingest mapped provider/manual JSON through the audited pipeline    |
-| `/admin/accounts` | Operator-only staff account lookup and audited access changes      |
-| `/mfa`            | Enroll or verify the current account's authenticator               |
+| Path              | Purpose                                                                |
+| ----------------- | ---------------------------------------------------------------------- |
+| `/admin`          | Ingestion health and recent audit events                               |
+| `/admin/games`    | Search games, enter scores/stat lines, preview and publish changes     |
+| `/admin/import`   | Ingest mapped provider/manual JSON through the audited pipeline        |
+| `/admin/accounts` | Ty-only emailed admin invitations, lookup, cancellation and revocation |
+| `/mfa`            | Enroll or verify the current account's authenticator                   |
 
 Scorekeeping loads the latest game version before editing. Preview the current
 stat lines, enter the official source reference and an audit reason, then

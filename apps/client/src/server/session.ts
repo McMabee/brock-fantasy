@@ -75,8 +75,11 @@ export function mutationError(request: Request): string | null {
   return !csrf || csrf !== request.headers.get('x-csrf-token') ? 'Invalid CSRF token.' : null;
 }
 
-export async function actor(request: Request): Promise<WebActor | null> {
-  const accessToken = requestCookie(request, ACCESS_COOKIE);
+export async function actor(request: Request, allowBearer = false): Promise<WebActor | null> {
+  const bearer = allowBearer
+    ? request.headers.get('authorization')?.match(/^Bearer (\S+)$/u)?.[1]
+    : null;
+  const accessToken = bearer ?? requestCookie(request, ACCESS_COOKIE);
   const config = apiConfig();
   if (!accessToken || !config) return null;
   const result = await fetch(`${config.url}/auth/v1/user`, {

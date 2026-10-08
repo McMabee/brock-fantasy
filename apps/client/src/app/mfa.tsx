@@ -6,6 +6,7 @@ import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/co
 import { supabase } from '@/lib/supabase';
 import { adminReturnPath } from '@/lib/admin-navigation';
 import { webRequest } from '@/lib/web-request';
+import { betaCommand } from '@/lib/web-api';
 import { useSession } from '@/providers/session-provider';
 import { colors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
@@ -25,9 +26,11 @@ interface WebMfaStatus {
 }
 
 export default function MfaScreen() {
-  useRequireUser();
   const router = useRouter();
-  const { next } = useLocalSearchParams<{ next?: string }>();
+  const { next, invitation } = useLocalSearchParams<{ next?: string; invitation?: string }>();
+  const invitationId =
+    typeof invitation === 'string' && /^[0-9a-f-]{36}$/iu.test(invitation) ? invitation : null;
+  useRequireUser(invitationId ? `/mfa?invitation=${invitationId}` : undefined);
   const { user } = useSession();
   const [factor, setFactor] = useState<FactorSetup | null>(null);
   const [hasAdminRole, setHasAdminRole] = useState(false);
@@ -36,11 +39,32 @@ export default function MfaScreen() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
+  const [invitationValid, setInvitationValid] = useState(false);
 
   useEffect(() => {
     if (!user) return;
+    setLoading(true);
+    setInvitationValid(false);
+    setVerifiedSession(false);
+    setHasAdminRole(false);
+    setFactor(null);
+    setCode('');
+    setMessage(null);
     let cancelled = false;
     const load = async () => {
+      if (invitationId) {
+        const status =
+          Platform.OS === 'web'
+            ? await webRequest(`/api/admin/invitation?id=${encodeURIComponent(invitationId)}`)
+            : await betaCommand('admin_invitation_status', { p_invitation_id: invitationId });
+        if (cancelled) return;
+        setInvitationValid(Boolean(status.data));
+        if (status.error) {
+          setMessage(status.error);
+          setLoading(false);
+          return;
+        }
+      }
       if (Platform.OS === 'web') {
         const result = await webRequest<WebMfaStatus>('/api/admin/mfa');
         if (cancelled) return;
@@ -52,7 +76,7 @@ export default function MfaScreen() {
           setFactor(
             result.data.factor ? { ...result.data.factor, qrCode: null, secret: null } : null,
           );
-          if (result.data.aal === 'aal2' && result.data.hasAdminRole && next)
+          if (!invitationId && result.data.aal === 'aal2' && result.data.hasAdminRole && next)
             router.replace(adminReturnPath(next));
         }
       } else if (supabase) {
@@ -81,7 +105,7 @@ export default function MfaScreen() {
           );
           setHasAdminRole(Boolean(role.data));
           setVerifiedSession(assurance.data?.currentLevel === 'aal2');
-          if (assurance.data?.currentLevel === 'aal2' && role.data && next)
+          if (!invitationId && assurance.data?.currentLevel === 'aal2' && role.data && next)
             router.replace(adminReturnPath(next));
         }
       } else setMessage('Authenticator security is not configured.');
@@ -96,7 +120,24 @@ export default function MfaScreen() {
     return () => {
       cancelled = true;
     };
-  }, [next, router, user]);
+  }, [invitationId, next, router, user]);
+
+  const acceptInvitation = async () => {
+    if (!invitationId || !invitationValid) return;
+    setLoading(true);
+    const result = await betaCommand<{ enabled: boolean }>('admin_accept_invitation', {
+      p_invitation_id: invitationId,
+    });
+    setLoading(false);
+    if (result.data?.enabled) {
+      setHasAdminRole(true);
+      router.replace('/admin');
+    } else
+      setMessage(
+        result.error ??
+          'Your admin access could not be activated. Ask Ty to send a new invitation.',
+      );
+  };
 
   const enroll = async () => {
     setLoading(true);
@@ -178,10 +219,11 @@ export default function MfaScreen() {
     setCode('');
     setFactor({ id: factor.id, qrCode: null, secret: null, verified: true });
     setVerifiedSession(true);
-    if (hasAdminRole) router.replace(adminReturnPath(next));
+    if (invitationId && invitationValid) await acceptInvitation();
+    else if (hasAdminRole) router.replace(adminReturnPath(next));
     else
       setMessage(
-        'Authenticator verified. Ask the operator to grant your staff access, then open the admin panel.',
+        'Authenticator verified. An admin invitation from Ty Mabee is required to activate staff access.',
       );
   };
 
@@ -193,10 +235,23 @@ export default function MfaScreen() {
           tone={verifiedSession ? 'positive' : 'warning'}
         />
         <Text style={uiStyles.body}>
-          Set up your own authenticator before the operator grants staff access. Admin data and
-          commands require both an admin role and a verified session.
+          {invitationId
+            ? 'Ty Mabee invited you to become an administrator. Sign in with the invited email, then set up or verify your authenticator. Completing verification activates your admin access.'
+            : 'Use your own authenticator to protect your account. Administrators verify their authenticator each time they sign in.'}
         </Text>
-        {verifiedSession ? (
+        {invitationId && !invitationValid ? (
+          <Text style={uiStyles.body}>
+            {loading
+              ? 'Checking your invitation…'
+              : 'This invitation cannot be accepted with this account. Sign in with the invited email or ask Ty for a new invitation.'}
+          </Text>
+        ) : verifiedSession && invitationId ? (
+          <ActionButton
+            label="Accept invitation and open admin panel"
+            onPress={() => void acceptInvitation()}
+            loading={loading}
+          />
+        ) : verifiedSession ? (
           <ActionButton
             label={hasAdminRole ? 'Open admin panel' : 'Back to account'}
             href={hasAdminRole ? adminReturnPath(next) : '/account'}
@@ -253,7 +308,13 @@ export default function MfaScreen() {
               />
             </View>
             <ActionButton
-              label={hasAdminRole ? 'Verify and open admin panel' : 'Verify authenticator'}
+              label={
+                invitationId
+                  ? 'Verify and activate admin access'
+                  : hasAdminRole
+                    ? 'Verify and open admin panel'
+                    : 'Verify authenticator'
+              }
               disabled={!/^\d{6}$/u.test(code)}
               loading={loading}
               onPress={() => void verify()}

@@ -7,12 +7,13 @@ import { adminReturnPath } from '@/lib/admin-navigation';
 import { webRequest } from '@/lib/web-request';
 import { useSession } from '@/providers/session-provider';
 
-export function useRequireUser() {
+export function useRequireUser(returnTo?: string) {
   const router = useRouter();
   const { user, loading } = useSession();
   useEffect(() => {
-    if (!loading && !user) router.replace('/auth');
-  }, [loading, router, user]);
+    if (!loading && !user)
+      router.replace(returnTo ? { pathname: '/auth', params: { next: returnTo } } : '/auth');
+  }, [loading, returnTo, router, user]);
   return { allowed: Boolean(user), loading };
 }
 

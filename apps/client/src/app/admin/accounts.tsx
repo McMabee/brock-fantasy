@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput } from 'react-native';
 import { AppShell, ActionButton, Card, Pill, uiStyles } from '@/components/ui';
 import { useRequireAdmin } from '@/hooks/use-route-access';
 import { betaCommand } from '@/lib/web-api';
 import { webRequest } from '@/lib/web-request';
-import { supabase } from '@/lib/supabase';
 import { colors } from '@/theme';
 import { AdminAccess } from '@/components/admin-access';
+import { inviteAdministrator } from '@/lib/admin-invitations';
+import { useAdminAccountManager } from '@/hooks/use-admin-account-manager';
 
 interface Account {
   found: boolean;
@@ -18,33 +19,37 @@ interface Account {
   totpEnrolled: boolean;
   isAdmin: boolean;
   protectedOperator: boolean;
+  invitationPending: boolean;
 }
 
 export default function AdminAccountsScreen() {
   const access = useRequireAdmin();
   const authorized = access.allowed;
-  const [canManage, setCanManage] = useState(false);
+  const canManage = useAdminAccountManager(authorized);
   const [email, setEmail] = useState('');
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState('Administrator invitation from Ty Mabee');
+  const inviteKey = useRef<string | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  useEffect(() => {
-    if (!authorized) return;
-    if (Platform.OS === 'web') {
-      void webRequest<{ canManage: boolean }>('/api/admin/accounts').then(({ data, error }) => {
-        setCanManage(data?.canManage === true);
-        if (error) setMessage(error);
-      });
-    } else if (supabase) {
-      void supabase.rpc('can_manage_admin_accounts').then(({ data, error }) => {
-        setCanManage(data === true);
-        if (error) setMessage('Operator access is required.');
-      });
-    }
-  }, [authorized]);
+  async function invite() {
+    if (busy || !canManage) return;
+    setBusy(true);
+    setMessage(null);
+    inviteKey.current ??= `admin-invite-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const result = await inviteAdministrator(email.trim(), reason.trim(), inviteKey.current);
+    if (result.data) {
+      inviteKey.current = null;
+      setMessage(
+        'Invitation email sent. Admin access activates when they sign in and verify their authenticator.',
+      );
+      if (account) setAccount({ ...account, invitationPending: true });
+    } else setMessage(result.error);
+    setBusy(false);
+  }
 
   async function lookup() {
+    if (busy || !canManage) return;
     setBusy(true);
     setAccount(null);
     setMessage(null);
@@ -63,20 +68,18 @@ export default function AdminAccountsScreen() {
   }
 
   async function changeRole() {
-    if (!account) return;
+    if (!account || busy || !canManage) return;
     setBusy(true);
-    const enabled = !account.isAdmin;
     const { data, error } = await betaCommand<{ auditId: number }>('admin_set_account_role', {
       p_user_id: account.id,
-      p_enabled: enabled,
+      p_enabled: false,
       p_reason: reason.trim(),
       p_idempotency_key: `admin-role-${account.id}-${Date.now()}`,
     });
     if (data) {
-      setAccount({ ...account, isAdmin: enabled });
-      setReason('');
+      setAccount({ ...account, isAdmin: false, invitationPending: false });
       setMessage(
-        `Admin access ${enabled ? 'granted' : 'revoked'}. Audit reference ${data.auditId}.`,
+        `Admin access revoked and invitations cancelled. Audit reference ${data.auditId}.`,
       );
     } else
       setMessage(
@@ -84,20 +87,19 @@ export default function AdminAccountsScreen() {
       );
     setBusy(false);
   }
-  const ready = account && account.emailVerified && account.eligible && account.totpEnrolled;
   if (!authorized) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
-    <AppShell eyebrow="Restricted" title="Staff accounts">
+    <AppShell eyebrow="Super administrator" title="Administrator invitations">
       <Card style={styles.card}>
         <Text style={uiStyles.body}>
-          Staff must verify their email, confirm eligibility and enroll their own authenticator at
-          Account → MFA before admin access can be granted. Operator access and MFA are required to
-          change roles.
+          Ty Mabee (tymabee@proton.me) is the only super administrator. Enter a registered account's
+          email to send an invitation. They will sign in and set up or verify their own
+          authenticator using the email link. Their admin access activates after verification.
         </Text>
         {!canManage ? (
           <Text style={uiStyles.body}>
-            Staff access changes are available to the operator only. Scorekeeping remains available
-            through Operations.
+            Only Ty can invite or manage administrators. Standard admins have access to all other
+            admin tools through Operations.
           </Text>
         ) : null}
         <Text style={uiStyles.label}>Account email</Text>
@@ -110,53 +112,70 @@ export default function AdminAccountsScreen() {
           editable={canManage && !busy}
           onChangeText={(value) => {
             setEmail(value);
+            inviteKey.current = null;
             setAccount(null);
             setMessage(null);
           }}
+        />
+        <Text style={uiStyles.label}>Access reason</Text>
+        <TextInput
+          accessibilityLabel="Admin access change reason"
+          multiline
+          maxLength={500}
+          value={reason}
+          onChangeText={(value) => {
+            setReason(value);
+            inviteKey.current = null;
+          }}
+          editable={canManage && !busy}
+          style={uiStyles.input}
+        />
+        <ActionButton
+          label={account?.invitationPending ? 'Send a new invitation' : 'Send admin invitation'}
+          onPress={() => void invite()}
+          loading={busy}
+          disabled={
+            !canManage || !email.trim() || reason.trim().length < 8 || Boolean(account?.isAdmin)
+          }
         />
         <ActionButton
           label="Find account"
           onPress={() => void lookup()}
           loading={busy}
           disabled={!canManage || !email.trim()}
+          variant="secondary"
         />
       </Card>
       {account ? (
         <Card style={styles.card}>
           <Text style={uiStyles.title}>{account.displayName}</Text>
           <Text style={uiStyles.body}>{account.email}</Text>
-          <Pill label={account.isAdmin ? 'ADMIN' : 'MEMBER'} />
+          <Pill
+            label={
+              account.protectedOperator
+                ? 'SUPER ADMIN'
+                : account.isAdmin
+                  ? 'ADMIN'
+                  : account.invitationPending
+                    ? 'INVITED'
+                    : 'MEMBER'
+            }
+          />
           <Text style={uiStyles.body}>
             Email {account.emailVerified ? 'verified' : 'pending'} · Eligibility{' '}
             {account.eligible ? 'confirmed' : 'pending'} · Authenticator{' '}
             {account.totpEnrolled ? 'enrolled' : 'pending'}
           </Text>
           {account.protectedOperator ? (
-            <Text style={uiStyles.body}>
-              Operator access is protected. Changes require the operator recovery procedure.
-            </Text>
-          ) : (
-            <>
-              <Text style={uiStyles.label}>Reason for access change</Text>
-              <TextInput
-                accessibilityLabel="Admin access change reason"
-                multiline
-                maxLength={500}
-                value={reason}
-                onChangeText={setReason}
-                editable={!busy}
-                style={uiStyles.input}
-              />
-              <ActionButton
-                label={account.isAdmin ? 'Revoke admin access' : 'Grant admin access'}
-                variant={account.isAdmin ? 'danger' : 'primary'}
-                onPress={() => void changeRole()}
-                disabled={
-                  !canManage || busy || reason.trim().length < 8 || (!account.isAdmin && !ready)
-                }
-              />
-            </>
-          )}
+            <Text style={uiStyles.body}>Ty's super administrator access is protected.</Text>
+          ) : account.isAdmin || account.invitationPending ? (
+            <ActionButton
+              label={account.isAdmin ? 'Revoke admin access' : 'Cancel invitation'}
+              variant="danger"
+              onPress={() => void changeRole()}
+              disabled={!canManage || busy || reason.trim().length < 8}
+            />
+          ) : null}
         </Card>
       ) : null}
       {message ? (

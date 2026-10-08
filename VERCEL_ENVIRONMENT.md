@@ -8,19 +8,21 @@ adapter. Keep the repository root, `pnpm install --frozen-lockfile`,
 ## Beta variables
 
 Open Vercel → project **brock-fantasy** → **Environment Variables** (under
-Settings in some dashboard layouts). Add these seven project variables with
+Settings in some dashboard layouts). Add these nine project variables with
 target **Preview**, Git branch **beta**. Branch overrides take precedence over
 general Preview settings. Enter values without surrounding quotes.
 
-| Name                                   | Beta value                                                        | Type / visibility |
-| -------------------------------------- | ----------------------------------------------------------------- | ----------------- |
-| `EXPO_PUBLIC_APP_ENV`                  | `staging`                                                         | Config / `config` |
-| `EXPO_PUBLIC_SUPABASE_URL`             | `https://fdovowiihxowzatewxgv.supabase.co`                        | Config / `config` |
-| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `<publishable key from this Supabase project>`                    | Config / `config` |
-| `EXPO_PUBLIC_APP_ORIGIN`               | `https://beta.brockfantasy.ca`                                    | Config / `config` |
-| `EXPO_PUBLIC_SUPPORT_EMAIL`            | `tymabee@proton.me,gt22me@brocku.ca`                              | Config / `config` |
-| `SUPABASE_SECRET_KEY`                  | `<server secret key from this Supabase project>`                  | Secret / `secret` |
-| `AUTH_RATE_LIMIT_HMAC_SECRET`          | `<private random secret generated from at least 32 random bytes>` | Secret / `secret` |
+| Name                                   | Beta value                                                        | Type / visibility              |
+| -------------------------------------- | ----------------------------------------------------------------- | ------------------------------ |
+| `EXPO_PUBLIC_APP_ENV`                  | `staging`                                                         | Config / `config`              |
+| `EXPO_PUBLIC_SUPABASE_URL`             | `https://fdovowiihxowzatewxgv.supabase.co`                        | Config / `config`              |
+| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `<publishable key from this Supabase project>`                    | Config / `config`              |
+| `EXPO_PUBLIC_APP_ORIGIN`               | `https://beta.brockfantasy.ca`                                    | Config / `config`              |
+| `EXPO_PUBLIC_SUPPORT_EMAIL`            | `tymabee@proton.me,gt22me@brocku.ca`                              | Config / `config`              |
+| `SUPABASE_SECRET_KEY`                  | `<server secret key from this Supabase project>`                  | Secret / `secret`              |
+| `AUTH_RATE_LIMIT_HMAC_SECRET`          | `<private random secret generated from at least 32 random bytes>` | Secret / `secret`              |
+| `RESEND_API_KEY`                       | `<private Resend sending API key for administrator invitations>`  | Secret / `secret`              |
+| `ADMIN_INVITE_EMAIL_FROM`              | `Brock Fantasy <admin@YOUR_VERIFIED_DOMAIN>`                      | Config / `config`, server-only |
 
 All `EXPO_PUBLIC_*` values are browser-visible configuration. Expo needs them
 during the build, and API routes also read public configuration at runtime.
@@ -32,7 +34,7 @@ See [Vercel Config/Secret documentation](https://vercel.com/docs/environment-var
 
 `pnpm build:web` checks the five public Config variables before Metro on Vercel.
 It requires staging plus the beta origin when `VERCEL_GIT_COMMIT_REF=beta`, and
-never requires the two private secrets during export. The application also
+never requires server secrets during export. The application also
 validates public configuration during rendering.
 
 Copy keys privately from [Supabase project Settings → API Keys](https://supabase.com/dashboard/project/fdovowiihxowzatewxgv/settings/api-keys).
@@ -57,7 +59,7 @@ apply to deployments from that branch.
 
 ## Preview versus Production
 
-- For the requested setup, all seven entries belong to **Preview → beta**.
+- For the requested setup, all nine entries belong to **Preview → beta**.
   Do not select Production for the staging origin/environment in a project that
   also serves the live site.
 - If this Vercel project actually sets **Production Branch = beta**, beta
@@ -83,6 +85,13 @@ apply to deployments from that branch.
   `https://beta.brockfantasy.ca/reset-password` as well.
 
 ## Debugging authentication
+
+Administrator invitations additionally require a verified Resend sender domain,
+the invitation database migration and a new server deployment. Missing invitation
+email configuration returns **503** before creating an invitation. The sender
+address is runtime server configuration and the API key is a private credential;
+neither belongs under an `EXPO_PUBLIC_` name. Follow the
+[invitation setup and rehearsal guide](dev/docs/admin-account-management.md).
 
 Vercel function logs contain only fixed diagnostic codes and optional HTTP
 statuses, never passwords, IPs, keys, tokens, or provider response bodies.
