@@ -1,0 +1,14 @@
+.git/
+.vercel/
+node_modules/
+**/node_modules/
+**/.expo/
+**/dist/
+dev/
+logic/
+tmp/
+test-results/
+playwright-report/
+.env*
+**/.env*
+*.log

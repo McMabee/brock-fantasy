@@ -67,7 +67,7 @@ apply to deployments from that branch.
   `EXPO_PUBLIC_APP_ENV` describes the app, not Vercel's target.
 - For the eventual live deployment, create separate **Production** entries with
   `EXPO_PUBLIC_APP_ENV=production` and
-  `EXPO_PUBLIC_APP_ORIGIN=https://brockfantasy.ca`. The public project URL/key and
+  `EXPO_PUBLIC_APP_ORIGIN=https://play.brockfantasy.ca`. The public project URL/key and
   support recipients stay the same. Configure server secrets separately there.
   The current cross-host policy uses the same HMAC value to share rate buckets.
   If Vercel's optional Require Separate Production Secret Values policy is

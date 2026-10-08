@@ -12,12 +12,14 @@ import {
 import { colors, heading } from '@/theme';
 import { useOperations } from '@/hooks/use-operations';
 import { useRequireAdmin } from '@/hooks/use-route-access';
+import { AdminAccess } from '@/components/admin-access';
 
 export default function AdminScreen() {
-  useRequireAdmin();
-  const operations = useOperations();
+  const access = useRequireAdmin();
+  const operations = useOperations(access.allowed);
   const { width } = useWindowDimensions();
   const wide = width >= 850;
+  if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
     <AppShell
       eyebrow="Restricted"
@@ -108,25 +110,8 @@ export default function AdminScreen() {
               data.
             </Text>
             <ActionButton label="Import provider snapshot" href="/admin/import" />
-            <ActionButton
-              label="Review mappings and games"
-              href="/admin/games"
-              variant="secondary"
-            />
             <ActionButton label="Scorekeeping workspace" href="/admin/games" variant="secondary" />
             <ActionButton label="Staff accounts" href="/admin/accounts" variant="secondary" />
-          </Card>
-          <Card style={styles.incident}>
-            <Text style={styles.incidentLabel}>INCIDENT CONTROL</Text>
-            <Text style={styles.incidentTitle}>Scoring pause</Text>
-            <Text style={styles.incidentBody}>
-              Pause only the affected competition while preserving raw provider inputs.
-            </Text>
-            <ActionButton
-              label="Open scorekeeping workspace"
-              href="/admin/games"
-              variant="danger"
-            />
           </Card>
         </View>
       </View>

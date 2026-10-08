@@ -45,7 +45,7 @@ interface AuditRow {
   created_at: string;
 }
 
-export function useOperations(): OperationsState {
+export function useOperations(enabled = true): OperationsState {
   const { user } = useSession();
   const [state, setState] = useState<OperationsState>({
     competitionCount: 0,
@@ -57,10 +57,19 @@ export function useOperations(): OperationsState {
   });
 
   useEffect(() => {
-    if (!supabase || !user) {
-      setState((current) => ({ ...current, loading: false }));
+    if (!supabase || !user || !enabled) {
+      setState({
+        competitionCount: 0,
+        unresolvedErrors: 0,
+        syncRows: [],
+        auditEvents: [],
+        loading: false,
+        error: null,
+      });
       return;
     }
+    let cancelled = false;
+    setState((current) => ({ ...current, loading: true, error: null }));
     const client = supabase;
     const load = async () => {
       const [competitions, errors, syncs, audit] = await Promise.all([
@@ -81,6 +90,7 @@ export function useOperations(): OperationsState {
           .limit(12),
       ]);
       const error = competitions.error ?? errors.error ?? syncs.error ?? audit.error;
+      if (cancelled) return;
       if (error) {
         setState((current) => ({ ...current, loading: false, error: error.message }));
         return;
@@ -106,8 +116,18 @@ export function useOperations(): OperationsState {
         error: null,
       });
     };
-    void load();
-  }, [user]);
+    void load().catch(() => {
+      if (!cancelled)
+        setState((current) => ({
+          ...current,
+          loading: false,
+          error: 'Unable to load operations data.',
+        }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, user]);
 
   return state;
 }

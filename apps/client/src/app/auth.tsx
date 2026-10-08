@@ -1,4 +1,4 @@
-import { Link, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { registrationYearAt } from '@brock-fantasy/domain';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -14,11 +14,13 @@ import {
 import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
 import { useSession } from '@/providers/session-provider';
 import { colors, heading } from '@/theme';
+import { adminReturnPath } from '@/lib/admin-navigation';
 
 type AuthMode = 'sign_in' | 'sign_up';
 
 export default function AuthScreen() {
   const router = useRouter();
+  const { next } = useLocalSearchParams<{ next?: string }>();
   const { width } = useWindowDimensions();
   const { signIn, signUp, requestPasswordReset } = useSession();
   const [mode, setMode] = useState<AuthMode>('sign_in');
@@ -55,7 +57,7 @@ export default function AuthScreen() {
     if (message) setError(message);
     else if (mode === 'sign_up')
       setNotice('Check your email to verify your account, then sign in.');
-    else router.replace('/dashboard');
+    else router.replace(next ? adminReturnPath(next) : '/dashboard');
   };
 
   const reset = async () => {

@@ -33,6 +33,28 @@ function list(value: string[]): string {
   return `in.(${value.map((item) => encodeURIComponent(item)).join(',')})`;
 }
 
+async function withTeams(games: RestRow[], accessToken: string): Promise<RestRow[] | null> {
+  const teamIds = [
+    ...new Set(
+      games
+        .flatMap((game) => [game.home_team_id, game.away_team_id])
+        .filter((id): id is string => typeof id === 'string'),
+    ),
+  ];
+  const teams = teamIds.length
+    ? await rest<RestRow[]>(`teams?id=${list(teamIds)}&select=id,name,short_name`, accessToken)
+    : [];
+  if (!teams) return null;
+  const byTeam = new Map(
+    teams.map((team) => [team.id, { name: team.name, shortName: team.short_name }]),
+  );
+  return games.map((game) => ({
+    ...game,
+    home: byTeam.get(String(game.home_team_id)) ?? null,
+    away: byTeam.get(String(game.away_team_id)) ?? null,
+  }));
+}
+
 export const GET: RequestHandler = async (request) => {
   const current = await adminActor(request);
   if (!current) return json({ error: 'Administrator AAL2 access is required.' }, 403);
@@ -41,7 +63,7 @@ export const GET: RequestHandler = async (request) => {
   if (gameId) {
     const [games, stats] = await Promise.all([
       rest<RestRow[]>(
-        `games?id=eq.${encodeURIComponent(gameId)}&select=id,competition_id,starts_at,status,home_score,away_score,state_version,stats_complete,manual_override,source_updated_at`,
+        `games?id=eq.${encodeURIComponent(gameId)}&select=id,competition_id,home_team_id,away_team_id,starts_at,status,home_score,away_score,state_version,stats_complete,manual_override,source_updated_at`,
         current.accessToken,
       ),
       rest<RestRow[]>(
@@ -49,8 +71,10 @@ export const GET: RequestHandler = async (request) => {
         current.accessToken,
       ),
     ]);
+    if (!games || !stats)
+      return json({ error: 'Game details are unavailable. No revision was loaded.' }, 503);
     const game = games?.[0];
-    const [athletes, competitions] = game
+    const [athletes, competitions, enrichedGames] = game
       ? await Promise.all([
           rest<RestRow[]>(
             `athletes?competition_id=eq.${encodeURIComponent(String(game.competition_id))}&status=eq.active&select=id,display_name,position,jersey_number&order=display_name`,
@@ -60,11 +84,14 @@ export const GET: RequestHandler = async (request) => {
             `competitions?id=eq.${encodeURIComponent(String(game.competition_id))}&select=id,sport:sports!inner(code)`,
             current.accessToken,
           ),
+          withTeams(games, current.accessToken),
         ])
-      : [[], []];
+      : [[], [], []];
+    if (!athletes || !competitions || !enrichedGames)
+      return json({ error: 'Game details are unavailable. No revision was loaded.' }, 503);
     return game
       ? json({
-          game,
+          game: enrichedGames[0],
           stats: stats ?? [],
           athletes: athletes ?? [],
           sport: sportCode(competitions?.[0]),
@@ -76,27 +103,8 @@ export const GET: RequestHandler = async (request) => {
     current.accessToken,
   );
   if (!games) return json({ error: 'Game search is unavailable.' }, 503);
-  const teamIds = [
-    ...new Set(
-      games
-        .flatMap((game) => [String(game.home_team_id), String(game.away_team_id)])
-        .filter(Boolean),
-    ),
-  ];
-  const teams = teamIds.length
-    ? await rest<RestRow[]>(
-        `teams?id=${list(teamIds)}&select=id,name,short_name`,
-        current.accessToken,
-      )
-    : [];
-  const byTeam = new Map(
-    (teams ?? []).map((team) => [team.id, { name: team.name, shortName: team.short_name }]),
-  );
-  return json({
-    games: games.map((game) => ({
-      ...game,
-      home: byTeam.get(String(game.home_team_id)) ?? null,
-      away: byTeam.get(String(game.away_team_id)) ?? null,
-    })),
-  });
+  const enrichedGames = await withTeams(games, current.accessToken);
+  return enrichedGames
+    ? json({ games: enrichedGames })
+    : json({ error: 'Game search is unavailable.' }, 503);
 };

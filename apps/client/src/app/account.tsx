@@ -49,7 +49,7 @@ export default function AccountScreen() {
           </View>
           <View style={styles.profileCopy}>
             <Text style={styles.profileName}>
-              {user?.user_metadata.display_name ?? 'Account holder'}
+              {user?.user_metadata?.display_name ?? 'Account holder'}
             </Text>
             <Text style={styles.profileEmail}>{user?.email ?? 'Email unavailable'}</Text>
           </View>
@@ -57,6 +57,7 @@ export default function AccountScreen() {
         </Card>
         <ActionButton label="Sign out" onPress={() => void logout()} variant="secondary" />
         <ActionButton label="Authenticator security" href="/mfa" variant="ghost" />
+        <ActionButton label="Admin panel" href="/admin" variant="secondary" />
       </View>
 
       <SectionTitle title="Privacy and deletion" />

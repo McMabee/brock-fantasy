@@ -6,6 +6,7 @@ import { betaCommand } from '@/lib/web-api';
 import { webRequest } from '@/lib/web-request';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/theme';
+import { AdminAccess } from '@/components/admin-access';
 
 interface Account {
   found: boolean;
@@ -20,7 +21,8 @@ interface Account {
 }
 
 export default function AdminAccountsScreen() {
-  const { allowed: authorized } = useRequireAdmin();
+  const access = useRequireAdmin();
+  const authorized = access.allowed;
   const [canManage, setCanManage] = useState(false);
   const [email, setEmail] = useState('');
   const [reason, setReason] = useState('');
@@ -83,6 +85,7 @@ export default function AdminAccountsScreen() {
     setBusy(false);
   }
   const ready = account && account.emailVerified && account.eligible && account.totpEnrolled;
+  if (!authorized) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
     <AppShell eyebrow="Restricted" title="Staff accounts">
       <Card style={styles.card}>
@@ -91,6 +94,12 @@ export default function AdminAccountsScreen() {
           Account → MFA before admin access can be granted. Operator access and MFA are required to
           change roles.
         </Text>
+        {!canManage ? (
+          <Text style={uiStyles.body}>
+            Staff access changes are available to the operator only. Scorekeeping remains available
+            through Operations.
+          </Text>
+        ) : null}
         <Text style={uiStyles.label}>Account email</Text>
         <TextInput
           accessibilityLabel="Staff account email"

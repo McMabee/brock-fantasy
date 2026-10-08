@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
@@ -14,6 +14,7 @@ import { useRequireAdmin } from '@/hooks/use-route-access';
 import { betaCommand } from '@/lib/web-api';
 import { webRequest } from '@/lib/web-request';
 import { colors } from '@/theme';
+import { AdminAccess } from '@/components/admin-access';
 
 interface AdminGame {
   id: string;
@@ -105,7 +106,7 @@ function statisticKeys(
 }
 
 export default function AdminGamesScreen() {
-  useRequireAdmin();
+  const access = useRequireAdmin();
   const [games, setGames] = useState<readonly AdminGame[]>([]);
   const [selected, setSelected] = useState<GameDetail | null>(null);
   const [query, setQuery] = useState('');
@@ -115,23 +116,28 @@ export default function AdminGamesScreen() {
   const [statLines, setStatLines] = useState<readonly EditableStatLine[]>([]);
   const [includedAthleteIds, setIncludedAthleteIds] = useState<ReadonlySet<string>>(new Set());
   const [reason, setReason] = useState('');
-  const [source, setSource] = useState('manual-review');
+  const [source, setSource] = useState('');
   const [preview, setPreview] = useState<ScorePreview | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+  const [loadingGames, setLoadingGames] = useState(true);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const selectionRequest = useRef(0);
 
   const loadGames = async () => {
+    setLoadingGames(true);
     const result =
       Platform.OS === 'web'
         ? await webRequest<{ games: AdminGame[] }>('/api/admin/games')
         : { data: null, error: 'Scorekeeping is available through the web beta.' };
     if (result.error) setMessage(result.error);
     else setGames(result.data?.games ?? []);
+    setLoadingGames(false);
   };
 
   useEffect(() => {
-    void loadGames();
-  }, []);
+    if (access.allowed) void loadGames();
+  }, [access.allowed]);
 
   const filteredGames = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -145,11 +151,18 @@ export default function AdminGamesScreen() {
   }, [games, query]);
 
   const selectGame = async (game: AdminGame) => {
+    const requestId = ++selectionRequest.current;
+    setLoadingDetail(true);
+    setSelected(null);
     setMessage(null);
     setPreview(null);
+    setReason('');
+    setSource('');
     const result = await webRequest<GameDetail>(
       `/api/admin/games?gameId=${encodeURIComponent(game.id)}`,
     );
+    if (selectionRequest.current !== requestId) return;
+    setLoadingDetail(false);
     if (result.error || !result.data) {
       setMessage(result.error ?? 'Unable to load game details.');
       return;
@@ -158,9 +171,9 @@ export default function AdminGamesScreen() {
       result.data.stats.map((line) => [line.athlete_id, line.stats]),
     );
     setSelected(result.data);
-    setStatus(game.status);
-    setHomeScore(String(game.home_score ?? 0));
-    setAwayScore(String(game.away_score ?? 0));
+    setStatus(result.data.game.status);
+    setHomeScore(String(result.data.game.home_score ?? 0));
+    setAwayScore(String(result.data.game.away_score ?? 0));
     setIncludedAthleteIds(new Set(currentByAthlete.keys()));
     setStatLines(
       result.data.athletes.map((athlete) => ({
@@ -181,6 +194,7 @@ export default function AdminGamesScreen() {
   };
 
   const updateStat = (athleteId: string, key: string, rawValue: string) => {
+    setPreview(null);
     setStatLines((current) =>
       current.map((line) => {
         if (line.athleteId !== athleteId) return line;
@@ -197,6 +211,7 @@ export default function AdminGamesScreen() {
   };
 
   const toggleAthlete = (athleteId: string) => {
+    setPreview(null);
     setIncludedAthleteIds((current) => {
       const next = new Set(current);
       if (next.has(athleteId)) next.delete(athleteId);
@@ -226,6 +241,10 @@ export default function AdminGamesScreen() {
 
   const publishRevision = async () => {
     if (!selected) return;
+    if (!preview) {
+      setMessage('Preview the current stat lines before publishing.');
+      return;
+    }
     const stats = buildStats();
     const home = Number(homeScore);
     const away = Number(awayScore);
@@ -271,10 +290,11 @@ export default function AdminGamesScreen() {
     [statLines],
   );
 
+  if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
     <AppShell
       eyebrow="Administrator scorekeeping"
-      title="Games, mappings, and score revisions"
+      title="Games and score revisions"
       action={<Pill label="AAL2 VERIFIED" tone="warning" />}
     >
       <Text style={uiStyles.body}>
@@ -296,10 +316,19 @@ export default function AdminGamesScreen() {
             style={uiStyles.input}
             value={query}
           />
+          <ActionButton
+            label="Refresh games"
+            onPress={() => void loadGames()}
+            loading={loadingGames}
+            disabled={working}
+            variant="secondary"
+          />
           <View style={styles.gameList}>
             {filteredGames.map((game) => (
               <Pressable
                 key={game.id}
+                accessibilityRole="button"
+                disabled={working}
                 onPress={() => void selectGame(game)}
                 style={[styles.gameRow, selected?.game.id === game.id && styles.gameRowActive]}
               >
@@ -307,12 +336,14 @@ export default function AdminGamesScreen() {
                   {game.home?.name ?? 'Unknown'} vs {game.away?.name ?? 'Unknown'}
                 </Text>
                 <Text style={styles.gameMeta}>
-                  {new Date(game.starts_at).toLocaleString()} · {game.status} · v
-                  {game.state_version}
+                  {new Date(game.starts_at).toLocaleString('en-CA', {
+                    timeZone: 'America/Toronto',
+                  })}{' '}
+                  Toronto · {game.status} · v{game.state_version}
                 </Text>
               </Pressable>
             ))}
-            {!filteredGames.length ? (
+            {!loadingGames && !filteredGames.length ? (
               <EmptyState
                 title="No games found"
                 body="Import or reconcile schedules before scorekeeping."
@@ -323,8 +354,12 @@ export default function AdminGamesScreen() {
         <Card style={styles.editor}>
           {!selected ? (
             <EmptyState
-              title="Select a game"
-              body="The editor shows the game’s normalized player lines and revision controls."
+              title={loadingDetail ? 'Loading game' : 'Select a game'}
+              body={
+                loadingDetail
+                  ? 'Loading the latest game revision and player lines…'
+                  : 'The editor shows the game’s normalized player lines and revision controls.'
+              }
             />
           ) : (
             <>
@@ -336,6 +371,7 @@ export default function AdminGamesScreen() {
                 <Field
                   label="Status"
                   value={status}
+                  disabled={working}
                   onChange={(value) => {
                     if (
                       ['scheduled', 'in_progress', 'final', 'postponed', 'cancelled'].includes(
@@ -346,8 +382,20 @@ export default function AdminGamesScreen() {
                     }
                   }}
                 />
-                <Field label="Home score" value={homeScore} onChange={setHomeScore} />
-                <Field label="Away score" value={awayScore} onChange={setAwayScore} />
+                <Field
+                  label="Home score"
+                  value={homeScore}
+                  onChange={setHomeScore}
+                  numeric
+                  disabled={working}
+                />
+                <Field
+                  label="Away score"
+                  value={awayScore}
+                  onChange={setAwayScore}
+                  numeric
+                  disabled={working}
+                />
               </View>
               {selected.sport ? (
                 <>
@@ -356,11 +404,15 @@ export default function AdminGamesScreen() {
                   </Text>
                   <Text style={styles.hint}>
                     Include only athletes credited in this game. Leave a field blank only when the
-                    official source does not provide it; enter 0 for a recorded zero.
+                    official source does not provide it; enter 0 for a recorded zero. Existing
+                    credited lines are retained; correct their values in place.
                   </Text>
                   <View style={styles.statLines}>
                     {selected.athletes.map((athlete) => {
                       const included = includedAthleteIds.has(athlete.id);
+                      const previouslyCredited = selected.stats.some(
+                        (line) => line.athlete_id === athlete.id,
+                      );
                       const values = statsByAthlete.get(athlete.id) ?? {};
                       return (
                         <View key={athlete.id} style={styles.statLine}>
@@ -371,7 +423,9 @@ export default function AdminGamesScreen() {
                             </View>
                             <Pressable
                               accessibilityRole="switch"
+                              accessibilityLabel={`Include ${athlete.display_name}`}
                               accessibilityState={{ checked: included }}
+                              disabled={working || previouslyCredited}
                               onPress={() => toggleAthlete(athlete.id)}
                               style={[styles.include, included && styles.includeActive]}
                             >
@@ -392,6 +446,7 @@ export default function AdminGamesScreen() {
                                     value={values[key] === undefined ? '' : String(values[key])}
                                     onChange={(value) => updateStat(athlete.id, key, value)}
                                     numeric
+                                    disabled={working}
                                   />
                                 ),
                               )}
@@ -408,11 +463,17 @@ export default function AdminGamesScreen() {
                   body="Resolve the competition-to-sport mapping before entering player statistics."
                 />
               )}
-              <Field label="Reason for revision" value={reason} onChange={setReason} />
+              <Field
+                label="Reason for revision"
+                value={reason}
+                onChange={setReason}
+                disabled={working}
+              />
               <Field
                 label="Official source or manual reference"
                 value={source}
                 onChange={setSource}
+                disabled={working}
               />
               <View style={styles.actions}>
                 <ActionButton
@@ -420,18 +481,22 @@ export default function AdminGamesScreen() {
                   onPress={() => void previewRevision()}
                   loading={working}
                   variant="secondary"
+                  disabled={loadingDetail || !selected.sport}
                 />
                 <ActionButton
                   label="Publish audited revision"
                   onPress={() => void publishRevision()}
                   loading={working}
+                  disabled={!preview || !selected.sport}
                 />
               </View>
               {preview ? (
                 <View style={styles.preview}>
                   {preview.players.map((player) => (
                     <Text key={player.athlete_id} style={styles.previewLine}>
-                      {player.athlete_id.slice(0, 8)} ·{' '}
+                      {selected.athletes.find((athlete) => athlete.id === player.athlete_id)
+                        ?.display_name ?? player.athlete_id}{' '}
+                      ·{' '}
                       {player.missing_stats.length
                         ? `incomplete: ${player.missing_stats.join(', ')}`
                         : `${player.previous_points} → ${player.projected_points} (${player.point_difference! >= 0 ? '+' : ''}${player.point_difference})`}
@@ -443,6 +508,7 @@ export default function AdminGamesScreen() {
           )}
         </Card>
       </View>
+      <ActionButton label="Back to operations" href="/admin" variant="secondary" />
     </AppShell>
   );
 }
@@ -452,11 +518,13 @@ function Field({
   value,
   onChange,
   numeric = false,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   numeric?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <View style={styles.field}>
@@ -468,6 +536,7 @@ function Field({
         placeholderTextColor={colors.muted}
         style={uiStyles.input}
         value={value}
+        editable={!disabled}
       />
     </View>
   );

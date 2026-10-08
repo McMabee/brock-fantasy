@@ -6,9 +6,10 @@ import { supabase } from '@/lib/supabase';
 import { webRequest } from '@/lib/web-request';
 import { colors } from '@/theme';
 import { useRequireAdmin } from '@/hooks/use-route-access';
+import { AdminAccess } from '@/components/admin-access';
 
 export default function AdminImportScreen() {
-  useRequireAdmin();
+  const access = useRequireAdmin();
   const [payload, setPayload] = useState('');
   const [result, setResult] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
@@ -48,6 +49,7 @@ export default function AdminImportScreen() {
     setResult(response.error ? response.error.message : JSON.stringify(response.data, null, 2));
   };
 
+  if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
     <AppShell
       eyebrow="Administrator import"

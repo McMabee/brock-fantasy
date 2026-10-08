@@ -62,7 +62,7 @@ if (environment === 'staging' || environment === 'production') {
       'Hosted authentication needs server-only Supabase and shared HMAC credentials in the Vercel runtime store.',
     );
   const expectedOrigin =
-    environment === 'staging' ? 'https://beta.brockfantasy.ca' : 'https://brockfantasy.ca';
+    environment === 'staging' ? 'https://beta.brockfantasy.ca' : 'https://play.brockfantasy.ca';
   if (origin.origin !== expectedOrigin)
     throw new Error('The app origin does not match the approved environment hostname.');
   if (baseUrl.origin !== 'https://fdovowiihxowzatewxgv.supabase.co')
