@@ -6,12 +6,13 @@
   "outputDirectory": "apps/client/dist/client",
   "functions": {
     "api/index.js": {
+      "runtime": "@vercel/node@5.1.8",
       "includeFiles": "apps/client/dist/server/**"
     }
   },
   "rewrites": [
     {
-      "source": "/:path*",
+      "source": "/(.*)",
       "destination": "/api/index"
     }
   ]

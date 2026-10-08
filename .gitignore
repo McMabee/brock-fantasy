@@ -160,3 +160,5 @@ playwright-report/
 
 # Development Documents
 /dev/
+
+.vercel
