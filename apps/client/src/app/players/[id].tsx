@@ -3,12 +3,21 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { BETA_PLAYER_POOL_ID } from '@brock-fantasy/domain';
-import { AppShell, Card, EmptyState, Pill, SectionTitle, uiStyles } from '@/components/ui';
+import { BETA_PLAYER_POOL_ID, BETA_SEASON } from '@brock-fantasy/domain';
+import {
+  ActionButton,
+  AppShell,
+  Card,
+  EmptyState,
+  Pill,
+  SectionTitle,
+  uiStyles,
+} from '@/components/ui';
 import { firstRelated } from '@/lib/relations';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
+import { useSession } from '@/providers/session-provider';
 
 interface AthleteRow {
   id: string;
@@ -16,6 +25,7 @@ interface AthleteRow {
   position: string;
   jersey_number: string | null;
   status: string;
+  bio: { sourcePosition?: string; eligibility?: string; major?: string; hometown?: string };
 }
 interface MembershipRow {
   competition_id: string;
@@ -68,7 +78,8 @@ function parseAdp(value: unknown): { average_pick: number | null; sample_size: n
 }
 
 export default function PlayerScreen() {
-  useRequireUser();
+  const access = useRequireUser();
+  const { user } = useSession();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [athlete, setAthlete] = useState<AthleteRow | null>(null);
   const [memberships, setMemberships] = useState<readonly MembershipRow[]>([]);
@@ -80,10 +91,22 @@ export default function PlayerScreen() {
   const [upcomingGames, setUpcomingGames] = useState<readonly GameRow[]>([]);
   const [season, setSeason] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const client = supabase;
-    if (!client || !id) return;
+    if (!client || !id || !access.allowed) return;
+    let cancelled = false;
+    setAthlete(null);
+    setHistory([]);
+    setStats([]);
+    setEvents([]);
+    setProjection(null);
+    setAdp(null);
+    setUpcomingGames([]);
+    setSeason(null);
+    setError(null);
+    setLoading(true);
     const load = async () => {
       const [
         athleteResult,
@@ -96,8 +119,9 @@ export default function PlayerScreen() {
       ] = await Promise.all([
         client
           .from('athletes')
-          .select('id, display_name, position, jersey_number, status')
+          .select('id, display_name, position, jersey_number, status, bio')
           .eq('id', id)
+          .eq('status', 'active')
           .single(),
         client
           .from('athlete_seasons')
@@ -135,6 +159,8 @@ export default function PlayerScreen() {
           p_league_size: null,
         }),
       ]);
+      if (cancelled) return;
+      setLoading(false);
       const firstError =
         athleteResult.error ??
         membershipResult.error ??
@@ -144,7 +170,7 @@ export default function PlayerScreen() {
         projectionResult.error ??
         adpResult.error;
       if (firstError) {
-        setError(firstError.message);
+        setError('This player record is unavailable. Return to the roster list and try again.');
         return;
       }
       setAthlete(athleteResult.data);
@@ -169,11 +195,19 @@ export default function PlayerScreen() {
           .in('status', ['scheduled', 'in_progress'])
           .order('starts_at')
           .limit(1);
-        if (!games.error) setUpcomingGames(games.data ?? []);
+        if (!cancelled && !games.error) setUpcomingGames(games.data ?? []);
       }
     };
-    void load();
-  }, [id]);
+    void load().catch(() => {
+      if (!cancelled) {
+        setLoading(false);
+        setError('Unable to load this player record. Try again.');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, access.allowed, user?.id]);
 
   const logs = useMemo(
     () =>
@@ -195,11 +229,18 @@ export default function PlayerScreen() {
       )[0]?.game;
   const total = events.reduce((sum, event) => sum + event.points, 0);
   const lastUpdated = stats[0]?.updated_at;
+  const seasonProjection = history.find(
+    (item) => item.kind === 'supplied_projection' && item.season_label === BETA_SEASON,
+  );
 
   return (
     <AppShell
       eyebrow="Athlete record"
-      title={athlete?.display_name ?? 'Loading player…'}
+      title={
+        access.allowed
+          ? (athlete?.display_name ?? (loading ? 'Loading player…' : 'Player unavailable'))
+          : 'Players'
+      }
       action={<Pill label={athlete?.status?.toUpperCase() ?? 'LOADING'} tone="info" />}
     >
       {error ? (
@@ -207,14 +248,35 @@ export default function PlayerScreen() {
           {error}
         </Text>
       ) : null}
-      {!athlete ? (
+      {!access.allowed || loading || !athlete ? (
         <EmptyState
-          title="Player unavailable"
-          body="This player is not available to your current authenticated player pool."
+          title={loading ? 'Loading player' : 'Player unavailable'}
+          body={
+            loading
+              ? 'Loading the player’s roster and supplied season records…'
+              : 'Return to the player list to browse the current Brock rosters.'
+          }
         />
       ) : (
         <>
+          <Text style={uiStyles.body}>
+            {athlete.bio.sourcePosition ?? athlete.position}
+            {athlete.jersey_number !== null ? ` · #${athlete.jersey_number}` : ''}
+            {athlete.bio.eligibility ? ` · ${athlete.bio.eligibility}` : ''}
+          </Text>
+          {athlete.bio.major || athlete.bio.hometown ? (
+            <Text style={uiStyles.body}>
+              {[athlete.bio.major, athlete.bio.hometown].filter(Boolean).join(' · ')}
+            </Text>
+          ) : null}
           <View style={styles.summary}>
+            <Card style={styles.metric}>
+              <Text style={styles.metricLabel}>{BETA_SEASON} PROJECTED FP</Text>
+              <Text style={styles.metricValue}>{seasonProjection?.fantasy_points ?? '—'}</Text>
+              <Text style={styles.note}>
+                {seasonProjection?.games_played ?? '—'} projected games · supplied season projection
+              </Text>
+            </Card>
             <Card style={styles.metric}>
               <Text style={styles.metricLabel}>CURRENT POINTS</Text>
               <Text style={styles.metricValue}>{formatFantasyPoints(total)}</Text>
@@ -335,6 +397,7 @@ export default function PlayerScreen() {
           </Card>
         </>
       )}
+      <ActionButton label="Back to players" href="/players" variant="secondary" />
     </AppShell>
   );
 }

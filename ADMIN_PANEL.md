@@ -7,7 +7,9 @@ October 8, 2026: the beta deployment is live. Ty confirmed that MFA is enabled
 and that staff management, provider import, and the scorekeeping workspace are
 accessible. Hosted readback confirms one admin and one verified TOTP factor.
 Real staff grants and successful import/score publication are separate checks;
-canonical athlete and game tables are currently empty.
+The six approved rosters now have 120 published player records, excluding both
+recorded opt-outs, with supplied history and projections. Canonical games are
+still empty. Draft eligibility and the player pool remain inactive.
 
 The beta hostname has a Vercel Deployment Protection exception; generated
 preview URLs retain Vercel Authentication. Admin APIs still enforce the app's
@@ -49,8 +51,9 @@ publish. Existing credited player lines are retained and can be corrected in
 place. Changes to stat lines invalidate the preview. A concurrent revision is
 rejected by the server; reload the game before retrying.
 
-Empty game lists mean canonical game records have not been loaded. Uploaded
-source previews do not create playable athletes or fixtures automatically.
+Empty game lists mean canonical game records have not been loaded. The published
+[player directory](ROSTER_IMPORT.md) is available independently of draft rankings.
+Uploaded source previews do not create playable athletes or fixtures automatically.
 Scoring preview/publication also requires an active approved pool; publication
 requires a configured beta league. These prerequisites must be prepared through
 the data materialization workflow before real scorekeeping can be rehearsed.

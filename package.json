@@ -22,6 +22,7 @@
     "test": "pnpm --filter @brock-fantasy/domain test && pnpm test:import",
     "test:import": "node --experimental-strip-types --test scripts/lib/*.test.mjs",
     "test:publication:local": "node scripts/test-import-publication-local.mjs",
+    "test:rosters:local": "node scripts/test-roster-materialization-local.mjs",
     "test:web-auth:local": "node scripts/test-web-auth-throttle.mjs",
     "test:admin:local": "node --experimental-strip-types scripts/test-admin-local.mjs",
     "test:coverage": "pnpm --filter @brock-fantasy/domain test:coverage",
@@ -29,6 +30,7 @@
     "verify:auth-config": "node --experimental-strip-types scripts/verify-supabase-auth-config.mjs",
     "verify:web-env-boundary": "node scripts/verify-web-env-boundary.mjs",
     "import:beta-data": "node scripts/import-brock-beta-data.mjs",
+    "import:rosters": "node scripts/materialize-brock-rosters.mjs",
     "research:official-data": "node scripts/research-brock-official-data.mjs",
     "check": "pnpm format:check && pnpm lint && pnpm lint:sql && pnpm typecheck && pnpm test && pnpm build:web && pnpm verify:web-env-boundary && pnpm test:web-auth:local && pnpm test:admin:local && pnpm smoke:mobile"
   },
