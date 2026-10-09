@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import ts from 'typescript';
 import { readFile } from 'node:fs/promises';
+const deployment = JSON.parse(await readFile('vercel.json', 'utf8'));
+assert.equal(deployment.proxy.entrypoint, 'proxy.ts');
+assert.equal(deployment.functions['api/index.js'].runtime, undefined);
+assert.equal(deployment.functions['api/index.js'].includeFiles, 'apps/client/dist/server/**');
 const accessSource = await readFile('apps/client/src/server/app-access.ts', 'utf8');
 const js = ts.transpileModule(accessSource, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
