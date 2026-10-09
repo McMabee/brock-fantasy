@@ -84,6 +84,27 @@ apply to deployments from that branch.
   `https://beta.brockfantasy.ca/api/auth/callback` and
   `https://beta.brockfantasy.ca/reset-password` as well.
 
+In the hosted Supabase project's **Authentication → URL Configuration**, set
+**Site URL** to `https://beta.brockfantasy.ca` while beta is the active app, and
+add both exact beta redirect URLs above. These settings were applied to project
+`fdovowiihxowzatewxgv` on October 9, 2026, replacing the default
+`http://localhost:3000` Site URL and an empty redirect allow-list. Signup and
+recovery redirect checks now reach the beta callback. Move the shared default
+Site URL to the live app origin when production opens, and retain callbacks for
+each active host.
+
+The sign-in page's **Forgot password?** link opens `/forgot-password`, where users
+enter their email and request a reset link. The email passes through
+`/api/auth/callback` and opens `/reset-password` to choose and confirm a new
+password. The new-password form requires an authenticated account; a missing
+session offers a link to request another email.
+
+After updating these settings, request a fresh verification or password-reset
+email from the website. Open it in the same browser that requested the email:
+the callback needs the `bf_pkce` and `bf_auth_flow` cookies, which last 15 minutes.
+The [Supabase redirect guide](https://supabase.com/docs/guides/auth/redirect-urls)
+explains the hosted Site URL and redirect allow-list.
+
 ## Debugging authentication
 
 Administrator invitations additionally require a verified Resend sender domain,

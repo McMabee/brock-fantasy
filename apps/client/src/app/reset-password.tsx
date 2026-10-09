@@ -1,4 +1,5 @@
 import * as Linking from 'expo-linking';
+import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -9,7 +10,7 @@ import { colors } from '@/theme';
 
 export default function ResetPasswordScreen() {
   const url = Linking.useURL();
-  const { updatePassword: submitPasswordUpdate, user } = useSession();
+  const { updatePassword: submitPasswordUpdate, user, loading: sessionLoading } = useSession();
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ export default function ResetPasswordScreen() {
   }, [url, user]);
 
   const updatePassword = async () => {
+    if (loading || sessionLoading) return;
     setMessage(null);
     if (password.length < 8 || password !== confirmation) {
       setMessage('Use at least eight characters and enter the same password twice.');
@@ -35,7 +37,7 @@ export default function ResetPasswordScreen() {
       setMessage('Password recovery is temporarily unavailable. Please try again shortly.');
       return;
     }
-    if (!user && Platform.OS !== 'web') {
+    if (!user) {
       setMessage('Open this page from a current recovery email before choosing a new password.');
       return;
     }
@@ -54,12 +56,29 @@ export default function ResetPasswordScreen() {
   return (
     <AppShell eyebrow="Account recovery" title="Choose a new password">
       <Card style={styles.card}>
-        <Pill label={user ? 'RECOVERY VERIFIED' : 'RECOVERY LINK REQUIRED'} tone="info" />
+        <Pill
+          label={
+            sessionLoading
+              ? 'CHECKING RESET LINK'
+              : user
+                ? 'ACCOUNT VERIFIED'
+                : 'RESET LINK REQUIRED'
+          }
+          tone="info"
+        />
         <Text style={uiStyles.body}>
-          Use the newest recovery email. Links are single-purpose and may expire; request another
-          from the sign-in page if this one no longer works.
+          Open the newest recovery email in the browser you used to request it. If the link has
+          expired,{' '}
+          <Link href="/forgot-password" style={uiStyles.link}>
+            request a new reset link
+          </Link>
+          .
         </Text>
-        {!complete ? (
+        {sessionLoading ? (
+          <Text style={uiStyles.body}>Checking your account…</Text>
+        ) : complete ? (
+          <ActionButton label="Continue to your dashboard" href="/dashboard" />
+        ) : user ? (
           <>
             <PasswordField label="New password" value={password} onChangeText={setPassword} />
             <PasswordField
@@ -74,7 +93,7 @@ export default function ResetPasswordScreen() {
             />
           </>
         ) : (
-          <ActionButton label="Continue to your dashboard" href="/dashboard" />
+          <ActionButton label="Request a password reset" href="/forgot-password" />
         )}
         {message ? (
           <Text accessibilityRole="alert" style={styles.message}>

@@ -22,7 +22,7 @@ export default function AuthScreen() {
   const router = useRouter();
   const { next } = useLocalSearchParams<{ next?: string }>();
   const { width } = useWindowDimensions();
-  const { signIn, signUp, requestPasswordReset } = useSession();
+  const { signIn, signUp } = useSession();
   const [mode, setMode] = useState<AuthMode>('sign_in');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -58,16 +58,6 @@ export default function AuthScreen() {
     else if (mode === 'sign_up')
       setNotice('Check your email to verify your account, then sign in.');
     else router.replace(next ? authReturnPath(next) : '/dashboard');
-  };
-
-  const reset = async () => {
-    if (!email.includes('@')) {
-      setError('Enter your email first.');
-      return;
-    }
-    const message = await requestPasswordReset(email.trim());
-    if (message) setError(message);
-    else setNotice('If that account exists, a recovery email is on its way.');
   };
 
   return (
@@ -156,13 +146,9 @@ export default function AuthScreen() {
             loading={loading}
           />
           {mode === 'sign_in' ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void reset()}
-              style={styles.forgotButton}
-            >
-              <Text style={styles.forgotText}>Forgot password?</Text>
-            </Pressable>
+            <Link href="/forgot-password" style={styles.forgotLink}>
+              Forgot password?
+            </Link>
           ) : null}
           <Text style={styles.terms}>
             By creating an account, you agree to the{' '}
@@ -289,8 +275,14 @@ const styles = StyleSheet.create({
   field: { gap: 7 },
   error: { color: colors.danger, fontSize: 12, lineHeight: 18 },
   notice: { color: colors.brand, fontSize: 12, lineHeight: 18 },
-  forgotButton: { alignSelf: 'center', padding: 6 },
-  forgotText: { color: colors.brand, fontWeight: '700', fontSize: 12 },
+  forgotLink: {
+    alignSelf: 'center',
+    padding: 6,
+    color: colors.brand,
+    fontWeight: '700',
+    fontSize: 12,
+    textDecorationLine: 'underline',
+  },
   eligibility: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
   eligibilityCheck: { color: colors.brand, fontSize: 22 },
   eligibilityText: { color: colors.text, fontSize: 12, lineHeight: 18, flex: 1 },
