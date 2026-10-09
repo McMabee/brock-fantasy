@@ -7,6 +7,8 @@ adapter. Keep the repository root, `pnpm install --frozen-lockfile`,
 
 ## Beta variables
 
+Public enrollment/private beta also requires server Config `PUBLIC_REGISTRATION_ORIGIN=https://www.brockfantasy.ca`, both additive access/enrollment migrations, and the protected routing middleware. Follow [the cross-repository rollout runbook](REGISTRATION_PRIVATE_BETA.md) before enabling it. The association project has its own restricted database credential and server secrets; never copy `SUPABASE_SECRET_KEY` into that project or expose private values with a public prefix. Existing admin/MFA credentials and user roles stay unchanged.
+
 Open Vercel → project **brock-fantasy** → **Environment Variables** (under
 Settings in some dashboard layouts). Add these nine project variables with
 target **Preview**, Git branch **beta**. Branch overrides take precedence over

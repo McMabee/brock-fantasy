@@ -64,17 +64,17 @@ export default function AuthScreen() {
     <AppShell>
       <View style={[styles.layout, wide && styles.layoutWide]}>
         <View style={styles.copy}>
-          <Pill label="PRIVATE LEAGUES" tone="positive" />
+          <Pill label="PRIVATE BETA" tone="positive" />
           <Text accessibilityRole="header" style={styles.title}>
             Your season,{`\n`}your Badgers.
           </Text>
           <Text style={styles.body}>
-            Create a league, invite your friends, and draft across six Brock varsity competitions.
-            Every pick and point is committed by the server and recorded for replay.
+            Sign in or activate an individually approved tester account. Development-update
+            enrollment does not create an account or grant access to the private beta.
           </Text>
           <View style={styles.benefits}>
             {[
-              'Verified public accounts',
+              'Individually approved testers',
               'Invite-only league membership',
               'Auditable scoring and corrections',
             ].map((benefit) => (
@@ -141,7 +141,7 @@ export default function AuthScreen() {
             </Text>
           ) : null}
           <ActionButton
-            label={mode === 'sign_in' ? 'Sign in' : 'Create verified account'}
+            label={mode === 'sign_in' ? 'Sign in' : 'Activate tester account'}
             onPress={() => void submit()}
             loading={loading}
           />
@@ -151,7 +151,7 @@ export default function AuthScreen() {
             </Link>
           ) : null}
           <Text style={styles.terms}>
-            By creating an account, you agree to the{' '}
+            By activating a tester account, you agree to the{' '}
             <Link href="/terms" style={uiStyles.link}>
               Terms
             </Link>
@@ -195,7 +195,7 @@ function AuthTabs({ mode, onChange }: { mode: AuthMode; onChange: (mode: AuthMod
       <AuthTab active={mode === 'sign_in'} label="Sign in" onPress={() => onChange('sign_in')} />
       <AuthTab
         active={mode === 'sign_up'}
-        label="Create account"
+        label="Tester activation"
         onPress={() => onChange('sign_up')}
       />
     </View>

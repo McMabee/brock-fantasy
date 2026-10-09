@@ -1,5 +1,10 @@
 begin;
 select plan(11);
+insert into beta_private.application_access(email,reason) values('roster-reader@example.test','Explicit isolated roster reader approval');
+insert into auth.users(id,email,email_confirmed_at,created_at,raw_user_meta_data) values
+('99000000-0000-4000-8000-000000000099','roster-reader@example.test',now(),now(),jsonb_build_object('display_name','Roster reader','beta_age_eligible',true,
+  'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::integer,'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1'));
+insert into auth.sessions(id,user_id,aal) values('99000000-0000-4000-8000-000000000099','99000000-0000-4000-8000-000000000099','aal1');
 insert into public.sports(code,name) values ('hockey','Hockey') on conflict(code) do nothing;
 insert into public.competitions(id,sport_id,division,name,season_label,ruleset_id,is_active)
 select '99000000-0000-4000-8000-000000000001',id,'mens','Roster test','roster-fixture',
@@ -19,7 +24,7 @@ select id,'b0000000-0000-4000-8000-000000000002',competition_id,team_id,array['F
 where competition_id='99000000-0000-4000-8000-000000000001';
 insert into public.athlete_season_summaries(athlete_id,season_label,source,fantasy_points,games_played,kind)
 values ('99000000-0000-4000-8000-000000000003','2026-27','fixture',0,0,'supplied_projection');
-select set_config('request.jwt.claims','{"sub":"99000000-0000-4000-8000-000000000099","role":"authenticated","aal":"aal1"}',true);
+select set_config('request.jwt.claims','{"sub":"99000000-0000-4000-8000-000000000099","role":"authenticated","aal":"aal1","session_id":"99000000-0000-4000-8000-000000000099"}',true);
 select set_config('request.jwt.claim.sub','99000000-0000-4000-8000-000000000099',true);
 set local role authenticated;
 select is((select count(*)::int from public.athletes where competition_id='99000000-0000-4000-8000-000000000001'),1,'ordinary AAL1 members see only published active roster players');

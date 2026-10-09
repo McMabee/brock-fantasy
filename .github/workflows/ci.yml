@@ -28,9 +28,11 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test:coverage
       - run: pnpm test:import
+      - run: pnpm test:beta-boundary
       - run: pnpm build:web
       - run: pnpm verify:web-env-boundary
       - run: pnpm test:web-auth:local
+      - run: pnpm test:admin:local
       - run: pnpm smoke:mobile
       - run: pnpm audit --audit-level high
       - uses: gitleaks/gitleaks-action@v2

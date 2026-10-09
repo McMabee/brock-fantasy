@@ -1,6 +1,9 @@
 import type { RequestHandler } from 'expo-router/server';
 import { ELIGIBILITY_POLICY_VERSION, registrationYearAt } from '@brock-fantasy/domain';
 import { limitAuthRequest } from '../../../server/auth-rate-limit';
+import { AppAccessUnavailable, approvedTesterEmail, canUseApp } from '../../../server/app-access';
+import { testerPage } from '../../../server/tester-entry';
+import { authReturnPath } from '../../../lib/admin-navigation';
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const REFRESH_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-refresh' : 'bf_refresh';
@@ -232,7 +235,9 @@ const get: RequestHandler = async (request, params) => {
   const accessToken = cookie(request, ACCESS_COOKIE);
   if (!accessToken) return response({ user: null });
   const user = await currentUser(accessToken);
-  return user ? response({ user }) : response({ user: null }, 200, clearSessionCookies());
+  return user && (await canUseApp(accessToken))
+    ? response({ user })
+    : response({ user: null }, 200, clearSessionCookies());
 };
 
 const post: RequestHandler = async (request, params) => {
@@ -287,7 +292,9 @@ const post: RequestHandler = async (request, params) => {
     if (!refreshed.ok) return authError(refreshed.status);
     const tokens = await providerTokens(refreshed);
     const user = await currentUser(tokens.access_token);
-    return user ? response({ user }, 200, sessionCookies(tokens)) : authError(401);
+    return user && (await canUseApp(tokens.access_token))
+      ? response({ user }, 200, sessionCookies(tokens))
+      : response({ error: 'Approved tester access is required.' }, 403, clearSessionCookies());
   }
 
   const body = await json(request);
@@ -297,6 +304,7 @@ const post: RequestHandler = async (request, params) => {
     const email = string(body.email, 320)?.trim().toLowerCase();
     const password = string(body.password, 512);
     if (!email || !password) return response({ error: 'Email and password are required.' }, 400);
+    if (!(await approvedTesterEmail(email))) return authError(401);
     const signedIn = await authFetch('/token?grant_type=password', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -311,6 +319,8 @@ const post: RequestHandler = async (request, params) => {
         403,
         clearSessionCookies(),
       );
+    if (!(await canUseApp(tokens.access_token)))
+      return response({ error: 'Approved tester access is required.' }, 403, clearSessionCookies());
     return response({ user }, 200, sessionCookies(tokens));
   }
 
@@ -318,6 +328,8 @@ const post: RequestHandler = async (request, params) => {
   if (action === 'sign-up' || action === 'recover') {
     const email = string(body.email, 320)?.trim().toLowerCase();
     if (!email) return response({ error: 'A valid email is required.' }, 400);
+    if (!(await approvedTesterEmail(email)))
+      return action === 'recover' ? response({ ok: true }) : authError(401);
     const verifier =
       crypto.randomUUID().replace(/-/gu, '') + crypto.randomUUID().replace(/-/gu, '');
     const challenge = await digest(verifier);
@@ -363,6 +375,8 @@ const post: RequestHandler = async (request, params) => {
 
   const accessToken = cookie(request, ACCESS_COOKIE);
   if (!accessToken) return authError(401);
+  if (!(await canUseApp(accessToken)))
+    return response({ error: 'Approved tester access is required.' }, 403, clearSessionCookies());
   const password = string(body.password, 512);
   if (!password || password.length < 8)
     return response({ error: 'Use an 8+ character password.' }, 400);
@@ -379,7 +393,8 @@ function withAvailabilityHandling(handler: RequestHandler): RequestHandler {
     try {
       return await handler(request, params);
     } catch (error) {
-      if (!(error instanceof AuthUnavailableError)) throw error;
+      if (!(error instanceof AuthUnavailableError) && !(error instanceof AppAccessUnavailable))
+        throw error;
       const result = response({ error: error.message }, 503);
       result.headers.set('retry-after', '30');
       return result;
@@ -388,4 +403,56 @@ function withAvailabilityHandling(handler: RequestHandler): RequestHandler {
 }
 
 export const GET = withAvailabilityHandling(get);
-export const POST = withAvailabilityHandling(post);
+const jsonPost = withAvailabilityHandling(post);
+export const POST: RequestHandler = async (request, params) => {
+  if (!request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded'))
+    return jsonPost(request, params);
+  const raw = await request.text();
+  if (raw.length > 8192) return response({ error: 'Invalid request.' }, 400);
+  const form = new URLSearchParams(raw);
+  const action = String(params.action);
+  const headers = new Headers(request.headers);
+  headers.set('content-type', 'application/json');
+  headers.delete('content-length');
+  if (form.get('csrf')) headers.set('x-csrf-token', form.get('csrf')!);
+  const result = await jsonPost(
+    new Request(request.url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        email: form.get('email'),
+        password: form.get('password'),
+        displayName: form.get('displayName'),
+        eligibilityAttested: form.get('eligibilityAttested') === 'true',
+      }),
+    }),
+    params,
+  );
+  const cookies = result.headers.getSetCookie();
+  const query = new URL(request.url).searchParams;
+  const returnTo = query.get('returnTo') ?? query.get('next');
+  if (result.ok && (action === 'sign-in' || action === 'update-password')) {
+    const redirectHeaders = new Headers({
+      location: returnTo ? authReturnPath(returnTo) : '/dashboard',
+      'cache-control': 'no-store, private',
+    });
+    cookies.forEach((value) => redirectHeaders.append('set-cookie', value));
+    return new Response(null, { status: 303, headers: redirectHeaders });
+  }
+  const body = (await result.json()) as { error?: string };
+  return testerPage(
+    action === 'sign-up'
+      ? 'activate'
+      : action === 'recover'
+        ? 'recover'
+        : action === 'update-password'
+          ? 'reset'
+          : 'sign-in',
+    body.error ??
+      'Check your email for the next step. If this address is approved, instructions will arrive shortly.',
+    result.status,
+    cookies,
+    cookie(request, CSRF_COOKIE) ?? '',
+    returnTo ? authReturnPath(returnTo) : '',
+  );
+};

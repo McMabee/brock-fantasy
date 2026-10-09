@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'expo-router/server';
+import { actor } from '../../../server/session';
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const commands: Readonly<Record<string, readonly string[]>> = {
@@ -106,10 +107,8 @@ export const POST: RequestHandler = async (request, params) => {
   const payload = raw as Record<string, unknown>;
   if (Object.keys(payload).some((field) => !allowed.includes(field)))
     return json({ error: 'Unexpected command input.' }, 400);
-  const user = await fetch(`${url}/auth/v1/user`, {
-    headers: { apikey: key, authorization: `Bearer ${accessToken}` },
-  });
-  if (!user.ok) return json({ error: 'Your session has expired.' }, 401);
+  const current = await actor(request);
+  if (!current) return json({ error: 'Approved tester access is required.' }, 403);
   const result = await fetch(`${url}/rest/v1/rpc/${name}`, {
     method: 'POST',
     headers: {

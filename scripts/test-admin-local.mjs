@@ -82,6 +82,7 @@ try {
     calls.push({ target, method });
     if (failure === 'network') throw new Error('private upstream detail');
     if (target.endsWith('/auth/v1/user')) return Response.json({ id: userId, factors: entries });
+    if (target.endsWith('/rest/v1/rpc/can_use_app')) return Response.json(true);
     if (target.includes('/rest/v1/user_roles?'))
       return Response.json(role ? [{ role: 'admin' }] : []);
     if (target.endsWith('/rest/v1/rpc/can_manage_admin_accounts')) return Response.json(canManage);
@@ -220,7 +221,13 @@ try {
   });
   assert.equal(result.response.status, 409);
   assert.ok(
-    calls.slice(before).every((call) => call.method !== 'DELETE' && call.method !== 'POST'),
+    calls
+      .slice(before)
+      .every(
+        (call) =>
+          call.target.endsWith('/rpc/can_use_app') ||
+          (call.method !== 'DELETE' && call.method !== 'POST'),
+      ),
   );
   results.push(
     'Incomplete MFA can be restarted; verified factors are prioritized and never removed',

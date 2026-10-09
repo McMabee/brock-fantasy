@@ -129,7 +129,11 @@ try {
       if (scenario === 'rpc-error') return new Response('private RPC diagnostic', { status: 403 });
       return new Response(scenario === 'limited' ? 'false' : 'true');
     }
-    assert.equal(init.headers.get('apikey'), process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+    if (target.endsWith('/rpc/is_approved_tester_email'))
+      return Response.json(scenario !== 'unapproved');
+    if (target.endsWith('/rpc/can_use_app')) return Response.json(scenario !== 'revoked');
+    const requestHeaders = new Headers(init.headers);
+    assert.equal(requestHeaders.get('apikey'), process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
     assert.equal(init.redirect, 'error');
     if (target.includes('grant_type=password')) {
       assert.deepEqual(JSON.parse(init.body), {
@@ -159,6 +163,8 @@ try {
   };
   for (const [name, expected] of [
     ['success', 200],
+    ['unapproved', 401],
+    ['revoked', 403],
     ['limited', 429],
     ['rpc-error', 503],
     ['invalid-login', 401],
@@ -183,7 +189,11 @@ try {
     const payload = await result.json();
     if (name === 'success') {
       assert.equal(payload.user.id, 'fixture-user');
-      assert.equal(calls.length, 3, 'counter, password grant, user lookup');
+      assert.equal(
+        calls.length,
+        5,
+        'counter, approval lookup, password grant, user lookup, current entitlement',
+      );
       assert.ok(result.headers.getSetCookie().some((value) => value.includes('HttpOnly')));
     } else {
       assert.ok(!JSON.stringify(payload).includes('private'));

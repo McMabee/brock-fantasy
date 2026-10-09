@@ -6,6 +6,9 @@ select ok(not has_function_privilege('anon','public.admin_create_invitation(text
 select ok(not has_function_privilege('anon','public.admin_accept_invitation(uuid)','EXECUTE'),'anonymous acceptance denied');
 select ok(not (select prosecdef from pg_proc where oid='public.admin_accept_invitation(uuid)'::regprocedure),'public wrapper is invoker');
 delete from beta_private.admin_role_managers;
+delete from beta_private.application_access where email='tymabee@proton.me';
+insert into beta_private.application_access(email,reason)
+values ('tymabee@proton.me','Explicit isolated operator approval'),('staff@example.test','Explicit isolated staff approval'),('other@example.test','Explicit isolated admin approval');
 insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data,created_at,updated_at)
 select id,email,now(),jsonb_build_object('display_name',name,'beta_age_eligible',true,
   'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::integer,
@@ -126,6 +129,6 @@ select throws_ok($$select public.admin_create_invitation('staff@example.test','S
 reset role;
 delete from auth.sessions where id='98000000-0000-4000-8000-000000000011';
 set local role authenticated;
-select throws_ok($$select public.can_manage_admin_accounts()$$,'42501','Session has been revoked','stale super admin session denied');
+select throws_ok($$select public.can_manage_admin_accounts()$$,'42501','Application access required','stale super admin session denied');
 select * from finish();
 rollback;

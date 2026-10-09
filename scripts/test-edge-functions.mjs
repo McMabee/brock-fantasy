@@ -1,18 +1,54 @@
 import { execFileSync } from 'node:child_process';
 import { createHmac } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { resolve, sep } from 'node:path';
 
-const statusCommand =
-  process.platform === 'win32'
-    ? [process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', 'pnpm exec supabase status -o json']]
-    : ['pnpm', ['exec', 'supabase', 'status', '-o', 'json']];
+const workdir = process.env.LOCAL_SUPABASE_WORKDIR
+  ? resolve(process.env.LOCAL_SUPABASE_WORKDIR)
+  : process.cwd();
+if (workdir !== process.cwd() && !workdir.startsWith(`${resolve('tmp')}${sep}`))
+  throw new Error('An alternate smoke stack must be under the repository tmp directory.');
+
 const status = JSON.parse(
-  execFileSync(statusCommand[0], statusCommand[1], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
-  }),
+  execFileSync(
+    process.execPath,
+    [
+      resolve('node_modules/supabase/dist/supabase.js'),
+      'status',
+      '--workdir',
+      workdir,
+      '-o',
+      'json',
+    ],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+  ),
 );
+if (!['127.0.0.1', 'localhost'].includes(new URL(status.API_URL).hostname))
+  throw new Error('Edge smoke tests require disposable local Supabase.');
+status.FUNCTIONS_URL ??= `${status.API_URL}/functions/v1`;
 const email = `edge-smoke-${Date.now()}@example.test`;
+const localContainer = process.env.LOCAL_SUPABASE_CONTAINER ?? 'supabase_db_brock-fantasy';
+if (!/^supabase_db_[a-zA-Z0-9_-]+$/u.test(localContainer))
+  throw new Error('Invalid local test container.');
+function localApproval(sql) {
+  execFileSync(
+    'docker',
+    [
+      'exec',
+      '-i',
+      localContainer,
+      'psql',
+      '-U',
+      'postgres',
+      '-d',
+      'postgres',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-q',
+    ],
+    { input: sql, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+  );
+}
 const password = `LocalOnly-${crypto.randomUUID()}!`;
 const runLabel = Date.now().toString(36);
 const provider = `edge-smoke-${runLabel}`;
@@ -39,6 +75,15 @@ const anonHeaders = {
 let userId;
 
 try {
+  const unapprovedSignup = await fetch(`${status.API_URL}/auth/v1/signup`, {
+    method: 'POST',
+    headers: anonHeaders,
+    body: JSON.stringify({ email: `unapproved-${email}`, password }),
+  });
+  await expectStatus(unapprovedSignup, 403, 'reject direct unapproved Auth signup');
+  localApproval(
+    `insert into beta_private.application_access(email,reason) values('${email}','Disposable Edge Function smoke fixture');`,
+  );
   const createUser = await fetch(`${status.API_URL}/auth/v1/admin/users`, {
     method: 'POST',
     headers: serviceHeaders,
@@ -46,7 +91,16 @@ try {
       email,
       password,
       email_confirm: true,
-      user_metadata: { display_name: 'Edge Smoke Admin' },
+      user_metadata: {
+        display_name: 'Edge Smoke Admin',
+        beta_age_eligible: true,
+        beta_eligibility_year: Number(
+          new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric' }).format(
+            new Date(),
+          ),
+        ),
+        beta_eligibility_policy_version: 'brock-beta-eligibility-2026-10-06.1',
+      },
     }),
   });
   const created = await expectJson(createUser, 200, 'create local smoke user');
@@ -339,6 +393,42 @@ try {
   });
   await expectStatus(push, 200, 'dispatch empty notification queue');
 
+  localApproval(
+    `update beta_private.application_access set revoked_at=now() where email='${email}';`,
+  );
+  for (const name of ['ingest-sports-data', 'dispatch-push-notifications', 'delete-account']) {
+    await expectStatus(
+      await fetch(`${status.FUNCTIONS_URL}/${name}`, {
+        method: 'POST',
+        headers: userHeaders,
+        body: '{}',
+      }),
+      403,
+      `revoked JWT cannot call ${name}`,
+    );
+  }
+  const revokedRead = await expectJson(
+    await fetch(`${status.REST_URL}/profiles?id=eq.${userId}`, {
+      headers: userHeaders,
+    }),
+    200,
+    'read with revoked JWT',
+  );
+  if (!Array.isArray(revokedRead) || revokedRead.length !== 0)
+    throw new Error('Revoked tester could read application records.');
+  await expectStatus(
+    await fetch(`${status.REST_URL}/rpc/get_beta_lineup`, {
+      method: 'POST',
+      headers: userHeaders,
+      body: JSON.stringify({ p_fantasy_team_id: fantasyTeamId }),
+    }),
+    403,
+    'revoked JWT cannot call an exposed command',
+  );
+  localApproval(
+    `update beta_private.application_access set revoked_at=null where email='${email}';`,
+  );
+
   const deletion = await fetch(`${status.FUNCTIONS_URL}/delete-account`, {
     method: 'POST',
     headers: userHeaders,
@@ -348,7 +438,7 @@ try {
   userId = undefined;
 
   process.stdout.write(
-    'Edge smoke passed: auth/admin, rejected receipt, fixture scoring/correction, push, deletion.\n',
+    'Edge smoke passed: unapproved signup, auth/MFA/admin, fixture scoring/correction, push, live JWT revocation at REST/RPC/Edge boundaries, deletion.\n',
   );
 } finally {
   const rosterEntries = await readRows(`roster_entries?league_id=eq.${leagueId}&select=id`);
@@ -370,6 +460,7 @@ try {
       headers: serviceHeaders,
     });
   }
+  localApproval(`delete from beta_private.application_access where email='${email}';`);
 }
 
 async function expectJson(response, expectedStatus, action) {

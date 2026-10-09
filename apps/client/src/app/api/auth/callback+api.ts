@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'expo-router/server';
+import { canUseApp } from '../../../server/app-access';
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const REFRESH_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-refresh' : 'bf_refresh';
@@ -63,6 +64,20 @@ export const GET: RequestHandler = async (request) => {
   };
   if (typeof tokens.access_token !== 'string' || typeof tokens.refresh_token !== 'string')
     return redirect(new URL('/auth?recovery=invalid', requestUrl), [clearPkce(), clearFlow()]);
+  try {
+    if (!(await canUseApp(tokens.access_token)))
+      return redirect(new URL('/auth?access=denied', requestUrl), [
+        clearPkce(),
+        clearFlow(),
+        sessionCookie(ACCESS_COOKIE, '', 0),
+        sessionCookie(REFRESH_COOKIE, '', 0),
+      ]);
+  } catch {
+    return new Response('Application access is temporarily unavailable.', {
+      status: 503,
+      headers: { 'cache-control': 'no-store, private' },
+    });
+  }
   return redirect(new URL(flow === 'recover' ? '/reset-password' : '/dashboard', requestUrl), [
     sessionCookie(
       ACCESS_COOKIE,

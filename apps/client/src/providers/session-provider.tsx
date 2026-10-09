@@ -56,14 +56,42 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    void supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-      setLoading(false);
+    const client = supabase;
+    let active = true;
+    let revision = 0;
+    const restore = async (candidate: User | null) => {
+      const current = ++revision;
+      if (active) setLoading(true);
+      let approved = false;
+      try {
+        if (candidate) {
+          const access = await client.rpc('can_use_app');
+          approved = !access.error && access.data === true;
+        }
+      } catch {
+        approved = false;
+      } finally {
+        if (active && current === revision) {
+          setUser(approved ? candidate : null);
+          setLoading(false);
+        }
+      }
+    };
+    void client.auth
+      .getSession()
+      .then(({ data }) => restore(data.session?.user ?? null))
+      .catch(() => restore(null));
+    const { data } = client.auth.onAuthStateChange((_event, nextSession) => {
+      // Defer network calls until Supabase releases the authentication callback lock.
+      setTimeout(() => {
+        if (active) void restore(nextSession?.user ?? null);
+      }, 0);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) =>
-      setUser(nextSession?.user ?? null),
-    );
-    return () => data.subscription.unsubscribe();
+    return () => {
+      active = false;
+      revision++;
+      data.subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -78,7 +106,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
     if (!supabase) return 'Authentication is not configured for this environment.';
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error?.message ?? null;
+    if (error) return error.message;
+    const access = await supabase.rpc('can_use_app');
+    if (access.error || access.data !== true) {
+      await supabase.auth.signOut({ scope: 'local' });
+      setUser(null);
+      return 'Approved beta tester access is required.';
+    }
+    return null;
   }, []);
 
   const signUp = useCallback(

@@ -22,6 +22,16 @@ export async function authenticatedUser(authorization: string | null) {
   const token = authorization.replace(/^Bearer\s+/i, '');
   const { data, error } = await client.auth.getUser(token);
   if (error || !data.user) throw new AccessError('Authentication required.', 401);
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!url || !key) throw new Error('Application access configuration is missing.');
+  const scoped = createClient(url, key, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false },
+  });
+  const { data: approved, error: accessError } = await scoped.rpc('can_use_app');
+  if (accessError || approved !== true)
+    throw new AccessError('Approved tester access is required.', 403);
   return data.user;
 }
 

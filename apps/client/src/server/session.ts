@@ -1,3 +1,5 @@
+import { canUseApp } from './app-access';
+
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const REFRESH_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-refresh' : 'bf_refresh';
 const CSRF_COOKIE = 'bf_csrf';
@@ -87,7 +89,7 @@ export async function actor(request: Request, allowBearer = false): Promise<WebA
   });
   if (!result.ok) return null;
   const user = (await result.json()) as { id?: unknown };
-  if (typeof user.id !== 'string') return null;
+  if (typeof user.id !== 'string' || !(await canUseApp(accessToken))) return null;
   return {
     accessToken,
     userId: user.id,

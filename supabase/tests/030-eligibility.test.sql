@@ -1,5 +1,8 @@
 begin;
 select plan(12);
+insert into beta_private.application_access(email,reason)
+select email,'Explicit isolated eligibility test approval' from (values
+  ('eligibility@example.test'),('missing@example.test'),('false@example.test'),('stale@example.test'),('version@example.test')) fixture(email);
 
 select has_table('beta_private', 'account_eligibility_attestations', 'attestation evidence is stored privately');
 select ok((select relrowsecurity from pg_class where oid = 'beta_private.account_eligibility_attestations'::regclass), 'private attestation table has RLS');

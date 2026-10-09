@@ -4,6 +4,7 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build:web",
   "outputDirectory": "apps/client/dist/client",
+  "proxy": { "entrypoint": "proxy.ts" },
   "functions": {
     "api/index.js": {
       "runtime": "@vercel/node@5.1.8",
