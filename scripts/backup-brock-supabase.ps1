@@ -30,9 +30,9 @@ function Invoke-Checked([string]$Program, [string[]]$Arguments) {
   $previousPreference = $ErrorActionPreference
   try {
     $ErrorActionPreference = 'Continue'
-    $LASTEXITCODE = $null
+    $global:LASTEXITCODE = $null
     $lines = & $Program @Arguments 2>$null
-    $nativeExitCode = $LASTEXITCODE
+    $nativeExitCode = $global:LASTEXITCODE
   } finally { $ErrorActionPreference = $previousPreference }
   if ($nativeExitCode -ne 0) { throw "$(Split-Path $Program -Leaf) failed with exit code $nativeExitCode; no credential-bearing output is printed." }
   return ($lines | ForEach-Object { $_.ToString() }) -join "`n"
@@ -86,7 +86,7 @@ try {
   try {
     # The explicit ref prevents accidental backup of a different linked project.
     $schemaResult = Invoke-Checked $pnpm @('exec','supabase','db','query','--linked','--project-ref',$projectRef,
-      "select nspname from pg_namespace where nspname in ('auth','public','storage','beta_private','app_private','supabase_migrations','extensions') order by nspname;",'-o','json')
+      "select nspname from pg_namespace where nspname in ('auth','public','storage','beta_private','app_private','rpc_private','registration_private','supabase_migrations','extensions') order by nspname;",'-o','json')
     $firstBrace = $schemaResult.IndexOf('{')
     if ($firstBrace -lt 0) { throw 'Schema readback did not return JSON.' }
     $schemaJson = $schemaResult.Substring($firstBrace) | ConvertFrom-Json

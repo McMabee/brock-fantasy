@@ -23,6 +23,8 @@ const allowedSchemas = [
   'storage',
   'beta_private',
   'app_private',
+  'rpc_private',
+  'registration_private',
   'supabase_migrations',
   'extensions',
 ];

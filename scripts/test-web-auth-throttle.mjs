@@ -47,6 +47,21 @@ try {
     assert.ok(page.headers.get('content-type').includes('text/html'));
   }
   results.push({ scenario: 'root Vercel entry serves home and dashboard HTML', status: 200 });
+  for (const [route, heading] of [
+    ['/signup', 'Create Your Account'],
+    ['/auth', 'Administrator Sign In'],
+    ['/forgot-password', 'Reset Your Password'],
+    ['/reset-password', 'Choose a New Password'],
+  ]) {
+    const entry = await fetch(`${url}${route}`, { headers });
+    assert.equal(entry.status, 200, route);
+    assert.ok((await entry.text()).includes(`<h1>${heading}</h1>`), route);
+    assert.equal(entry.headers.get('cache-control'), 'no-store, private', route);
+  }
+  results.push({
+    scenario: 'original public URLs reach minimal server forms before static Expo routes',
+    status: 200,
+  });
   const protectedData = await fetch(`${url}/api/data/supabase`, { headers });
   assert.equal(protectedData.status, 401);
   results.push({ scenario: 'anonymous data access remains protected', status: 401 });

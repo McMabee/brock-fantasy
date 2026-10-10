@@ -44,7 +44,9 @@ async function harness(t, options = {}) {
       assert.equal(args[args.indexOf('--project-ref') + 1], BACKUP_PROJECT_REF);
       if (args.includes('query'))
         return JSON.stringify({
-          rows: ['auth', 'public', 'storage'].map((nspname) => ({ nspname })),
+          rows: ['auth', 'public', 'storage', 'rpc_private', 'registration_private'].map(
+            (nspname) => ({ nspname }),
+          ),
         });
       if (args.includes('dump')) {
         const file = args[args.indexOf('--file') + 1];
