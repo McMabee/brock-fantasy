@@ -1,7 +1,9 @@
+import { Link } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ActionButton, AppShell, Card, EmptyState, Pill, SectionTitle } from '@/components/ui';
 import { useCompetitions } from '@/hooks/use-competitions';
+import { ASSOCIATION_INSTAGRAM_URL } from '@/lib/association';
 import { useSession } from '@/providers/session-provider';
 import { colors, heading } from '@/theme';
 
@@ -29,6 +31,19 @@ export default function HomeScreen() {
             <ActionButton label="Create an account" href="/auth" variant="secondary" />
           ) : null}
         </View>
+        <Text style={styles.instagram}>
+          Follow{' '}
+          <Link
+            href={ASSOCIATION_INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            accessibilityRole="link"
+            style={styles.instagramLink}
+          >
+            @therealbrockfantasy on Instagram
+          </Link>{' '}
+          for association news, announcements and fantasy updates.
+        </Text>
       </View>
 
       <SectionTitle title="2026–27 programs" detail="Imported source data" />
@@ -60,6 +75,8 @@ const styles = StyleSheet.create({
   title: { ...heading, fontSize: 52, lineHeight: 56, marginTop: 18 },
   body: { color: colors.muted, fontSize: 17, lineHeight: 26, marginTop: 18, maxWidth: 640 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 24 },
+  instagram: { color: colors.muted, fontSize: 14, lineHeight: 22, marginTop: 24, maxWidth: 640 },
+  instagramLink: { color: colors.link, textDecorationLine: 'underline' },
   programGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   programCard: { flex: 1, minWidth: 250, gap: 9 },
   programName: { ...heading, fontSize: 18 },

@@ -1,3 +1,5 @@
+import { ASSOCIATION_INSTAGRAM_URL } from '../lib/association';
+
 const escape = (value: string) =>
   value.replace(
     /[&<>"']/gu,
@@ -36,7 +38,7 @@ ${view === 'activate' ? '<label>Display name<input name="displayName" maxlength=
 ${view !== 'recover' ? `<label>Password<input name="password" type="password" minlength="8" maxlength="512" autocomplete="${view === 'sign-in' ? 'current-password' : 'new-password'}" required></label>` : ''}
 ${view === 'activate' ? '<label class="check"><input type="checkbox" name="eligibilityAttested" value="true" required>I am 18 or turn 18 this calendar year.</label><p>Read the application <a href="/policies/terms-of-use.html">terms</a> and <a href="/policies/privacy-notice.html">privacy notice</a> before activation. These policy drafts remain pending operator approval.</p>' : ''}
 <button type="submit">${view === 'sign-in' ? 'Sign In' : view === 'activate' ? 'Create Account' : view === 'recover' ? 'Send Reset Instructions' : 'Save Password'}</button></form>
-<nav>${view === 'sign-in' ? '<a href="/forgot-password">Forgot password?</a>' : ''}<a href="${view === 'activate' ? '/auth' : '/signup'}">${view === 'activate' ? 'Administrator sign-in' : 'Create an account'}</a><a href="https://www.brockfantasy.ca">Return to Landing Page</a></nav></main></body></html>`;
+<nav>${view === 'sign-in' ? '<a href="/forgot-password">Forgot password?</a>' : ''}<a href="${view === 'activate' ? '/auth' : '/signup'}">${view === 'activate' ? 'Administrator sign-in' : 'Create an account'}</a><a href="https://www.brockfantasy.ca">Return to Landing Page</a><a href="${ASSOCIATION_INSTAGRAM_URL}" target="_blank" rel="noopener noreferrer" aria-label="Brock Fantasy Association on Instagram: @therealbrockfantasy">Association Instagram</a></nav></main></body></html>`;
   const headers = new Headers({
     'content-type': 'text/html; charset=utf-8',
     'cache-control': 'no-store, private',

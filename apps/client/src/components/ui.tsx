@@ -1,4 +1,4 @@
-import { useRouter, type Href } from 'expo-router';
+import { Link, useRouter, type Href } from 'expo-router';
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import darkLogo from '../../assets/brock-fantasy-logo.png';
 import lightLogo from '../../assets/brock-fantasy-logo-light.png';
+import { ASSOCIATION_INSTAGRAM_URL } from '@/lib/association';
 import { useSession } from '@/providers/session-provider';
 import { useTheme } from '@/providers/theme-provider';
 import { colors, heading, radii, shadow } from '@/theme';
@@ -118,6 +119,16 @@ export function AppShell({
               <Pressable accessibilityRole="link" onPress={() => router.push('/account-deletion')}>
                 <Text style={styles.footerLink}>Delete account</Text>
               </Pressable>
+              <Link
+                href={ASSOCIATION_INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                accessibilityRole="link"
+                accessibilityLabel="Brock Fantasy Association on Instagram: @therealbrockfantasy"
+                style={styles.footerLink}
+              >
+                Association Instagram
+              </Link>
             </View>
           </View>
         </View>
