@@ -37,7 +37,7 @@ export async function sendInvitationEmail(
   config: NonNullable<ReturnType<typeof invitationEmailConfig>>,
   invitation: { invitationId: string; email: string },
 ): Promise<boolean> {
-  const link = new URL('/mfa', config.origin);
+  const link = new URL('/staff-activate', config.origin);
   link.searchParams.set('invitation', invitation.invitationId);
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',

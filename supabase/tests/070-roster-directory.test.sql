@@ -5,6 +5,7 @@ insert into auth.users(id,email,email_confirmed_at,created_at,raw_user_meta_data
 ('99000000-0000-4000-8000-000000000099','roster-reader@example.test',now(),now(),jsonb_build_object('display_name','Roster reader','beta_age_eligible',true,
   'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::integer,'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1'));
 insert into auth.sessions(id,user_id,aal) values('99000000-0000-4000-8000-000000000099','99000000-0000-4000-8000-000000000099','aal1');
+insert into public.user_roles(user_id,role) values('99000000-0000-4000-8000-000000000099','admin');
 insert into public.sports(code,name) values ('hockey','Hockey') on conflict(code) do nothing;
 insert into public.competitions(id,sport_id,division,name,season_label,ruleset_id,is_active)
 select '99000000-0000-4000-8000-000000000001',id,'mens','Roster test','roster-fixture',

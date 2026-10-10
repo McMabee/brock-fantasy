@@ -4,8 +4,8 @@ import { requestCookie } from './apps/client/src/server/session';
 
 const headers = { 'cache-control': 'no-store, private', 'x-content-type-options': 'nosniff' };
 const entries: Record<string, string> = {
+  '/signup': 'activate',
   '/auth': 'sign-in',
-  '/tester-activate': 'activate',
   '/forgot-password': 'recover',
   '/reset-password': 'reset',
 };
@@ -14,6 +14,7 @@ const publicActions = new Map<string, readonly string[]>([
   ['/api/auth/callback', ['GET', 'HEAD']],
   ['/api/auth/csrf', ['GET']],
   ['/api/auth/session', ['GET']],
+  ['/api/auth/staff', ['GET', 'HEAD', 'POST']],
   ...['sign-in', 'sign-up', 'recover', 'refresh', 'sign-out', 'update-password'].map(
     (action) => [`/api/auth/${action}`, ['POST']] as const,
   ),
@@ -47,37 +48,16 @@ export default async function proxy(request: Request): Promise<Response> {
     });
   const path = url.pathname;
   if (/%|\\|\/\//u.test(path)) return new Response('Not found.', { status: 404, headers });
-  if (path === '/signup') {
+  if ((path === '/mfa' && url.searchParams.has('invitation')) || path === '/staff-activate') {
     if (!['GET', 'HEAD'].includes(request.method))
       return new Response(null, { status: 405, headers });
-    const source = process.env.PUBLIC_REGISTRATION_ORIGIN ?? 'https://www.brockfantasy.ca';
-    if (!local && source !== 'https://www.brockfantasy.ca')
-      return new Response('Enrollment is unavailable.', { status: 503, headers });
-    try {
-      const form = await fetch(`${source}/register`, {
-        headers: { accept: 'text/html' },
-        redirect: 'error',
-        signal: AbortSignal.timeout(8000),
-        cache: 'no-store',
-      });
-      if (!form.ok || !form.headers.get('content-type')?.startsWith('text/html'))
-        throw new Error('unavailable');
-      const output = new Headers(headers);
-      output.set('content-type', 'text/html; charset=utf-8');
-      output.set('referrer-policy', 'strict-origin');
-      const csp = form.headers.get('content-security-policy');
-      if (csp) output.set('content-security-policy', csp);
-      return new Response(request.method === 'HEAD' ? null : await form.text(), {
-        status: 200,
-        headers: output,
-      });
-    } catch {
-      return new Response('Development enrollment is temporarily unavailable.', {
-        status: 503,
-        headers,
-      });
-    }
+    url.pathname = '/api/auth/staff';
+    return rewrite(url);
   }
+  if (path === '/signup' && !['GET', 'HEAD'].includes(request.method))
+    return new Response(null, { status: 405, headers });
+  if (path === '/tester-activate')
+    return new Response(null, { status: 303, headers: { ...headers, location: '/signup' } });
   if (entries[path] && ['GET', 'HEAD'].includes(request.method)) {
     url.pathname = '/api/auth/entry';
     url.searchParams.set('view', entries[path]);
@@ -86,7 +66,8 @@ export default async function proxy(request: Request): Promise<Response> {
   if (
     publicActions.get(path)?.includes(request.method) ||
     (policyPaths.has(path) && ['GET', 'HEAD'].includes(request.method)) ||
-    (path === '/beta-auth/entry.css' && ['GET', 'HEAD'].includes(request.method))
+    (['/beta-auth/entry.css', '/beta-auth/complete-signup.js'].includes(path) &&
+      ['GET', 'HEAD'].includes(request.method))
   )
     return next();
   const token =
@@ -104,11 +85,11 @@ export default async function proxy(request: Request): Promise<Response> {
     return new Response('Application access is temporarily unavailable.', { status: 503, headers });
   }
   if (path.startsWith('/api/'))
-    return new Response(JSON.stringify({ error: 'Approved tester access is required.' }), {
+    return new Response(JSON.stringify({ error: 'Administrator access is required.' }), {
       status: 403,
       headers: { ...headers, 'content-type': 'application/json' },
     });
   if (request.method === 'GET' && request.headers.get('accept')?.includes('text/html'))
     return new Response(null, { status: 303, headers: { ...headers, location: '/auth' } });
-  return new Response('Approved tester access is required.', { status: 403, headers });
+  return new Response('Administrator access is required.', { status: 403, headers });
 }

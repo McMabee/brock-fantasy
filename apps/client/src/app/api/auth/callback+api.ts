@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'expo-router/server';
 import { canUseApp } from '../../../server/app-access';
+import { signupHandoff, handoffPage } from '../../../server/signup-handoff';
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const REFRESH_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-refresh' : 'bf_refresh';
@@ -54,24 +55,39 @@ export const GET: RequestHandler = async (request) => {
     method: 'POST',
     headers: { apikey: key, 'content-type': 'application/json' },
     body: JSON.stringify({ auth_code: code, code_verifier: verifier }),
-  });
-  if (!exchange.ok)
+    signal: AbortSignal.timeout(5000),
+    redirect: 'error',
+    cache: 'no-store',
+  }).catch(() => null);
+  if (!exchange?.ok)
     return redirect(new URL('/auth?recovery=invalid', requestUrl), [clearPkce(), clearFlow()]);
-  const tokens = (await exchange.json()) as {
+  const tokens = (await exchange.json().catch(() => null)) as {
     access_token?: unknown;
     refresh_token?: unknown;
     expires_in?: unknown;
-  };
-  if (typeof tokens.access_token !== 'string' || typeof tokens.refresh_token !== 'string')
+  } | null;
+  if (
+    !tokens ||
+    typeof tokens.access_token !== 'string' ||
+    typeof tokens.refresh_token !== 'string'
+  )
     return redirect(new URL('/auth?recovery=invalid', requestUrl), [clearPkce(), clearFlow()]);
   try {
-    if (!(await canUseApp(tokens.access_token)))
-      return redirect(new URL('/auth?access=denied', requestUrl), [
+    if (!(await canUseApp(tokens.access_token))) {
+      const result = await fetch(`${url.replace(/\/$/u, '')}/auth/v1/user`, {
+        headers: { apikey: key, authorization: `Bearer ${tokens.access_token}` },
+        signal: AbortSignal.timeout(5000),
+        redirect: 'error',
+      });
+      if (!result.ok) throw new Error('Unavailable');
+      const user = (await result.json()) as { id: string; email: string };
+      return handoffPage(await signupHandoff(user.id, user.email), [
         clearPkce(),
         clearFlow(),
         sessionCookie(ACCESS_COOKIE, '', 0),
         sessionCookie(REFRESH_COOKIE, '', 0),
       ]);
+    }
   } catch {
     return new Response('Application access is temporarily unavailable.', {
       status: 503,

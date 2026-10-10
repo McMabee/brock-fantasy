@@ -129,12 +129,40 @@ try {
       if (scenario === 'rpc-error') return new Response('private RPC diagnostic', { status: 403 });
       return new Response(scenario === 'limited' ? 'false' : 'true');
     }
-    if (target.endsWith('/rpc/is_approved_tester_email'))
+    if (target.endsWith('/rpc/is_admin_account_email'))
       return Response.json(scenario !== 'unapproved');
-    if (target.endsWith('/rpc/can_use_app')) return Response.json(scenario !== 'revoked');
+    if (target.endsWith('/rpc/can_use_app'))
+      return Response.json(!['revoked', 'callback-regular'].includes(scenario));
+    if (target.endsWith('/rpc/issue_account_signup_handoff')) {
+      assert.equal(new Headers(init.headers).get('apikey'), process.env.SUPABASE_SECRET_KEY);
+      const body = JSON.parse(init.body);
+      assert.equal(body.p_user_id, '99999999-1111-4111-8111-111111111111');
+      assert.match(body.p_hash, /^[0-9a-f]{64}$/u);
+      return scenario === 'handoff-error'
+        ? new Response(null, { status: 503 })
+        : new Response(null, { status: 204 });
+    }
     const requestHeaders = new Headers(init.headers);
     assert.equal(requestHeaders.get('apikey'), process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
     assert.equal(init.redirect, 'error');
+    if (target.includes('grant_type=pkce'))
+      return Response.json({
+        access_token: 'private-access-token-fixture',
+        refresh_token: 'private-refresh-token-fixture',
+        expires_in: 3600,
+      });
+    if (target.includes('/auth/v1/signup?')) {
+      const body = JSON.parse(init.body);
+      assert.equal(body.email, 'ordinary@example.test');
+      assert.equal(body.data.beta_age_eligible, true);
+      assert.equal(body.data.role, undefined);
+      assert.equal(body.data.admin, undefined);
+      return Response.json({
+        id: '99999999-1111-4111-8111-111111111111',
+        access_token: 'must-not-be-returned',
+        refresh_token: 'must-not-be-returned',
+      });
+    }
     if (target.includes('grant_type=password')) {
       assert.deepEqual(JSON.parse(init.body), {
         email: 'fixture@example.invalid',
@@ -153,11 +181,11 @@ try {
       });
     }
     assert.ok(target.endsWith('/auth/v1/user'));
-    assert.equal(init.headers.get('authorization'), 'Bearer private-access-token-fixture');
+    assert.equal(requestHeaders.get('authorization'), 'Bearer private-access-token-fixture');
     if (scenario === 'user-error') return new Response('private user diagnostic', { status: 503 });
     return Response.json({
-      id: 'fixture-user',
-      email: 'fixture@example.invalid',
+      id: scenario === 'callback-regular' ? '99999999-1111-4111-8111-111111111111' : 'fixture-user',
+      email: scenario === 'callback-regular' ? 'ordinary@example.test' : 'fixture@example.invalid',
       email_confirmed_at: '2026-10-08T00:00:00Z',
     });
   };
@@ -192,7 +220,7 @@ try {
       assert.equal(
         calls.length,
         5,
-        'counter, approval lookup, password grant, user lookup, current entitlement',
+        'counter, admin lookup, password grant, user lookup, current entitlement',
       );
       assert.ok(result.headers.getSetCookie().some((value) => value.includes('HttpOnly')));
     } else {
@@ -205,6 +233,93 @@ try {
       status: expected,
     });
   }
+  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_auth_route_fixture';
+  for (const [name, expected] of [
+    ['unapproved', 200],
+    ['handoff-error', 503],
+  ]) {
+    scenario = name;
+    calls.length = 0;
+    const result = await networkFetch(`${url}/api/auth/sign-up`, {
+      method: 'POST',
+      headers: { ...headers, 'x-vercel-forwarded-for': '198.51.100.23' },
+      body: JSON.stringify({
+        email: 'ordinary@example.test',
+        password: 'private-password-fixture',
+        displayName: 'Ordinary',
+        eligibilityAttested: true,
+        admin: true,
+        role: 'admin',
+      }),
+    });
+    assert.equal(result.status, expected);
+    const payload = await result.json();
+    if (result.ok) assert.match(payload.signupReceipt, /^[A-Za-z0-9_-]{43}$/u);
+    assert.equal(
+      calls.some((v) => v.endsWith('/is_admin_account_email')),
+      false,
+    );
+    assert.equal(
+      result.headers
+        .getSetCookie()
+        .some((v) => /(?:bf-access|bf-refresh|bf_access|bf_refresh)=/u.test(v)),
+      false,
+    );
+    assert.doesNotMatch(JSON.stringify(payload), /must-not-be-returned/u);
+    results.push({ scenario: `public account signup: ${name}`, status: expected });
+  }
+  scenario = 'unapproved';
+  const form = await networkFetch(`${url}/api/auth/sign-up?returnTo=https://evil.example`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+      'content-type': 'application/x-www-form-urlencoded',
+      'x-vercel-forwarded-for': '198.51.100.23',
+    },
+    body: new URLSearchParams({
+      email: 'ordinary@example.test',
+      password: 'private-password-fixture',
+      displayName: 'Ordinary',
+      eligibilityAttested: 'true',
+    }),
+  });
+  assert.equal(form.status, 200);
+  const formHtml = await form.text();
+  assert.match(
+    formHtml,
+    /action="https:\/\/www\.brockfantasy\.ca\/api\/prelaunch\/complete-signup"/u,
+  );
+  assert.doesNotMatch(formHtml, /evil\.example|must-not-be-returned/u);
+  results.push({
+    scenario:
+      'native public signup form issues a fixed one-time association handoff without application cookies',
+    status: 200,
+  });
+  scenario = 'callback-regular';
+  const verified = await networkFetch(`${url}/api/auth/callback?code=fixture-code`, {
+    redirect: 'manual',
+    headers: { ...headers, cookie: 'bf_pkce=fixture-verifier; bf_auth_flow=sign-up' },
+  });
+  assert.equal(verified.status, 200);
+  assert.match(await verified.text(), /api\/prelaunch\/complete-signup/u);
+  assert.ok(
+    verified.headers
+      .getSetCookie()
+      .filter((v) => /(?:bf-access|bf-refresh|bf_access|bf_refresh)=/u.test(v))
+      .every((v) => v.includes('Max-Age=0')),
+  );
+  scenario = 'success';
+  const adminCallback = await networkFetch(`${url}/api/auth/callback?code=fixture-code`, {
+    redirect: 'manual',
+    headers: { ...headers, cookie: 'bf_pkce=fixture-verifier; bf_auth_flow=sign-up' },
+  });
+  assert.equal(adminCallback.status, 302);
+  assert.match(adminCallback.headers.get('location'), /\/dashboard$/u);
+  results.push({
+    scenario:
+      'regular verification returns to thanks without application session; administrator callback preserves application session',
+    status: 200,
+  });
   const logged = diagnostics.join('\n');
   for (const code of [
     'hmac_secret_missing_or_short',

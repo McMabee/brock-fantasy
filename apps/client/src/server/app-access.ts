@@ -29,7 +29,7 @@ export async function canUseApp(accessToken: string): Promise<boolean> {
   }
 }
 
-export async function approvedTesterEmail(email: string): Promise<boolean> {
+export async function adminAccountEmail(email: string): Promise<boolean> {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/$/u, '');
   const credential = process.env.SUPABASE_SECRET_KEY;
   if (!url || !credential) throw new AppAccessUnavailable('Application access is unavailable.');
@@ -39,7 +39,7 @@ export async function approvedTesterEmail(email: string): Promise<boolean> {
   };
   if (!credential.startsWith('sb_secret_')) headers.authorization = `Bearer ${credential}`;
   try {
-    const result = await fetch(`${url}/rest/v1/rpc/is_approved_tester_email`, {
+    const result = await fetch(`${url}/rest/v1/rpc/is_admin_account_email`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ p_email: email }),

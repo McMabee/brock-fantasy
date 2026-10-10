@@ -42,11 +42,6 @@ try {
   const calls = [];
   globalThis.fetch = async (input, init = {}) => {
     calls.push({ url: String(input), headers: new Headers(init.headers) });
-    if (String(input) === 'https://www.brockfantasy.ca/register')
-      return new Response(
-        '<form action="https://www.brockfantasy.ca/api/prelaunch/register"></form>',
-        { headers: { 'content-type': 'text/html' } },
-      );
     assert.equal(String(input), 'https://fixture.supabase.co/rest/v1/rpc/can_use_app');
     return upstreamUnavailable
       ? new Response('unavailable', { status: 503 })
@@ -95,6 +90,7 @@ try {
     ).status,
     403,
   );
+  const callCount = calls.length;
   const signup = await proxy(
     new Request('https://beta.brockfantasy.ca/signup', {
       headers: {
@@ -104,9 +100,18 @@ try {
     }),
   );
   assert.equal(signup.status, 200);
-  const sent = calls.at(-1).headers;
-  assert.equal(sent.get('cookie'), null);
-  assert.equal(sent.get('authorization'), null);
+  assert.match(signup.headers.get('x-test-rewrite'), /api\/auth\/entry\?view=activate/u);
+  assert.equal(
+    calls.length,
+    callCount,
+    'signup is served locally without forwarding application credentials',
+  );
+  assert.equal(
+    (await proxy(new Request('https://beta.brockfantasy.ca/tester-activate'))).headers.get(
+      'location',
+    ),
+    '/signup',
+  );
   assert.equal(
     (await proxy(new Request('https://beta.brockfantasy.ca/signup', { method: 'POST' }))).status,
     405,

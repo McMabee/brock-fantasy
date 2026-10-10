@@ -117,7 +117,7 @@ select ok(not exists(select 1 from public.user_roles where user_id='98000000-000
 select set_config('request.jwt.claim.sub','98000000-0000-4000-8000-000000000002',true);
 select set_config('request.jwt.claims','{"sub":"98000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal2","session_id":"98000000-0000-4000-8000-000000000012"}',true);
 select throws_ok($$select public.admin_accept_invitation(current_setting('test.invitation')::uuid)$$,'42501',null,'old link cannot restore revoked access');
-select is(public.current_user_is_admin(),false,'revoked admin loses operations access');
+select throws_ok($$select public.current_user_is_admin()$$,'42501','Application access required','revoked admin loses application and operations access');
 reset role;
 update beta_private.admin_invitations set created_at=now()-interval '2 minutes' where user_id='98000000-0000-4000-8000-000000000002';
 set local role authenticated;

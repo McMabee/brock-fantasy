@@ -111,7 +111,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (access.error || access.data !== true) {
       await supabase.auth.signOut({ scope: 'local' });
       setUser(null);
-      return 'Approved beta tester access is required.';
+      return 'Administrator access is required.';
     }
     return null;
   }, []);
@@ -129,7 +129,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         ).error;
       }
       if (!supabase) return 'Account registration is not configured for this environment.';
-      const { error } = await supabase.auth.signUp({
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -141,6 +141,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           },
         },
       });
+      if (data.session) await supabase.auth.signOut({ scope: 'local' });
       return error?.message ?? null;
     },
     [],

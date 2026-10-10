@@ -1,7 +1,8 @@
 import type { RequestHandler } from 'expo-router/server';
 import { ELIGIBILITY_POLICY_VERSION, registrationYearAt } from '@brock-fantasy/domain';
 import { limitAuthRequest } from '../../../server/auth-rate-limit';
-import { AppAccessUnavailable, approvedTesterEmail, canUseApp } from '../../../server/app-access';
+import { AppAccessUnavailable, adminAccountEmail, canUseApp } from '../../../server/app-access';
+import { signupHandoff, handoffPage } from '../../../server/signup-handoff';
 import { testerPage } from '../../../server/tester-entry';
 import { authReturnPath } from '../../../lib/admin-navigation';
 
@@ -146,7 +147,9 @@ async function digest(value: string): Promise<string> {
 
 async function json(request: Request): Promise<Record<string, unknown> | null> {
   try {
-    const value: unknown = await request.json();
+    const raw = await request.text();
+    if (encoder.encode(raw).length > 8192) return null;
+    const value: unknown = JSON.parse(raw);
     return value && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : null;
@@ -294,7 +297,7 @@ const post: RequestHandler = async (request, params) => {
     const user = await currentUser(tokens.access_token);
     return user && (await canUseApp(tokens.access_token))
       ? response({ user }, 200, sessionCookies(tokens))
-      : response({ error: 'Approved tester access is required.' }, 403, clearSessionCookies());
+      : response({ error: 'Administrator access is required.' }, 403, clearSessionCookies());
   }
 
   const body = await json(request);
@@ -304,7 +307,7 @@ const post: RequestHandler = async (request, params) => {
     const email = string(body.email, 320)?.trim().toLowerCase();
     const password = string(body.password, 512);
     if (!email || !password) return response({ error: 'Email and password are required.' }, 400);
-    if (!(await approvedTesterEmail(email))) return authError(401);
+    if (!(await adminAccountEmail(email))) return authError(401);
     const signedIn = await authFetch('/token?grant_type=password', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -320,16 +323,18 @@ const post: RequestHandler = async (request, params) => {
         clearSessionCookies(),
       );
     if (!(await canUseApp(tokens.access_token)))
-      return response({ error: 'Approved tester access is required.' }, 403, clearSessionCookies());
+      return response({ error: 'Administrator access is required.' }, 403, clearSessionCookies());
     return response({ user }, 200, sessionCookies(tokens));
   }
 
   const requestUrl = requestOrigin(request);
   if (action === 'sign-up' || action === 'recover') {
     const email = string(body.email, 320)?.trim().toLowerCase();
-    if (!email) return response({ error: 'A valid email is required.' }, 400);
-    if (!(await approvedTesterEmail(email)))
-      return action === 'recover' ? response({ ok: true }) : authError(401);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email))
+      return response({ error: 'A valid email is required.' }, 400);
+    if (action === 'recover' && !(await adminAccountEmail(email))) return response({ ok: true });
+    if (action === 'sign-up' && typeof body.website === 'string' && body.website !== '')
+      return response({ error: 'This registration could not be accepted.' }, 400);
     const verifier =
       crypto.randomUUID().replace(/-/gu, '') + crypto.randomUUID().replace(/-/gu, '');
     const challenge = await digest(verifier);
@@ -368,15 +373,23 @@ const post: RequestHandler = async (request, params) => {
         code_challenge_method: 's256',
       }),
     });
-    return signedUp.ok
-      ? response({ ok: true }, 200, [verifierCookie, flowCookie, csrfCookie()])
-      : authError(signedUp.status);
+    if (!signedUp.ok) return authError(signedUp.status);
+    const created = await providerJson<{ id?: string; user?: { id?: string } }>(signedUp);
+    const id = created.user?.id ?? created.id;
+    if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/iu.test(id))
+      throw unavailable('provider_invalid_response');
+    const receipt = await signupHandoff(id, email);
+    return response({ ok: true, signupReceipt: receipt }, 200, [
+      verifierCookie,
+      flowCookie,
+      csrfCookie(),
+    ]);
   }
 
   const accessToken = cookie(request, ACCESS_COOKIE);
   if (!accessToken) return authError(401);
   if (!(await canUseApp(accessToken)))
-    return response({ error: 'Approved tester access is required.' }, 403, clearSessionCookies());
+    return response({ error: 'Administrator access is required.' }, 403, clearSessionCookies());
   const password = string(body.password, 512);
   if (!password || password.length < 8)
     return response({ error: 'Use an 8+ character password.' }, 400);
@@ -424,6 +437,7 @@ export const POST: RequestHandler = async (request, params) => {
         password: form.get('password'),
         displayName: form.get('displayName'),
         eligibilityAttested: form.get('eligibilityAttested') === 'true',
+        website: form.get('website') ?? '',
       }),
     }),
     params,
@@ -439,7 +453,9 @@ export const POST: RequestHandler = async (request, params) => {
     cookies.forEach((value) => redirectHeaders.append('set-cookie', value));
     return new Response(null, { status: 303, headers: redirectHeaders });
   }
-  const body = (await result.json()) as { error?: string };
+  const body = (await result.json()) as { error?: string; signupReceipt?: string };
+  if (result.ok && action === 'sign-up' && body.signupReceipt)
+    return handoffPage(body.signupReceipt, cookies);
   return testerPage(
     action === 'sign-up'
       ? 'activate'
@@ -449,7 +465,7 @@ export const POST: RequestHandler = async (request, params) => {
           ? 'reset'
           : 'sign-in',
     body.error ??
-      'Check your email for the next step. If this address is approved, instructions will arrive shortly.',
+      'Check your email for the next step. Instructions will arrive if this account is eligible.',
     result.status,
     cookies,
     cookie(request, CSRF_COOKIE) ?? '',

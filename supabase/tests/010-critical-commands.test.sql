@@ -29,6 +29,10 @@ select is(public.current_user_is_admin(), false, 'admin role without MFA is not 
 select pg_temp.test_actor('30000000-0000-4000-8000-000000000001','aal2');
 select is(public.current_user_is_admin(), true, 'admin role with AAL2 is authorized');
 delete from public.user_roles where user_id = '30000000-0000-4000-8000-000000000001';
+-- Gameplay fixtures are admins at AAL1, without privileged admin authorization.
+insert into public.user_roles(user_id,role) values
+('30000000-0000-4000-8000-000000000001','admin'),('30000000-0000-4000-8000-000000000002','admin');
+select pg_temp.test_actor('30000000-0000-4000-8000-000000000001','aal1');
 
 -- Isolated command fixture. Runtime seed data is intentionally empty.
 insert into public.sports (id, code, name)

@@ -75,15 +75,6 @@ const anonHeaders = {
 let userId;
 
 try {
-  const unapprovedSignup = await fetch(`${status.API_URL}/auth/v1/signup`, {
-    method: 'POST',
-    headers: anonHeaders,
-    body: JSON.stringify({ email: `unapproved-${email}`, password }),
-  });
-  await expectStatus(unapprovedSignup, 403, 'reject direct unapproved Auth signup');
-  localApproval(
-    `insert into beta_private.application_access(email,reason) values('${email}','Disposable Edge Function smoke fixture');`,
-  );
   const createUser = await fetch(`${status.API_URL}/auth/v1/admin/users`, {
     method: 'POST',
     headers: serviceHeaders,
@@ -393,9 +384,7 @@ try {
   });
   await expectStatus(push, 200, 'dispatch empty notification queue');
 
-  localApproval(
-    `update beta_private.application_access set revoked_at=now() where email='${email}';`,
-  );
+  localApproval(`delete from public.user_roles where user_id='${userId}' and role='admin';`);
   for (const name of ['ingest-sports-data', 'dispatch-push-notifications', 'delete-account']) {
     await expectStatus(
       await fetch(`${status.FUNCTIONS_URL}/${name}`, {
@@ -415,7 +404,7 @@ try {
     'read with revoked JWT',
   );
   if (!Array.isArray(revokedRead) || revokedRead.length !== 0)
-    throw new Error('Revoked tester could read application records.');
+    throw new Error('Revoked administrator could read application records.');
   await expectStatus(
     await fetch(`${status.REST_URL}/rpc/get_beta_lineup`, {
       method: 'POST',
@@ -425,9 +414,7 @@ try {
     403,
     'revoked JWT cannot call an exposed command',
   );
-  localApproval(
-    `update beta_private.application_access set revoked_at=null where email='${email}';`,
-  );
+  localApproval(`insert into public.user_roles(user_id,role) values('${userId}','admin');`);
 
   const deletion = await fetch(`${status.FUNCTIONS_URL}/delete-account`, {
     method: 'POST',

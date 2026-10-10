@@ -10,6 +10,8 @@ const names = [
   'EXPO_PUBLIC_APP_ORIGIN',
   'RESEND_API_KEY',
   'ADMIN_INVITE_EMAIL_FROM',
+  'EXPO_PUBLIC_APP_ENV',
+  'VERCEL',
 ];
 const previous = new Map(names.map((name) => [name, process.env[name]]));
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://fdovowiihxowzatewxgv.supabase.co';
@@ -17,6 +19,8 @@ process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_admin_fixture
 process.env.EXPO_PUBLIC_APP_ORIGIN = 'https://beta.brockfantasy.ca';
 process.env.RESEND_API_KEY = 're_private_admin_invite_fixture';
 process.env.ADMIN_INVITE_EMAIL_FROM = 'Brock Fantasy <admin@example.test>';
+process.env.EXPO_PUBLIC_APP_ENV = 'local';
+delete process.env.VERCEL;
 const networkFetch = globalThis.fetch;
 const server = createServer((request, response) => {
   handler(request, response).catch(() => {
@@ -73,6 +77,11 @@ try {
     );
     const headers = new Headers(init.headers);
     assert.equal(headers.get('apikey'), 'sb_publishable_admin_fixture');
+    if (target.endsWith('/auth/v1/token?grant_type=password'))
+      return Response.json({
+        access_token: jwt('aal1'),
+        refresh_token: 'staff-refresh-not-returned',
+      });
     if (
       target.endsWith('/auth/v1/user') &&
       headers.get('authorization') === 'Bearer invalid-fixture'
@@ -82,7 +91,7 @@ try {
     calls.push({ target, method });
     if (failure === 'network') throw new Error('private upstream detail');
     if (target.endsWith('/auth/v1/user')) return Response.json({ id: userId, factors: entries });
-    if (target.endsWith('/rest/v1/rpc/can_use_app')) return Response.json(true);
+    if (target.endsWith('/rest/v1/rpc/can_use_app')) return Response.json(role);
     if (target.includes('/rest/v1/user_roles?'))
       return Response.json(role ? [{ role: 'admin' }] : []);
     if (target.endsWith('/rest/v1/rpc/can_manage_admin_accounts')) return Response.json(canManage);
@@ -175,8 +184,11 @@ try {
   results.push('Anonymous access denied before upstream calls');
 
   let result = await request('/api/admin/mfa', { aal: 'aal1' });
+  assert.equal(result.response.status, 401, 'ordinary accounts cannot enter administrator MFA');
+  role = true;
+  result = await request('/api/admin/mfa', { aal: 'aal1' });
   assert.equal(result.response.status, 200);
-  assert.equal(result.data.hasAdminRole, false);
+  assert.equal(result.data.hasAdminRole, true);
   assert.equal(result.data.factor, null);
   assert.ok(calls.every((call) => !(call.target.endsWith('/factors') && call.method === 'GET')));
   result = await request('/api/admin/mfa', {
@@ -187,7 +199,9 @@ try {
   assert.equal(result.response.status, 200);
   assert.ok(result.data.factor.qrCode.startsWith('data:image/svg+xml;'));
   assert.equal(result.data.factor.secret, 'private-factor-fixture');
-  results.push('Non-admin staff can start their own MFA enrollment; SVG QR renders as a data URL');
+  results.push(
+    'Existing admins can enroll MFA at AAL1; ordinary accounts are denied; SVG QR renders as a data URL',
+  );
 
   for (const change of [{ origin: 'https://evil.example' }, { csrf: false }]) {
     const before = calls.length;
@@ -248,6 +262,7 @@ try {
   assert.ok(!JSON.stringify(result.data).includes('private-refresh-fixture'));
   results.push('Successful MFA verification upgrades HttpOnly session cookies');
 
+  role = false;
   result = await request('/api/admin/games', { aal: 'aal2' });
   assert.equal(result.response.status, 403);
   role = true;
@@ -343,7 +358,9 @@ try {
   assert.equal(invitationSent, true);
   assert.deepEqual(emails.at(-1).to, ['staff@example.test']);
   assert.ok(
-    emails.at(-1).text.includes(`https://beta.brockfantasy.ca/mfa?invitation=${invitationId}`),
+    emails
+      .at(-1)
+      .text.includes(`https://beta.brockfantasy.ca/staff-activate?invitation=${invitationId}`),
   );
   assert.ok(!emails.at(-1).text.includes('private'));
   const sentCount = emails.length;
@@ -413,12 +430,78 @@ try {
     method: 'POST',
     body: { p_invitation_id: invitationId },
   });
-  assert.equal(result.response.status, 200);
-  assert.equal(result.data.enabled, true);
+  assert.equal(result.response.status, 403);
+  assert.equal(role, false, 'pending invitees cannot use the ordinary command boundary');
+  entries = [];
+  const staffCookieName = '__Host-bf-staff-access';
+  const staff = (fields, token, origin = 'https://beta.brockfantasy.ca') =>
+    networkFetch(`${base}/api/auth/staff?invitation=${invitationId}`, {
+      method: fields ? 'POST' : 'GET',
+      redirect: 'manual',
+      headers: {
+        host: 'beta.brockfantasy.ca',
+        'x-forwarded-proto': 'https',
+        origin,
+        cookie: `bf_csrf=csrf-fixture${token ? `; ${staffCookieName}=${encodeURIComponent(token)}` : ''}`,
+        ...(fields ? { 'content-type': 'application/x-www-form-urlencoded' } : {}),
+      },
+      ...(fields ? { body: new URLSearchParams({ ...fields, csrf: 'csrf-fixture' }) } : {}),
+    });
+  assert.match(await (await staff()).text(), /Continue with Invited Account/u);
+  assert.equal(
+    (
+      await staff(
+        { action: 'sign-in', email: 'staff@example.test', password: 'private-staff-fixture' },
+        null,
+        'https://evil.example',
+      )
+    ).status,
+    403,
+  );
+  failure = 'invitation';
+  let activation = await staff({
+    action: 'sign-in',
+    email: 'staff@example.test',
+    password: 'private-staff-fixture',
+  });
+  assert.equal(activation.status, 403);
+  assert.ok(
+    !activation.headers
+      .getSetCookie()
+      .some((v) => v.startsWith(`${staffCookieName}=`) && !v.includes('Max-Age=0')),
+  );
+  failure = '';
+  activation = await staff({
+    action: 'sign-in',
+    email: 'staff@example.test',
+    password: 'private-staff-fixture',
+  });
+  assert.equal(activation.status, 303);
+  assert.ok(
+    activation.headers
+      .getSetCookie()
+      .some(
+        (v) =>
+          v.startsWith(`${staffCookieName}=`) && v.includes('HttpOnly') && v.includes('Secure'),
+      ),
+  );
+  assert.ok(!activation.headers.getSetCookie().some((v) => v.startsWith(`${accessCookie}=`)));
+  assert.match(await (await staff(null, jwt('aal1'))).text(), /Set Up Authenticator/u);
+  activation = await staff({ action: 'enroll' }, jwt('aal1'));
+  assert.equal(activation.status, 200);
+  assert.match(await activation.text(), /Authenticator code/u);
+  activation = await staff({ action: 'verify', factor: factorId, code: '123456' }, jwt('aal1'));
+  assert.equal(activation.status, 200);
+  assert.match(await activation.text(), /Accept Administrator Invitation/u);
+  assert.equal(role, false, 'MFA verification alone does not grant a role');
+  activation = await staff({ action: 'accept' }, jwt('aal2'));
+  assert.equal(activation.status, 303);
+  assert.equal(activation.headers.get('location'), '/auth');
+  assert.equal(role, true);
   result = await request(`/api/admin/games?gameId=${gameId}`, { aal: 'aal2' });
   assert.equal(result.response.status, 200);
   results.push(
-    'Recipient can check an invitation at AAL1; authenticated acceptance uses the protected database command and unlocks standard admin operations',
+    'Invitation-only staff entry uses isolated HttpOnly cookies and recipient MFA/acceptance; ordinary accounts cannot use application APIs',
   );
 
   for (const value of [

@@ -1,89 +1,99 @@
-# Public Enrollment and Private Beta
+# Public Accounts and Administrator-Only Beta
 
-Implementation date: October 9, 2026. Local implementation only. No hosted migration, deployment, DNS, Cloudflare, credential, or dashboard change is implied by this document.
+Local implementation, October 9, 2026. Hosted migrations, secrets, deployments and dashboard changes require a separate approved rollout.
 
 ## Ownership
 
-`brock-fantasy` owns all shared Supabase migrations and application authorization. `brock-fantasy-association` owns public enrollment, consent copy, verification delivery, unsubscribe, and server-rendered confirmation pages. There is one existing hosted Supabase project, not a new registration database.
+- `brock-fantasy` owns Supabase Auth, account/profile creation, all shared migrations and fantasy authorization.
+- `brock-fantasy-association` owns the public homepage and receipt-protected thanks page with optional launch/news consent.
+- Both independently deployed Vercel projects use the existing Supabase database. The association never receives the Auth/service key.
 
 ```mermaid
 flowchart LR
-  Public[Public association site] --> Signup[beta.brockfantasy.ca/signup]
-  Signup -->|fixed server fetch, no credentials| Form[Association /register]
-  Form -->|top-level browser POST| Intake[Association registration API]
-  Intake -->|restricted SQL routines| DB[Shared Supabase PostgreSQL]
-  Intake -->|host-only receipt cookie and 303| Thanks[Association /thanks]
-  Intake --> Outbox[Encrypted verification outbox]
-  Outbox --> Resend[Verification email]
-  Tester[Approved tester] --> Entry[Tester-only /auth]
-  Entry --> Auth[Existing Supabase Auth and MFA]
-  Auth --> Gate[Current approval and live session]
-  Gate --> Fantasy[Private pages and APIs]
-  Fantasy -->|RLS and guarded RPCs| DB
+  Landing[Public association homepage] --> Signup[Beta /signup account form]
+  Signup --> Auth[Existing Supabase Auth and profile trigger]
+  Auth --> Ticket[Server-only one-time hashed handoff]
+  Ticket -->|browser POST| Complete[Association completion API]
+  Complete -->|host-only receipt cookie| Thanks[Association /thanks]
+  Thanks -->|optional unchecked consent| News[Private launch/news subscription]
+  Verify[Supabase account email verification] --> News
+  Admin[Existing administrator] --> Login[Beta /auth]
+  Login --> Gate[Live verified session and admin role]
+  Gate --> App[Fantasy pages, APIs, RLS and RPCs]
 ```
 
-## Exact Initial Approvals
+## Current Authority
 
-| Name              | Email                         | Existing Authority                                                 |
-| ----------------- | ----------------------------- | ------------------------------------------------------------------ |
-| Ty Mabee          | tymabee@proton.me             | Super administrator and approved tester; protected operator record |
-| Tarik Merchant    | gt22me@brocku.ca              | Approved tester; existing regular admin role is retained           |
-| Ethan_Greatorex   | ethan.greatorex1245@gmail.com | Approved tester; existing regular admin role is retained           |
-| Nicholas Zadravec | ci22wd@brocku.ca              | Approved tester and explicitly requested regular administrator     |
+| Person            | Email                         | Authority To Preserve                        |
+| ----------------- | ----------------------------- | -------------------------------------------- |
+| Ty Mabee          | tymabee@proton.me             | Admin and sole protected super administrator |
+| Tarik Merchant    | gt22me@brocku.ca              | Regular administrator                        |
+| Ethan_Greatorex   | ethan.greatorex1245@gmail.com | Regular administrator                        |
+| Nicholas Zadravec | ci22wd@brocku.ca              | Regular administrator                        |
 
-The access migration binds matching existing Auth IDs without replacing profiles, passwords, MFA, league membership, or gameplay records. It does not insert, update or delete Ethan/Tarik's `user_roles` records. Nicholas receives an additive, audited `admin` grant only when his existing account meets the established verified-email, eligibility and verified-TOTP requirements; otherwise Ty must complete the protected admin invitation flow before rollout acceptance. He is not a protected super administrator. An approval-sensitive email change or deleted/recreated identity is denied until Ty reapproves it. Ty's operator approval cannot be revoked through ordinary tester management.
+The new migration does not insert, update or delete existing admin roles, profiles, MFA factors, passwords or league data. The earlier additive migration grants Nicholas admin only when his existing verified account meets eligibility and verified-TOTP requirements. If that prior grant was not completed, Ty must finish the invitation workflow before rollout acceptance. Do not invent an identity or replace an existing account.
 
-## Deployment Order and Mandatory Gates
+There is no beta-tester role or management UI. Historical `beta_private.application_access` rows remain archival; they grant no access. Retired approval RPCs have no application-role execution grants. Current `public.can_use_app()` checks a verified Auth user, live session, non-deleted profile and server-owned `user_roles.role='admin'`. Privileged administration still requires AAL2/TOTP; only Ty's protected manager can manage staff.
 
-1. Keep the current beta protected during preparation. Record the current production/branch deployment IDs and domain assignments. Obtain a protected backend backup and demonstrate restoration in disposable local Supabase. Never reset the shared hosted project.
-2. Read the hosted schema, grants, exposed schemas, storage buckets, Realtime publication, Auth settings/hooks, and all four exact Auth identities. Verify Tarik/Ethan already have `admin`, and Ty retains `admin`, the protected manager record, and verified TOTP. Confirm Nicholas's verified identity, eligibility and enrolled TOTP before his additive admin grant. Stop rollout if any expected identity or prerequisite is absent; investigate or complete tester activation rather than replacing accounts. After migration, verify Nicholas has `admin` but no protected-manager grant.
-3. Review both new additive migrations: `20261009161432_application_access.sql` and `20261009161434_prelaunch_registration.sql`. Application enforcement begins at database migration time. All four approval rows must bind to the expected existing IDs in the same migration. Other existing accounts remain stored but are intentionally denied. Do not apply this migration until that consequence is approved.
-4. Apply migrations through the approved Supabase workflow only after backup/preflight. Do not add `beta_private`, `rpc_private`, or `registration_private` to exposed REST/GraphQL schemas. Configure Authentication > Hooks > Before User Created to use `beta_private.before_user_created`. Its only external execute grantee is `supabase_auth_admin`; the binding trigger also rejects unapproved direct creation if the hook is omitted.
-5. Provision the new `prelaunch_api` login's password securely outside Git, chat, logs, and SQL-history exports. Use the Supabase Connect transaction-pooler URL with username `prelaunch_api.<project-ref>`, TLS and port 6543. Never use the application service key in the association project. Verify the login can execute enrollment routines but cannot read fantasy/Auth tables or access records. Keep `prelaunch_owner` NOLOGIN and grant it to no application role.
-6. Set fantasy server Config `PUBLIC_REGISTRATION_ORIGIN=https://www.brockfantasy.ca`. Retain canonical `EXPO_PUBLIC_APP_ORIGIN=https://beta.brockfantasy.ca`, existing public Supabase config, and private `SUPABASE_SECRET_KEY`/auth throttle secret in the correct beta branch scope. They must not use an `EXPO_PUBLIC_*` prefix. Verify effective variables for the actual branch before redeploying.
-7. Prepare the association deployment using its README. Keep `PRELAUNCH_INTAKE_ENABLED=false` until sender identity, privacy, consent, retention, challenge, and restricted database access are approved and tested. Public frontend changes may be deployed independently while intake is closed.
-8. Deploy and test the fantasy candidate with Routing Middleware enabled before opening the public CTA/intake. Use Vercel's managed Node builder for `api/index.js`; do not pin an `@vercel/node` package as its function runtime. Check the deployed commit and build status before assuming the beta alias received `/signup`: a failed candidate leaves the previous deployment serving that hostname. Middleware covers all paths before cache, permits exact bootstrap paths and existing static legal-draft documents needed before activation, and denies alternate hosts. It does not expose the private application bundle. `/auth` is a minimal tester entry, not the exported public signup screen. Test platform rewrites, original URLs, HTML/assets and no-store headers on a protected deployment; local adapter tests alone do not prove Vercel routing.
-9. Vercel dashboard: verify generated deployment URLs, branch aliases, historical deployments, preview URLs, `play.brockfantasy.ca`, share links and automation bypasses. Remove unused bypasses. Preserve only the intended reachable beta hostname. Old deployments do not acquire this middleware, so deployment protection must cover them separately. Review project-level CDN routes, which can override deployment routing.
-10. Open intake only after the full anonymous/tester matrix passes. Monitor fixed-code errors, challenge failures, aggregate rate denials, outbox age and verification delivery. Do not log submitted emails, IPs, capabilities, cookies, database URLs or provider response bodies.
+## Account Signup
 
-## Operating Tester Approvals
+`/signup` is rewritten to the minimal server-rendered account form. It uses the existing `/api/auth/sign-up`, calendar-year eligibility requirement, PKCE, Supabase email verification and profile trigger. The old mailing-list intake/privacy/Turnstile/Resend switches no longer control account signup. No new authentication provider is introduced.
 
-Ty signs in, verifies MFA, and opens `/admin/beta-testers` from Operations. Approval/revocation requires an exact email and an audit reason of at least eight characters. Existing league and admin permissions remain separate. Newly approved people use `/tester-activate` and complete the existing email verification and calendar-year eligibility requirements. Ordinary admins cannot approve testers or change Ty's protected operator access.
+Signup forwards only validated email, display name, password and eligibility metadata. Client role/admin flags are ignored. Signup never returns application tokens or sets application access/refresh cookies, even if Supabase email confirmation is disabled. Enable confirmation in hosted Auth settings before rollout. Regular Auth JWTs still cannot access fantasy data directly.
 
-Approval is read on every private request; revocation is not deferred until JWT expiry. Direct Supabase REST/GraphQL reads are restricted by additive restrictive policies; exposed command wrappers and user-facing Edge Functions require application approval. Service-only workers retain their existing grants. Browser route guards are UX only.
+`beta_private.before_user_created` now allows public account creation. Its Auth-only execution grants remain. The old binding trigger is dropped, not replaced with a self-editable authorization field.
 
-## Enrollment and Receipt Contract
+Duplicate signup follows Supabase's privacy behavior. An obfuscated user ID receives a generic receipt, which cannot read or change an existing account's consent. Password/provider errors remain generic. Existing accounts are not overwritten or deleted.
 
-The beta signup entry fetches only the fixed association registration HTML; no beta cookie, bearer header, query destination, or provider session is forwarded. Assets, challenge and the native form action are absolute association URLs. A top-level form POST lets the association set its own host-only cookie without cross-origin AJAX/CORS or parent-domain cookies.
+## Secure Thanks Handoff
 
-Form pages use `Referrer-Policy: strict-origin`, which preserves native POST Origin checks without sending URL paths/query capabilities as referrers. Do not replace it with `no-referrer` on form pages: browsers can serialize the POST Origin as null, causing a valid cross-host enrollment to be rejected. Desktop/mobile browser tests assert the exact Origin and origin-only Referer.
+1. The fantasy server creates a random 256-bit ticket and persists its SHA-256 hash using the service-only `issue_account_signup_handoff` RPC.
+2. After accepted signup it returns a small HTML form that automatically POSTs the ticket to the association `/api/prelaunch/complete-signup`. A manual Continue button works without JavaScript.
+3. The association validates the exact canonical Origin, consumes the ticket atomically and rotates it to a different random receipt.
+4. A host-only `__Host-bf-signup-receipt` cookie is HttpOnly, Secure, SameSite=Lax, Path=/, Max-Age=900, without Domain.
+5. The association 303-redirects to `/thanks`, where PostgreSQL validates the receipt before any confirmation HTML is returned.
 
-Successful persistence returns a 303 to `https://www.brockfantasy.ca/thanks`. The 256-bit random receipt is stored only as a SHA-256 hash and expires in 15 minutes. Cookie: `__Host-bf-signup-receipt; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=900`, no Domain. It grants only confirmation HTML. Refresh/back/revisit is allowed within the window without extending expiry. Missing, malformed, forged, duplicate or expired cookies redirect home. Database outages return 503, not confirmation content. Never deploy a static thanks artifact or route it through the SPA fallback.
+Tickets/receipts are never query parameters or localStorage flags. No beta/application cookie is forwarded. Tickets are one-use; receipts permit refresh/back/revisit only within the original 15-minute database window, without extension. Cookies may outlive that original window but cannot bypass the database expiry. Responses are private/no-store, and BFCache restoration revalidates. Direct `/thanks` without a receipt redirects home. Database failure returns 503, not false success.
 
-An external script revalidates browser back-forward cache restoration through a fresh server request. This is an additional history UX measure, not an authorization decision; the database receipt check remains mandatory.
+Account creation commits before the handoff. A subsequent handoff/outage cannot roll it back; do not delete the account as compensation. Show a generic error, retain the account and its verification email, and investigate the fixed provider/database failure. The activation callback can issue a fresh receipt after verified ownership. Invalid/expired PKCE links retain the existing safe failure path.
 
-Development consent is pending until explicit email confirmation. GET requests from link scanners only render the confirm/unsubscribe form; POST performs the transition. Withdrawal suppresses sending immediately; repeat enrollment cannot silently restore subscription. Verification outbox capabilities are AES-GCM encrypted and DB email tokens are hashed. The encryption key remains only in the association deployment and must be retained across rotations until pending jobs drain.
+## Optional Launch and News Emails
 
-## Future Launch and Rollback
+The thank-you page offers an unchecked, explicit consent checkbox and Return to Landing Page button. Creating an account alone inserts no subscription. The newsletter API accepts no user-selected email, user ID or permission field; identity is derived from the valid receipt.
 
-Future account activation is a separately approved release. Retain existing Auth IDs, profiles and leagues. Verify ownership before linking an enrollment; do not infer account or notification consent from development consent. Transition existing testers' public activation and `launch_state` atomically before switching phase, otherwise they correctly lose access. The current signup hook remains tester-restricted until that future onboarding release changes it deliberately.
+New consent is stored separately from the historical development-only registrations. Pending consent becomes subscribed only after the same Auth email is verified. Email changes suppress old-address subscriptions, rather than moving consent to a new address. Withdrawal is immediate, account-free through a hashed unsubscribe capability, and cannot be silently reversed by duplicate signup. GET only displays withdrawal confirmation; POST changes state.
 
-Changing launch phase to `public` closes intake and verification confirmation; delivery rechecks phase immediately before each send. Stop/drain workers before the phase transaction to avoid an already-in-flight provider request. Maintenance closes pending/subscribed development records, purges expired receipts/tokens, removes unactivated email/name identifiers after 12 months, and purges remaining unactivated records/evidence after 24 months from the later of launch/last development send. Review these policy defaults before opening intake. No development campaign editor, public activation, or future notification system is included.
+This release collects preferences; it does not implement a launch/news campaign sender or send campaign messages. Before a sender is added, review sender identity, contact/postal information, privacy, retention and consent copy; mint fresh unsubscribe capabilities at send time and preserve them for the required validity period. Every delivery must recheck subscribed state and current matching verified Auth email. Do not repurpose old development-only consent or infer account-notification preferences.
 
-Rollback by closing enrollment and restoring a known protected deployment. Keep access policies and stored records; never drop enrollment tables or roll back to an openly reachable old beta. Cloudflare Access and DNS changes are deferred. Optional future Access is an outer boundary only and requires origin JWT validation, exact email allowlisting, direct-origin protection, and continued database authorization.
+## Staff Invitations
 
-## Verification Boundary
+Normal `/auth` sign-in and recovery are administrator-only. Ty can invite a verified registered account through existing staff management.
 
-Run `pnpm check`, `pnpm test:registration:local`, and Edge Function tests in an isolated stack. The registration rehearsal reads only platform schema definitions from the running local Docker database, creates separate disposable databases, runs all pgTAP suites, tests concurrent duplicate enrollment, and verifies an upgrade preserves all four account IDs/profiles, Ethan/Tarik/Ty's admin roles and Ty's protected manager record, while granting Nicholas regular admin only. It never migrates or resets the original database. Local middleware tests mock Vercel's `next`/`rewrite` helpers and provider replies; they prove handler decisions, not hosted CDN behavior. The association's `pnpm test:browser` covers desktop/mobile cross-host form submission using isolated test providers and receipt storage, not hosted Turnstile/PostgreSQL/email. Hosted rollout still requires real cross-domain browser navigation, cookie expiry, mail delivery, challenge replay/host checks, direct Supabase denial, all alternate URLs, and all four approved users' preserved admin/gameplay data.
+An invitation uses a separate `/staff-activate?invitation=<id>` page. Old emailed `/mfa?invitation=<id>` URLs are rewritten there. Only the live, verified, identity-bound pending invitation can establish an isolated 15-minute HttpOnly staff cookie. That cookie cannot authorize the private application or its APIs/assets. Staff enrollment supports explicit setup/restart of incomplete TOTP factors; verified factors are never deleted. Verification upgrades only the staff cookie. The existing database acceptance RPC rechecks invitation expiry, identity, Ty's authority, eligibility, verified TOTP and AAL2 before granting regular admin. Acceptance clears the staff cookie and sends the new admin to normal sign-in.
 
-Platform references: [Vercel Routing Middleware](https://vercel.com/docs/routing-middleware), [Supabase signup hook](https://supabase.com/docs/guides/auth/auth-hooks/before-user-created-hook), [custom-role database connections](https://supabase.com/docs/guides/database/connecting-to-postgres).
+## Approved Hosted Rollout
 
-### Local Results: October 9, 2026
+1. Record both projects' deployed commits/domains and current database counts. Obtain a protected backup and prove restoration. Never reset hosted or ordinary development Supabase.
+2. Verify all four exact Auth IDs, current `admin` roles, eligibility/MFA, and Ty's protected manager row. Resolve missing Nicholas prerequisites through the existing staff workflow, not by replacing accounts.
+3. Apply additive migrations in timestamp order through the approved Supabase workflow. Include `20261009232603_public_accounts_admin_access.sql` after the prior access/registration migrations. No historical migration was rewritten.
+4. Verify Authentication > Hooks > Before User Created points to the updated `beta_private.before_user_created`; verify signup enabled, email confirmations enabled, real SMTP/rate limits, and exact `https://beta.brockfantasy.ca/api/auth/callback` redirect allowlisting.
+5. Do not expose private schemas through REST/GraphQL. Verify storage policies, views, Realtime publications and user-facing Edge Function checks.
+6. Provision the existing restricted `prelaunch_api` login securely outside source/chat/SQL history. Set association `PRELAUNCH_DATABASE_URL` to the Supabase TLS transaction pooler, username `prelaunch_api.<project-ref>`. Prove it can execute completion/consent routines but cannot read Auth/fantasy tables.
+7. Fantasy branch runtime needs existing public Supabase configuration, `EXPO_PUBLIC_APP_ORIGIN=https://beta.brockfantasy.ca`, private `SUPABASE_SECRET_KEY`, `AUTH_RATE_LIMIT_HMAC_SECRET`, and server `PUBLIC_REGISTRATION_ORIGIN=https://www.brockfantasy.ca`. Never put private keys under a public prefix.
+8. Association needs canonical origins, restricted database URL and protected maintenance `CRON_SECRET`. Legacy development-email variables can stay disabled; they do not block account signup. Do not enable old intake to fix the new flow.
+9. Deploy association completion/thanks handlers before the fantasy signup candidate, under protection. Verify original URLs, API route precedence, native Node imports, middleware before cache and managed Vercel Node runtime. A failed build leaves the old deployment live.
+10. Verify deployment protection covers generated URLs, branch aliases, historical deployments, preview URLs, `play.brockfantasy.ca`, share links and automation bypasses. Middleware protects only deployments containing it. Keep Vercel DNS; Cloudflare Access remains deferred.
+11. Test a named new regular account, real verification delivery, optional consent and anonymous denial; then test all four admins, MFA, scoring/league workflows and staff onboarding. Confirm no regular signup grants app access. Monitor fixed-code failures without logging emails, passwords, tokens or secrets.
 
-- Both repositories' `pnpm check` passed; fantasy web, Android and iOS exports completed.
-- All 329 pgTAP assertions passed on fresh migrations; ten concurrent duplicate enrollments produced one registration, ten receipts/consent events and no Auth identities.
-- An existing-account upgrade preserved all four Auth IDs/profiles, Ethan/Tarik/Ty's admin roles and Ty's protected manager record. Nicholas gained regular admin only. All four AAL2 sessions could use the app as admins; only Ty could manage staff/testers.
-- Real local Auth signup denied unapproved email. Auth/MFA, scoring/correction, push and account-deletion smoke tests passed in a separately created Supabase stack. Revoked live JWTs were denied at REST, RPC and every user-facing Edge Function.
-- Association API/PostgreSQL integration passed with the restricted login and real routines, including receipt expiry, encrypted verification jobs, confirmation, withdrawal, duplicate handling and no Auth-user creation. Challenge and email providers were test doubles.
-- All six desktop/mobile Chromium, Firefox and WebKit browser flows passed, including cross-host POST Origin/referrer headers, cookie isolation, refresh/history restoration and fresh-browser/direct thanks denial. Screenshots were checked locally; actual Safari/device and hosted-provider rehearsal remains required.
-- The separately created Supabase stack was stopped after testing. No hosted database, Vercel deployment, live provider, DNS or Cloudflare configuration was changed or verified by these tests.
+Rollback should keep protected deployments and authorization in place. Disable the public signup entry if needed, retain additive data/schema and account identities, and do not return to an openly accessible beta.
+
+## Local Verification
+
+- `pnpm check`: formatting, lint, SQL parsing, types, domain/import tests, middleware tests, web/server export, secret-boundary scanning, real Expo-adapter auth/admin fixtures and Android/iOS exports.
+- `pnpm test:registration:local`: creates disposable PostgreSQL databases, reads only local platform schemas, applies all migrations, runs pgTAP and rehearses upgrade preservation. It does not reset the ordinary development database.
+- Association `pnpm check`: server/frontend types, build, behavioral tests, plain compiled Node runtime imports and browser secret scan.
+- Association `pnpm test:browser`: actual A account handlers and B confirmation handlers on different local hostnames; only provider/database I/O is mocked. Chrome/Firefox/WebKit desktop/mobile coverage includes unchecked consent, receipt isolation, refresh, back and fresh-browser denial.
+- Association `pnpm test:accounts:local`: actual Supabase Auth and restricted PostgreSQL integration against the explicitly named local QA stack, using the real Expo adapter and association handlers. Verifies account/profile persistence, no admin role or automatic subscription, handoff, thanks, pending/confirmed/withdrawn consent, and direct REST/RPC/admin-sign-in denial. The test confirms email through the local administrative API; it does not prove SMTP delivery.
+- Real Edge/Auth integration must use an isolated QA stack with all current migrations, never destructive fixtures against the shared hosted backend.
+
+Local validation is not hosted readiness, SMTP delivery, device certification or launch approval. Public launch remains a separate release: enable verified regular-user application access deliberately while retaining Auth IDs/profiles and existing subscriptions.

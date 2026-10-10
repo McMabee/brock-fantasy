@@ -49,4 +49,8 @@ export default tseslint.config(
       globals: globals.node,
     },
   },
+  {
+    files: ['apps/client/public/beta-auth/*.js'],
+    languageOptions: { globals: globals.browser },
+  },
 );

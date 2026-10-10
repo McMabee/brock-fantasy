@@ -7,7 +7,7 @@ adapter. Keep the repository root, `pnpm install --frozen-lockfile`,
 
 ## Beta variables
 
-Public enrollment/private beta also requires server Config `PUBLIC_REGISTRATION_ORIGIN=https://www.brockfantasy.ca`, both additive access/enrollment migrations, and the protected routing middleware. Follow [the cross-repository rollout runbook](REGISTRATION_PRIVATE_BETA.md) before enabling it. The association project has its own restricted database credential and server secrets; never copy `SUPABASE_SECRET_KEY` into that project or expose private values with a public prefix. Existing admin/MFA credentials and user roles stay unchanged.
+Public account signup and the administrator-only beta also require server Config `PUBLIC_REGISTRATION_ORIGIN=https://www.brockfantasy.ca`, the additive access/registration migrations including `20261009232603_public_accounts_admin_access.sql`, and protected routing middleware. Follow [the cross-repository rollout runbook](REGISTRATION_PRIVATE_BETA.md) before publishing. The association project uses its own restricted database credential for signup receipts and optional launch/news consent; never copy `SUPABASE_SECRET_KEY` into that project or expose private values with a public prefix. Old development-enrollment switches do not gate account signup. Existing admin/MFA credentials and user roles stay unchanged.
 
 Open Vercel → project **brock-fantasy** → **Environment Variables** (under
 Settings in some dashboard layouts). Add these nine project variables with

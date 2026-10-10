@@ -1,108 +1,50 @@
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
-import { registrationYearAt } from '@brock-fantasy/domain';
-import { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-
+import * as Linking from 'expo-linking';
+import { useState } from 'react';
+import { StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
 import { useSession } from '@/providers/session-provider';
 import { colors, heading } from '@/theme';
 import { authReturnPath } from '@/lib/admin-navigation';
 
-type AuthMode = 'sign_in' | 'sign_up';
-
 export default function AuthScreen() {
   const router = useRouter();
   const { next } = useLocalSearchParams<{ next?: string }>();
   const { width } = useWindowDimensions();
-  const { signIn, signUp } = useSession();
-  const [mode, setMode] = useState<AuthMode>('sign_in');
-  const [displayName, setDisplayName] = useState('');
+  const { signIn } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [eligibilityAttested, setEligibilityAttested] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const wide = width >= 820;
-
   const submit = async () => {
     setError(null);
-    setNotice(null);
-    if (
-      !email.includes('@') ||
-      password.length < 8 ||
-      (mode === 'sign_up' && !displayName.trim())
-    ) {
-      setError('Enter a valid email, an 8+ character password, and your display name.');
-      return;
-    }
-    if (mode === 'sign_up' && !eligibilityAttested) {
-      setError(`Confirm that you are 18 or turn 18 by December 31, ${registrationYearAt()}.`);
+    if (!email.includes('@') || password.length < 8) {
+      setError('Enter your administrator email and password.');
       return;
     }
     setLoading(true);
-    const message =
-      mode === 'sign_in'
-        ? await signIn(email.trim(), password)
-        : await signUp(email.trim(), password, displayName.trim(), eligibilityAttested);
-    setLoading(false);
-    if (message) setError(message);
-    else if (mode === 'sign_up')
-      setNotice('Check your email to verify your account, then sign in.');
-    else router.replace(next ? authReturnPath(next) : '/dashboard');
+    try {
+      const message = await signIn(email.trim(), password);
+      if (message) setError(message);
+      else router.replace(next ? authReturnPath(next) : '/dashboard');
+    } finally {
+      setLoading(false);
+    }
   };
-
   return (
     <AppShell>
-      <View style={[styles.layout, wide && styles.layoutWide]}>
+      <View style={[styles.layout, width >= 820 && styles.layoutWide]}>
         <View style={styles.copy}>
           <Pill label="PRIVATE BETA" tone="positive" />
           <Text accessibilityRole="header" style={styles.title}>
-            Your season,{`\n`}your Badgers.
+            Administrator Sign In
           </Text>
           <Text style={styles.body}>
-            Sign in or activate an individually approved tester account. Development-update
-            enrollment does not create an account or grant access to the private beta.
+            The fantasy app is currently available to administrators only. Creating an account does
+            not grant beta access.
           </Text>
-          <View style={styles.benefits}>
-            {[
-              'Individually approved testers',
-              'Invite-only league membership',
-              'Auditable scoring and corrections',
-            ].map((benefit) => (
-              <View key={benefit} style={styles.benefit}>
-                <Text style={styles.check}>✓</Text>
-                <Text style={styles.benefitText}>{benefit}</Text>
-              </View>
-            ))}
-          </View>
         </View>
-
         <Card style={styles.formCard}>
-          <AuthTabs
-            mode={mode}
-            onChange={(nextMode) => {
-              setMode(nextMode);
-              setError(null);
-              setNotice(null);
-            }}
-          />
-          {mode === 'sign_up' ? (
-            <Field
-              label="Display name"
-              value={displayName}
-              onChangeText={setDisplayName}
-              autoComplete="name"
-            />
-          ) : null}
           <Field
             label="Email"
             value={email}
@@ -114,115 +56,43 @@ export default function AuthScreen() {
             label="Password"
             value={password}
             onChangeText={setPassword}
-            autoComplete={mode === 'sign_in' ? 'current-password' : 'new-password'}
+            autoComplete="current-password"
             secureTextEntry
           />
-          {mode === 'sign_up' ? (
-            <Pressable
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: eligibilityAttested }}
-              onPress={() => setEligibilityAttested((value) => !value)}
-              style={styles.eligibility}
-            >
-              <Text style={styles.eligibilityCheck}>{eligibilityAttested ? '☑' : '☐'}</Text>
-              <Text style={styles.eligibilityText}>
-                I am 18 or will turn 18 by December 31, {registrationYearAt()}.
-              </Text>
-            </Pressable>
-          ) : null}
           {error ? (
             <Text accessibilityRole="alert" style={styles.error}>
               {error}
             </Text>
           ) : null}
-          {notice ? (
-            <Text accessibilityRole="alert" style={styles.notice}>
-              {notice}
-            </Text>
-          ) : null}
           <ActionButton
-            label={mode === 'sign_in' ? 'Sign in' : 'Activate tester account'}
+            label="Administrator sign-in"
             onPress={() => void submit()}
             loading={loading}
           />
-          {mode === 'sign_in' ? (
-            <Link href="/forgot-password" style={styles.forgotLink}>
-              Forgot password?
-            </Link>
-          ) : null}
+          <Link href="/forgot-password" style={uiStyles.link}>
+            Forgot password?
+          </Link>
+          <ActionButton
+            label="Create an account"
+            variant="secondary"
+            onPress={() => void Linking.openURL('https://beta.brockfantasy.ca/signup')}
+          />
           <Text style={styles.terms}>
-            By activating a tester account, you agree to the{' '}
+            Read our{' '}
             <Link href="/terms" style={uiStyles.link}>
               Terms
-            </Link>
-            . Read our{' '}
+            </Link>{' '}
+            and{' '}
             <Link href="/privacy" style={uiStyles.link}>
               Privacy notice
-            </Link>{' '}
-            to learn how we use your information.
+            </Link>
+            .
           </Text>
         </Card>
       </View>
     </AppShell>
   );
 }
-
-function AuthTabs({ mode, onChange }: { mode: AuthMode; onChange: (mode: AuthMode) => void }) {
-  const slide = useRef(new Animated.Value(mode === 'sign_up' ? 1 : 0)).current;
-  const [tabWidth, setTabWidth] = useState(0);
-
-  useEffect(() => {
-    Animated.spring(slide, {
-      toValue: mode === 'sign_up' ? 1 : 0,
-      damping: 20,
-      stiffness: 240,
-      mass: 0.65,
-      useNativeDriver: true,
-    }).start();
-  }, [mode, slide]);
-
-  const translateX = slide.interpolate({ inputRange: [0, 1], outputRange: [0, tabWidth] });
-  return (
-    <View
-      accessibilityRole="tablist"
-      onLayout={(event) => setTabWidth(Math.max(0, (event.nativeEvent.layout.width - 8) / 2))}
-      style={styles.tabs}
-    >
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.tabIndicator, { width: tabWidth, transform: [{ translateX }] }]}
-      />
-      <AuthTab active={mode === 'sign_in'} label="Sign in" onPress={() => onChange('sign_in')} />
-      <AuthTab
-        active={mode === 'sign_up'}
-        label="Tester activation"
-        onPress={() => onChange('sign_up')}
-      />
-    </View>
-  );
-}
-
-function AuthTab({
-  active,
-  label,
-  onPress,
-}: {
-  active: boolean;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="tab"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={styles.tab}
-    >
-      <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 function Field({ label, ...props }: { label: string } & React.ComponentProps<typeof TextInput>) {
   return (
     <View style={styles.field}>
@@ -237,7 +107,6 @@ function Field({ label, ...props }: { label: string } & React.ComponentProps<typ
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   layout: { paddingTop: 38, gap: 36 },
   layoutWide: {
@@ -247,44 +116,10 @@ const styles = StyleSheet.create({
     paddingTop: 70,
   },
   copy: { flex: 1, maxWidth: 520 },
-  title: { ...heading, fontSize: 52, lineHeight: 55, marginTop: 18 },
+  title: { ...heading, fontSize: 42, lineHeight: 46, marginTop: 18 },
   body: { color: colors.muted, fontSize: 17, lineHeight: 27, marginTop: 18 },
-  benefits: { marginTop: 26, gap: 13 },
-  benefit: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-  check: { color: colors.brand, fontWeight: '900', fontSize: 16 },
-  benefitText: { color: colors.text, fontSize: 14, fontWeight: '700' },
   formCard: { flex: 0.8, width: '100%', maxWidth: 440, gap: 17, padding: 24 },
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: colors.canvasSoft,
-    padding: 4,
-    borderRadius: 12,
-    position: 'relative',
-  },
-  tabIndicator: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    bottom: 4,
-    borderRadius: 9,
-    backgroundColor: colors.panelStrong,
-  },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 9, zIndex: 1 },
-  tabText: { color: colors.muted, fontSize: 13, fontWeight: '800' },
-  tabTextActive: { color: colors.white },
   field: { gap: 7 },
   error: { color: colors.danger, fontSize: 12, lineHeight: 18 },
-  notice: { color: colors.brand, fontSize: 12, lineHeight: 18 },
-  forgotLink: {
-    alignSelf: 'center',
-    padding: 6,
-    color: colors.brand,
-    fontWeight: '700',
-    fontSize: 12,
-    textDecorationLine: 'underline',
-  },
-  eligibility: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
-  eligibilityCheck: { color: colors.brand, fontSize: 22 },
-  eligibilityText: { color: colors.text, fontSize: 12, lineHeight: 18, flex: 1 },
   terms: { color: colors.muted, textAlign: 'center', fontSize: 10, lineHeight: 15 },
 });

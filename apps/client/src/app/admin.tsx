@@ -114,9 +114,6 @@ export default function AdminScreen() {
             <ActionButton label="Import provider snapshot" href="/admin/import" />
             <ActionButton label="Scorekeeping workspace" href="/admin/games" variant="secondary" />
             {canManageAccounts ? (
-              <ActionButton label="Beta testers" href="/admin/beta-testers" variant="secondary" />
-            ) : null}
-            {canManageAccounts ? (
               <ActionButton
                 label="Administrator invitations"
                 href="/admin/accounts"

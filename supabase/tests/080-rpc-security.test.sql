@@ -3,7 +3,7 @@ select no_plan();
 
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname = 'rpc_private' and p.proname not in ('can_use_app','require_app_access')
+  where n.nspname = 'rpc_private' and p.proname not in ('can_use_app','require_app_access','is_admin_account_email','issue_account_signup_handoff')
 ), 37, 'all 37 reported signatures have private implementations');
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -25,7 +25,7 @@ select ok(
 from pg_proc private join pg_namespace n on n.oid = private.pronamespace
 join pg_proc exposed on exposed.pronamespace = 'public'::regnamespace
   and exposed.proname = private.proname and exposed.proargtypes = private.proargtypes
-where n.nspname = 'rpc_private' and private.proname not in ('can_use_app','require_app_access') order by exposed.oid::regprocedure::text;
+where n.nspname = 'rpc_private' and private.proname not in ('can_use_app','require_app_access','is_admin_account_email','issue_account_signup_handoff') order by exposed.oid::regprocedure::text;
 
 select ok(
   not has_function_privilege('anon', exposed.oid, 'EXECUTE')
@@ -41,7 +41,7 @@ select ok(
 from pg_proc private join pg_namespace n on n.oid = private.pronamespace
 join pg_proc exposed on exposed.pronamespace = 'public'::regnamespace
   and exposed.proname = private.proname and exposed.proargtypes = private.proargtypes
-where n.nspname = 'rpc_private' and private.proname not in ('can_use_app','require_app_access') order by exposed.oid::regprocedure::text;
+where n.nspname = 'rpc_private' and private.proname not in ('can_use_app','require_app_access','is_admin_account_email','issue_account_signup_handoff') order by exposed.oid::regprocedure::text;
 
 select is((
   select count(*)::integer from pg_proc p where p.pronamespace = 'rpc_private'::regnamespace
@@ -79,7 +79,7 @@ insert into auth.sessions(id,user_id,aal) values
 ('99000000-0000-4000-8000-000000000001','99000000-0000-4000-8000-000000000001','aal1'),
 ('99000000-0000-4000-8000-000000000002','99000000-0000-4000-8000-000000000002','aal2');
 insert into public.user_roles (user_id, role)
-values ('99000000-0000-4000-8000-000000000001', 'admin');
+values ('99000000-0000-4000-8000-000000000001', 'admin'),('99000000-0000-4000-8000-000000000002', 'admin');
 insert into public.sports (id, code, name)
 values ('99000000-0000-4000-8000-000000000003', 'hockey', 'RPC test sport');
 insert into public.scoring_rulesets (id, sport, name, version, status, approved_at)
@@ -150,9 +150,9 @@ reset role;
 update public.push_tokens set enabled = true where expo_push_token = 'ExpoPushToken[test_rpc]';
 
 select set_config('request.jwt.claim.sub', '99000000-0000-4000-8000-000000000002', true);
-select set_config('request.jwt.claims', '{"sub":"99000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal2","session_id":"99000000-0000-4000-8000-000000000002","user_metadata":{"admin":true}}', true);
+select set_config('request.jwt.claims', '{"sub":"99000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1","session_id":"99000000-0000-4000-8000-000000000002","user_metadata":{"admin":true}}', true);
 set local role authenticated;
-select is(public.current_user_is_admin(), false, 'editable metadata cannot grant admin access');
+select is(public.current_user_is_admin(), false, 'editable metadata cannot bypass administrator MFA');
 select is((select count(*)::integer from public.leagues where id = '99000000-0000-4000-8000-000000000006'),
   0, 'non-members still cannot read the private league');
 select is(public.get_athlete_adp('99000000-0000-4000-8000-000000000010', '99000000-0000-4000-8000-000000000007'),
