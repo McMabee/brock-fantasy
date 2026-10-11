@@ -304,6 +304,10 @@ try {
     formHtml,
     /action="https:\/\/www\.brockfantasy\.ca\/api\/prelaunch\/complete-signup"/u,
   );
+  assert.match(formHtml, /complete-signup\.js/u);
+  assert.match(formHtml, /<form id="complete-signup"[^>]* hidden>/u);
+  assert.match(formHtml, /Redirecting you to your confirmation and optional email preferences/u);
+  assert.doesNotMatch(formHtml, /<button\b/u);
   assert.doesNotMatch(formHtml, /evil\.example|must-not-be-returned/u);
   results.push({
     scenario:
@@ -316,7 +320,9 @@ try {
     headers: { ...headers, cookie: 'bf_pkce=fixture-verifier; bf_auth_flow=sign-up' },
   });
   assert.equal(verified.status, 200);
-  assert.match(await verified.text(), /api\/prelaunch\/complete-signup/u);
+  const verifiedHtml = await verified.text();
+  assert.match(verifiedHtml, /api\/prelaunch\/complete-signup/u);
+  assert.doesNotMatch(verifiedHtml, /<button\b/u);
   assert.ok(
     verified.headers
       .getSetCookie()

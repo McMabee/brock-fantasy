@@ -52,7 +52,7 @@ export function handoffPage(ticket: string, cookies: readonly string[] = []): Re
   });
   cookies.forEach((cookie) => headers.append('set-cookie', cookie));
   return new Response(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Account Registered | Brock Fantasy</title><link rel="stylesheet" href="/beta-auth/entry.css"><script src="/beta-auth/complete-signup.js" defer></script></head><body><header><a href="${origin}">BROCK FANTASY</a><span>PRIVATE BETA</span></header><main><h1>Thanks for Signing Up!</h1><p>Continue to your confirmation and optional email preferences.</p><form id="complete-signup" method="post" action="${origin}/api/prelaunch/complete-signup"><input type="hidden" name="receipt" value="${ticket}"><button type="submit">Continue</button></form></main></body></html>`,
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Account Registered | Brock Fantasy</title><link rel="stylesheet" href="/beta-auth/entry.css"><script src="/beta-auth/complete-signup.js" defer></script></head><body><header><a href="${origin}">BROCK FANTASY</a><span>PRIVATE BETA</span></header><main><h1>Thanks for Signing Up!</h1><p role="status">Your account is registered. Redirecting you to your confirmation and optional email preferences…</p><noscript><p>Enable JavaScript to continue to your confirmation and optional email preferences.</p></noscript><form id="complete-signup" method="post" action="${origin}/api/prelaunch/complete-signup" hidden><input type="hidden" name="receipt" value="${ticket}"></form></main></body></html>`,
     { headers },
   );
 }
