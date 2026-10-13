@@ -7,6 +7,11 @@ the supplied 2026-27 projected fantasy points. Player profiles include supplied
 season projections and 2025-26 history. Missing values remain unavailable;
 recorded zero and negative values are preserved.
 
+October 13, 2026: the separate hosted draft pool is now active for the
+administrator test, with 120 eligible players and frozen supplied-projection
+rankings. Scoring is paused. See [the live draft instructions](ADMIN_DRAFT_TEST.md)
+for four-manager setup, verification and recovery.
+
 The current `logic/` rosters contain 122 players. The two recorded opt-outs are
 excluded from canonical player creation and directory publication, including
 when a later CSV omits their `**` marker. Included counts are:

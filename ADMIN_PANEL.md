@@ -9,7 +9,13 @@ accessible. Hosted readback confirms one admin and one verified TOTP factor.
 Real staff grants and successful import/score publication are separate checks;
 The six approved rosters now have 120 published player records, excluding both
 recorded opt-outs, with supplied history and projections. Canonical games are
-still empty. Draft eligibility and the player pool remain inactive.
+still empty. Draft eligibility and the player pool remained inactive at that point.
+
+October 13, 2026: the six-program pool is active for the administrator draft
+test, with 120 eligible players and frozen supplied-projection rankings. The
+timeout worker runs every 15 seconds; scoring is paused. See
+[the live draft instructions](ADMIN_DRAFT_TEST.md). Hosted readback shows three
+active admins, so a fourth must complete onboarding for the four-manager test.
 
 The beta hostname has a Vercel Deployment Protection exception; generated
 preview URLs retain Vercel Authentication. Admin APIs still enforce the app's
