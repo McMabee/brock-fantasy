@@ -1,5 +1,12 @@
 import { apiConfig, mutationError, requestCookie } from './session';
 import { limitAuthRequest } from './auth-rate-limit';
+import { mfaFailure } from './mfa-errors';
+
+interface StaffFactor {
+  id: string;
+  factor_type: string;
+  status: string;
+}
 
 const escape = (value: string) =>
   value.replace(
@@ -45,7 +52,7 @@ function render(id: string, content: string, status = 200, cookies: string[] = [
     'referrer-policy': 'strict-origin',
     'x-content-type-options': 'nosniff',
     'content-security-policy':
-      "default-src 'none'; style-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+      "default-src 'none'; style-src 'self'; img-src data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
   });
   cookies.forEach((v) => headers.append('set-cookie', v));
   return new Response(
@@ -55,6 +62,23 @@ function render(id: string, content: string, status = 200, cookies: string[] = [
 }
 function form(id: string, csrf: string, action: string, fields: string, label: string) {
   return `<form method="post" action="/api/auth/staff?invitation=${escape(id)}"><input type="hidden" name="csrf" value="${escape(csrf)}"><input type="hidden" name="action" value="${action}">${fields}<button type="submit">${label}</button></form>`;
+}
+function verificationPage(
+  id: string,
+  csrf: string,
+  factor: StaffFactor,
+  message = '',
+  status = 200,
+  content = '',
+  cookies: string[] = [],
+) {
+  const pending = factor.status === 'unverified';
+  return render(
+    id,
+    `${message ? `<p role="alert">${escape(message)}</p>` : ''}${content}${pending && !content ? '<p>Continue using the Brock Fantasy entry you already added to your authenticator. Reloading this page keeps the same setup.</p>' : ''}${form(id, csrf, 'verify', `<input type="hidden" name="factor" value="${escape(factor.id)}"><label>Authenticator code<input name="code" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required autocomplete="one-time-code"></label>`, 'Verify Authenticator')}${pending ? `<details><summary>Need to restart setup?</summary><p>Restart only if you did not save this setup or added an older key. Replace the unfinished Brock Fantasy entry in your authenticator with the new QR code or setup key.</p>${form(id, csrf, 'restart-enrollment', '', 'Restart Authenticator Setup')}</details>` : ''}`,
+    status,
+    cookies,
+  );
 }
 export async function staffActivation(request: Request): Promise<Response> {
   const id = new URL(request.url).searchParams.get('invitation');
@@ -112,9 +136,14 @@ export async function staffActivation(request: Request): Promise<Response> {
     const user = await provider('auth/v1/user', token);
     if (!user.ok) return login();
     const details = (await user.json()) as {
-      factors?: { id: string; factor_type: string; status: string }[];
+      factors?: StaffFactor[];
     };
-    let factor = details.factors?.find((v) => v.factor_type === 'totp' && v.status === 'verified');
+    const verifiedFactor = details.factors?.find(
+      (v) => v.factor_type === 'totp' && v.status === 'verified',
+    );
+    let factor =
+      verifiedFactor ??
+      details.factors?.find((v) => v.factor_type === 'totp' && v.status === 'unverified');
     if (fields?.get('action') === 'accept') {
       const r = await provider('rest/v1/rpc/admin_accept_invitation', token, {
         p_invitation_id: id,
@@ -130,35 +159,73 @@ export async function staffActivation(request: Request): Promise<Response> {
     }
     if (fields?.get('action') === 'verify') {
       const factorId = fields.get('factor'),
-        code = fields.get('code');
+        code = fields.get('code')?.trim();
+      const selected = details.factors?.find((v) => v.factor_type === 'totp' && v.id === factorId);
+      if (!selected) {
+        return factor
+          ? verificationPage(
+              id,
+              csrf,
+              factor,
+              'This setup has changed. Use the current authenticator entry or restart the unfinished setup below.',
+              400,
+              '',
+              [csrfCookie],
+            )
+          : render(id, form(id, csrf, 'enroll', '', 'Set Up Authenticator'), 400, [csrfCookie]);
+      }
       if (!factorId || !/^[0-9a-f-]{36}$/iu.test(factorId) || !code || !/^\d{6}$/u.test(code))
-        return render(
+        return verificationPage(
           id,
-          '<p role="alert">Enter a valid authenticator code. Reload to try again.</p>',
+          csrf,
+          selected,
+          'Enter the six-digit code from your authenticator app.',
           400,
+          '',
+          [csrfCookie],
         );
       const challenge = await provider(`auth/v1/factors/${factorId}/challenge`, token, {});
-      const ch = (await challenge.json()) as { id?: unknown };
-      if (!challenge.ok || typeof ch.id !== 'string') throw new Error('Unavailable');
+      const ch = (await challenge.json().catch(() => null)) as { id?: unknown } | null;
+      if (!challenge.ok || typeof ch?.id !== 'string')
+        return verificationPage(
+          id,
+          csrf,
+          selected,
+          mfaFailure(ch, challenge.status, 'staff_invitation', 'challenge'),
+          400,
+          '',
+          [csrfCookie],
+        );
       const verification = await provider(`auth/v1/factors/${factorId}/verify`, token, {
         challenge_id: ch.id,
         code,
       });
-      const value = (await verification.json()) as { access_token?: unknown };
-      if (
-        !verification.ok ||
-        typeof value.access_token !== 'string' ||
-        !(await invited(value.access_token, id))
-      )
-        return render(id, '<p role="alert">Verification failed. Reload to try again.</p>', 400);
+      const value = (await verification.json().catch(() => null)) as {
+        access_token?: unknown;
+      } | null;
+      if (!verification.ok || typeof value?.access_token !== 'string')
+        return verificationPage(
+          id,
+          csrf,
+          selected,
+          mfaFailure(value, verification.status, 'staff_invitation', 'verify'),
+          400,
+          '',
+          [csrfCookie],
+        );
+      if (!(await invited(value.access_token, id)))
+        return login('This invitation is unavailable for this account.', 403);
       token = value.access_token;
       return render(id, form(id, csrf, 'accept', '', 'Accept Administrator Invitation'), 200, [
         cookie(staffCookie(), token),
       ]);
     }
     let content = '';
-    if (!factor) {
-      if (fields?.get('action') !== 'enroll')
+    const enrollmentRequested = ['enroll', 'restart-enrollment'].includes(
+      fields?.get('action') ?? '',
+    );
+    if (!verifiedFactor && (!factor || enrollmentRequested)) {
+      if (!enrollmentRequested)
         return render(id, form(id, csrf, 'enroll', '', 'Set Up Authenticator'), 200, [csrfCookie]);
       for (const pending of details.factors ?? []) {
         if (pending.factor_type !== 'totp' || pending.status !== 'unverified') continue;
@@ -179,18 +246,21 @@ export async function staffActivation(request: Request): Promise<Response> {
         factor_type: 'totp',
         friendly_name: 'Brock Fantasy administrator',
       });
-      const value = (await r.json()) as { id?: unknown; totp?: { secret?: unknown } };
+      const value = (await r.json()) as {
+        id?: unknown;
+        totp?: { secret?: unknown; qr_code?: unknown };
+      };
       if (!r.ok || typeof value.id !== 'string' || typeof value.totp?.secret !== 'string')
         throw new Error('Unavailable');
       factor = { id: value.id, factor_type: 'totp', status: 'unverified' };
-      content = `<p>Add a time-based account in your authenticator using this setup key:</p><p><code>${escape(value.totp.secret)}</code></p>`;
+      const qr =
+        typeof value.totp.qr_code === 'string'
+          ? `<img src="${escape(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(value.totp.qr_code)}`)}" width="240" height="240" alt="Scan this QR code with your authenticator app">`
+          : '';
+      content = `<p>Add Brock Fantasy as a time-based account in your authenticator. Scan this QR code or enter the setup key below. Use six-digit codes that change every 30 seconds.</p>${qr}<p><code>${escape(value.totp.secret)}</code></p><p>Keep this page open until you verify the code. If you restarted setup, replace the older unfinished Brock Fantasy entry.</p>`;
     }
-    return render(
-      id,
-      `${content}${form(id, csrf, 'verify', `<input type="hidden" name="factor" value="${escape(factor.id)}"><label>Authenticator code<input name="code" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" required autocomplete="one-time-code"></label>`, 'Verify Authenticator')}`,
-      200,
-      [csrfCookie],
-    );
+    if (!factor) throw new Error('Unavailable');
+    return verificationPage(id, csrf, factor, '', 200, content, [csrfCookie]);
   } catch {
     return render(
       id,

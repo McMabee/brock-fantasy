@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'expo-router/server';
+import { mfaFailure } from '@/server/mfa-errors';
 
 import {
   actor,
@@ -139,7 +140,10 @@ export const POST: RequestHandler = async (request) => {
     );
     const challengeValue = (await challenge.json().catch(() => null)) as { id?: unknown } | null;
     if (!challenge.ok || !challengeValue || typeof challengeValue.id !== 'string') {
-      return json({ error: 'Authenticator challenge could not be created.' }, 400);
+      return json(
+        { error: mfaFailure(challengeValue, challenge.status, 'admin', 'challenge') },
+        400,
+      );
     }
     const verification = await fetch(
       `${config.url}/auth/v1/factors/${encodeURIComponent(factorId)}/verify`,
@@ -155,7 +159,7 @@ export const POST: RequestHandler = async (request) => {
     );
     const tokens = (await verification.json().catch(() => null)) as AuthTokens | null;
     if (!verification.ok || !tokens?.access_token || !tokens.refresh_token) {
-      return json({ error: 'Authenticator verification failed.' }, 400);
+      return json({ error: mfaFailure(tokens, verification.status, 'admin', 'verify') }, 400);
     }
     return json({ ok: true, aal: 'aal2' }, 200, sessionCookies(tokens));
   } catch {

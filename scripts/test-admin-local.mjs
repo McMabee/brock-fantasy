@@ -118,7 +118,8 @@ try {
       role = true;
       return Response.json({ enabled: true });
     }
-    if (target.endsWith('/auth/v1/factors') && method === 'POST')
+    if (target.endsWith('/auth/v1/factors') && method === 'POST') {
+      entries.push({ id: factorId, status: 'unverified', factor_type: 'totp' });
       return Response.json({
         id: factorId,
         totp: {
@@ -126,16 +127,30 @@ try {
           secret: 'private-factor-fixture',
         },
       });
-    if (target.endsWith(`/auth/v1/factors/${factorId}`) && method === 'DELETE')
+    }
+    if (target.endsWith(`/auth/v1/factors/${factorId}`) && method === 'DELETE') {
+      entries = entries.filter((entry) => entry.id !== factorId);
       return new Response(null, { status: 204 });
+    }
     if (target.endsWith(`/auth/v1/factors/${factorId}/challenge`))
       return Response.json({ id: 'challenge-fixture' });
-    if (target.endsWith(`/auth/v1/factors/${factorId}/verify`))
+    if (target.endsWith(`/auth/v1/factors/${factorId}/verify`)) {
+      if (failure === 'totp-invalid')
+        return Response.json(
+          { error_code: 'mfa_verification_failed', msg: 'private provider diagnostic' },
+          { status: 422 },
+        );
+      if (failure === 'mfa-ip')
+        return Response.json({ code: 'mfa_ip_address_mismatch' }, { status: 422 });
+      entries = entries.map((entry) =>
+        entry.id === factorId ? { ...entry, status: 'verified' } : entry,
+      );
       return Response.json({
         access_token: jwt('aal2'),
         refresh_token: 'private-refresh-fixture',
         expires_in: 3600,
       });
+    }
     if (target.includes('/rest/v1/games?')) return Response.json([game]);
     if (target.includes('/rest/v1/normalized_player_game_stats?'))
       return failure === 'stats'
@@ -261,6 +276,23 @@ try {
   );
   assert.ok(!JSON.stringify(result.data).includes('private-refresh-fixture'));
   results.push('Successful MFA verification upgrades HttpOnly session cookies');
+  failure = 'totp-invalid';
+  result = await request('/api/admin/mfa', {
+    aal: 'aal1',
+    method: 'POST',
+    body: { action: 'verify', factorId, code: '123456' },
+  });
+  assert.equal(result.response.status, 400);
+  assert.match(result.data.error, /newest six-digit code/u);
+  assert.ok(!JSON.stringify(result.data).includes('private provider diagnostic'));
+  failure = 'mfa-ip';
+  result = await request('/api/admin/mfa', {
+    aal: 'aal1',
+    method: 'POST',
+    body: { action: 'verify', factorId, code: '123456' },
+  });
+  assert.match(result.data.error, /different connection/u);
+  failure = '';
 
   role = false;
   result = await request('/api/admin/games', { aal: 'aal2' });
@@ -489,11 +521,67 @@ try {
   assert.match(await (await staff(null, jwt('aal1'))).text(), /Set Up Authenticator/u);
   activation = await staff({ action: 'enroll' }, jwt('aal1'));
   assert.equal(activation.status, 200);
-  assert.match(await activation.text(), /Authenticator code/u);
+  const enrollmentHtml = await activation.text();
+  assert.match(enrollmentHtml, /Authenticator code/u);
+  assert.match(enrollmentHtml, /data:image\/svg\+xml/u);
+  assert.match(activation.headers.get('content-security-policy'), /img-src data:/u);
+  const afterEnrollment = calls.length;
+  activation = await staff(null, jwt('aal1'));
+  const pendingHtml = await activation.text();
+  assert.match(pendingHtml, /Continue using the Brock Fantasy entry/u);
+  assert.match(pendingHtml, new RegExp(`name="factor" value="${factorId}"`, 'u'));
+  assert.ok(!pendingHtml.includes('private-factor-fixture'));
+  assert.ok(
+    calls
+      .slice(afterEnrollment)
+      .every(
+        (call) => call.method === 'GET' || call.target.endsWith('/rpc/admin_invitation_status'),
+      ),
+  );
+  failure = 'totp-invalid';
+  const beforeRetry = calls.length;
+  activation = await staff({ action: 'verify', factor: factorId, code: '123456' }, jwt('aal1'));
+  assert.equal(activation.status, 400);
+  const failureHtml = await activation.text();
+  assert.match(failureHtml, /newest six-digit code/u);
+  assert.match(failureHtml, /Verify Authenticator/u);
+  assert.match(failureHtml, new RegExp(`name="factor" value="${factorId}"`, 'u'));
+  assert.ok(!failureHtml.includes('private provider diagnostic'));
+  assert.ok(!failureHtml.includes('value="123456"'));
+  assert.ok(
+    !activation.headers.getSetCookie().some((value) => value.startsWith(`${staffCookieName}=`)),
+  );
+  assert.ok(
+    calls
+      .slice(beforeRetry)
+      .every((call) => call.method !== 'DELETE' && !call.target.endsWith('/auth/v1/factors')),
+  );
+  activation = await staff(null, jwt('aal1'));
+  assert.match(await activation.text(), /Continue using the Brock Fantasy entry/u);
+  failure = '';
+  const beforeWrongFactor = calls.length;
+  activation = await staff({ action: 'verify', factor: invitationId, code: '123456' }, jwt('aal1'));
+  assert.equal(activation.status, 400);
+  assert.ok(
+    calls
+      .slice(beforeWrongFactor)
+      .every((call) => !call.target.endsWith('/challenge') && !call.target.endsWith('/verify')),
+  );
+  results.push(
+    'Pending invitation MFA survives reload and rejected codes; retries preserve the factor and hide codes/secrets; QR enrollment and safe provider-specific errors are available',
+  );
   activation = await staff({ action: 'verify', factor: factorId, code: '123456' }, jwt('aal1'));
   assert.equal(activation.status, 200);
   assert.match(await activation.text(), /Accept Administrator Invitation/u);
   assert.equal(role, false, 'MFA verification alone does not grant a role');
+  const beforeVerifiedRestart = calls.length;
+  activation = await staff({ action: 'restart-enrollment' }, jwt('aal2'));
+  assert.ok(
+    calls
+      .slice(beforeVerifiedRestart)
+      .every((call) => call.method !== 'DELETE' && !call.target.endsWith('/auth/v1/factors')),
+  );
+  assert.match(await activation.text(), /Verify Authenticator/u);
   activation = await staff({ action: 'accept' }, jwt('aal2'));
   assert.equal(activation.status, 303);
   assert.equal(activation.headers.get('location'), '/auth');
