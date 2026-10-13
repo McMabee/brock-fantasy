@@ -15,7 +15,12 @@ export default function DashboardScreen() {
     <AppShell
       eyebrow="Your season"
       title="Dashboard"
-      action={<ActionButton label="Create league" href="/leagues/new" />}
+      action={
+        <View style={styles.actions}>
+          <ActionButton label="Join league" href="/leagues/join" variant="secondary" />
+          <ActionButton label="Create league" href="/leagues/new" />
+        </View>
+      }
     >
       <SectionTitle title="Your leagues" detail={`${leagues.length} total`} />
       {leagues.length === 0 ? (
@@ -63,6 +68,7 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   list: { gap: 12 },
   leagueCard: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14 },
   leagueCopy: { flex: 1, minWidth: 180 },

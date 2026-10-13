@@ -5,6 +5,7 @@ export function adminReturnPath(value: unknown): (typeof adminRoutes)[number] {
 }
 
 export function authReturnPath(value: unknown): string {
+  if (value === '/leagues/join') return value;
   if (typeof value === 'string' && /^\/mfa\?invitation=[0-9a-f-]{36}$/iu.test(value)) return value;
   return adminReturnPath(value);
 }

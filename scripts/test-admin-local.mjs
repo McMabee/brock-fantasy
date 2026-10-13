@@ -512,6 +512,7 @@ try {
   ])
     assert.equal(adminReturnPath(value), '/admin');
   assert.equal(adminReturnPath('/admin/games'), '/admin/games');
+  assert.equal(authReturnPath('/leagues/join'), '/leagues/join');
   assert.equal(
     authReturnPath(`/mfa?invitation=${invitationId}`),
     `/mfa?invitation=${invitationId}`,
@@ -520,6 +521,8 @@ try {
     'https://evil.example/mfa',
     '/mfa?invitation=invalid',
     `/mfa?invitation=${invitationId}&next=https://evil.example`,
+    '/leagues/join?next=https://evil.example',
+    '/leagues/join/../../admin',
     ['/mfa'],
   ])
     assert.equal(authReturnPath(value), '/admin');

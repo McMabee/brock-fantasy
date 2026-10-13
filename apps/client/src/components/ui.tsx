@@ -306,6 +306,7 @@ const styles = StyleSheet.create({
   pageWide: { paddingHorizontal: 32, paddingTop: 28 },
   pageHeading: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     gap: 20,

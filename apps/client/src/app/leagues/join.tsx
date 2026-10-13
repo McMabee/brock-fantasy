@@ -1,41 +1,59 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
-import { supabase } from '@/lib/supabase';
 import { betaCommand } from '@/lib/web-api';
 import { colors, heading } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 export default function JoinLeagueScreen() {
-  useRequireUser();
+  const { allowed, loading: sessionLoading } = useRequireUser('/leagues/join');
   const router = useRouter();
   const [inviteCode, setInviteCode] = useState('');
   const [teamName, setTeamName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
+  const attempt = useRef<{ code: string; name: string; key: string } | null>(null);
 
   const join = async () => {
-    if (inviteCode.trim().length < 6 || teamName.trim().length < 3) {
-      setError('Enter a valid invite code and a team name of at least three characters.');
+    if (submitting.current || !allowed || sessionLoading) return;
+    const code = inviteCode.trim().toUpperCase();
+    const name = teamName.trim();
+    if (!/^[A-Z0-9]{8}$/u.test(code)) {
+      setError('Enter the eight-character invite code provided by your league commissioner.');
       return;
     }
+    if (name.length < 3 || name.length > 60) {
+      setError('Enter a fantasy team name between 3 and 60 characters.');
+      return;
+    }
+    if (attempt.current?.code !== code || attempt.current.name !== name) {
+      attempt.current = {
+        code,
+        name,
+        key: `join-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      };
+    }
+    submitting.current = true;
     setLoading(true);
     setError(null);
-    if (!supabase) {
-      setError('League service is temporarily unavailable. Please try again shortly.');
+    try {
+      const result = await betaCommand<{ league_id: string }>('join_league', {
+        p_invite_code: code,
+        p_team_name: name,
+        p_idempotency_key: attempt.current.key,
+      });
+      if (result.error) setError(result.error);
+      else if (result.data?.league_id) router.replace(`/league/${result.data.league_id}`);
+      else setError('The league could not be joined. Please try again.');
+    } catch {
+      setError('Unable to reach the league service. Please try again.');
+    } finally {
+      submitting.current = false;
       setLoading(false);
-      return;
     }
-    const result = await betaCommand<{ league_id: string }>('join_league', {
-      p_invite_code: inviteCode.trim().toUpperCase(),
-      p_team_name: teamName.trim(),
-      p_idempotency_key: `join-${Date.now()}`,
-    });
-    setLoading(false);
-    if (result.error) setError(result.error);
-    else if (result.data) router.replace(`/league/${result.data.league_id}`);
   };
 
   return (
@@ -52,9 +70,11 @@ export default function JoinLeagueScreen() {
           <TextInput
             accessibilityLabel="League invite code"
             autoCapitalize="characters"
+            autoCorrect={false}
+            editable={!loading}
             maxLength={12}
             onChangeText={setInviteCode}
-            placeholder="BADGERS26"
+            placeholder="A1B2C3D4"
             placeholderTextColor={colors.muted}
             style={[uiStyles.input, styles.codeInput]}
             value={inviteCode}
@@ -64,8 +84,10 @@ export default function JoinLeagueScreen() {
           <Text style={uiStyles.label}>Fantasy team name</Text>
           <TextInput
             accessibilityLabel="Fantasy team name"
+            editable={!loading}
             maxLength={60}
             onChangeText={setTeamName}
+            onSubmitEditing={() => void join()}
             placeholder="Power Playmakers"
             placeholderTextColor={colors.muted}
             style={uiStyles.input}
@@ -78,8 +100,13 @@ export default function JoinLeagueScreen() {
           </Text>
         ) : null}
         <View style={styles.actions}>
-          <ActionButton label="Cancel" href="/dashboard" variant="ghost" />
-          <ActionButton label="Join league" onPress={() => void join()} loading={loading} />
+          <ActionButton label="Cancel" href="/dashboard" variant="secondary" disabled={loading} />
+          <ActionButton
+            label="Join league"
+            onPress={() => void join()}
+            loading={loading}
+            disabled={!allowed || sessionLoading}
+          />
         </View>
       </Card>
     </AppShell>
