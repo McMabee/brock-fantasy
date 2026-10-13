@@ -9,6 +9,8 @@ insert into public.roster_slot_rules(ruleset_id,slot_code,label,allowed_position
 values
 ('97000000-0000-4000-8000-000000000002','HK_F','Fixture starter',array['F'],1,true),
 ('97000000-0000-4000-8000-000000000002','BN','Fixture bench',array['F'],1,false);
+insert into public.sports(id,code,name)
+values('97000000-0000-4000-8000-000000000011','hockey','Draft completion fixture');
 insert into public.competitions(id,sport_id,division,name,season_label,ruleset_id)
 select '97000000-0000-4000-8000-000000000003',id,'mens','Draft completion fixture','fixture',
  '97000000-0000-4000-8000-000000000002' from public.sports where code='hockey';

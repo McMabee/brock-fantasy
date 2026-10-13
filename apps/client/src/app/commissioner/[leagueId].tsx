@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
@@ -38,7 +38,16 @@ export default function CommissionerScreen() {
   const [cycles, setCycles] = useState('2');
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const authorized = leagueData.league?.commissionerId === user?.id;
+  const [deletion, setDeletion] = useState<{
+    leagueId: string;
+    name: string;
+    version: number;
+    key: string;
+  } | null>(null);
+  const [confirmationName, setConfirmationName] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const deletePending = useRef(false);
+  const authorized = Boolean(user && leagueData.league?.commissionerId === user.id);
 
   useEffect(() => {
     if (!supabase || !leagueData.league) return;
@@ -143,6 +152,39 @@ export default function CommissionerScreen() {
     }
   };
 
+  const deleteLeague = async () => {
+    if (
+      !authorized ||
+      !leagueId ||
+      !deletion ||
+      deletion.leagueId !== leagueId ||
+      confirmationName.trim() !== deletion.name ||
+      deletePending.current ||
+      working
+    )
+      return;
+    deletePending.current = true;
+    setDeleting(true);
+    setMessage(null);
+    try {
+      const result = await betaCommand<{ league_id: string; deleted: boolean }>('delete_league', {
+        p_league_id: leagueId,
+        p_confirmation_name: confirmationName.trim(),
+        p_expected_version: deletion.version,
+        p_idempotency_key: deletion.key,
+      });
+      if (result.error) setMessage(result.error);
+      else if (result.data?.deleted && result.data.league_id === leagueId)
+        router.replace('/dashboard');
+      else setMessage('The league could not be deleted. Please try again.');
+    } catch {
+      setMessage('Unable to reach the league service. Please try again.');
+    } finally {
+      deletePending.current = false;
+      setDeleting(false);
+    }
+  };
+
   if (!authorized && !leagueData.loading) {
     return (
       <AppShell eyebrow="Restricted" title="Commissioner access required">
@@ -176,7 +218,7 @@ export default function CommissionerScreen() {
           <ActionButton
             label="Start draft"
             onPress={() => void startDraft()}
-            disabled={!config || leagueData.teams.length < 2}
+            disabled={!config || leagueData.teams.length < 2 || deleting}
             loading={working}
           />
         ) : (
@@ -185,16 +227,22 @@ export default function CommissionerScreen() {
               label="Open draft"
               href={`/draft/${leagueData.draftId}`}
               variant="secondary"
+              disabled={deleting}
             />
             {draftData.draft?.status === 'active' ? (
               <ActionButton
                 label="Pause draft"
                 onPress={() => void changeDraftStatus('pause')}
                 variant="danger"
+                disabled={working || deleting}
               />
             ) : null}
             {draftData.draft?.status === 'paused' ? (
-              <ActionButton label="Resume draft" onPress={() => void changeDraftStatus('resume')} />
+              <ActionButton
+                label="Resume draft"
+                onPress={() => void changeDraftStatus('resume')}
+                disabled={working || deleting}
+              />
             ) : null}
           </View>
         )}
@@ -227,7 +275,7 @@ export default function CommissionerScreen() {
             <ActionButton
               label="Generate schedule"
               onPress={() => void generateSchedule()}
-              disabled={leagueData.matchups.length > 0 || !leagueData.draftId}
+              disabled={leagueData.matchups.length > 0 || !leagueData.draftId || deleting}
               loading={working}
             />
             {leagueData.matchups.length > 0 ? (
@@ -238,11 +286,78 @@ export default function CommissionerScreen() {
           </Card>
         </>
       ) : null}
+      {authorized && leagueData.league ? (
+        <>
+          <SectionTitle title="Delete league" detail="Commissioner only" />
+          <Card style={styles.card}>
+            <Text style={uiStyles.body}>
+              Permanently delete {leagueData.league.name} and every manager’s fantasy team, draft,
+              roster, matchups, and league chat. This cannot be undone.
+            </Text>
+            {deletion?.leagueId === leagueId ? (
+              <>
+                <Text accessibilityRole="header" style={styles.title}>
+                  Confirm league deletion
+                </Text>
+                <View style={styles.field}>
+                  <Text style={uiStyles.label}>Type “{deletion.name}” to confirm</Text>
+                  <TextInput
+                    accessibilityLabel="League name to confirm deletion"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!deleting}
+                    maxLength={60}
+                    onChangeText={setConfirmationName}
+                    style={uiStyles.input}
+                    value={confirmationName}
+                  />
+                </View>
+                <View style={styles.actions}>
+                  <ActionButton
+                    label="Cancel deletion"
+                    variant="secondary"
+                    disabled={deleting}
+                    onPress={() => {
+                      setDeletion(null);
+                      setConfirmationName('');
+                    }}
+                  />
+                  <ActionButton
+                    label="Permanently delete league"
+                    variant="danger"
+                    loading={deleting}
+                    disabled={working || confirmationName.trim() !== deletion.name}
+                    onPress={() => void deleteLeague()}
+                  />
+                </View>
+              </>
+            ) : (
+              <ActionButton
+                label="Delete league"
+                variant="danger"
+                disabled={working || leagueData.league.stateVersion === undefined}
+                onPress={() => {
+                  if (!leagueData.league || leagueData.league.stateVersion === undefined) return;
+                  setMessage(null);
+                  setConfirmationName('');
+                  setDeletion({
+                    leagueId: leagueData.league.id,
+                    name: leagueData.league.name,
+                    version: leagueData.league.stateVersion,
+                    key: `delete-league-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                  });
+                }}
+              />
+            )}
+          </Card>
+        </>
+      ) : null}
       <View style={styles.back}>
         <ActionButton
           label="Back to league"
           href={leagueId ? `/league/${leagueId}` : '/dashboard'}
           variant="ghost"
+          disabled={deleting}
         />
       </View>
     </AppShell>

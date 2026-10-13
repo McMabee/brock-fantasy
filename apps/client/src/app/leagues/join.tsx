@@ -21,8 +21,8 @@ export default function JoinLeagueScreen() {
     if (submitting.current || !allowed || sessionLoading) return;
     const code = inviteCode.trim().toUpperCase();
     const name = teamName.trim();
-    if (!/^[A-Z0-9]{8}$/u.test(code)) {
-      setError('Enter the eight-character invite code provided by your league commissioner.');
+    if (!/^(?:[A-Z0-9]{8}|[A-Z0-9]{12})$/u.test(code)) {
+      setError('Enter the 8- or 12-character invite code provided by your league commissioner.');
       return;
     }
     if (name.length < 3 || name.length > 60) {
@@ -62,8 +62,8 @@ export default function JoinLeagueScreen() {
         <Pill label="INVITE REQUIRED" tone="info" />
         <Text style={styles.title}>Enter your league code</Text>
         <Text style={styles.body}>
-          Ask the league commissioner for the private eight-character code. Joining creates one
-          fantasy team linked to your verified account.
+          Ask the league commissioner for the private invite code. Joining creates one fantasy team
+          linked to your verified account.
         </Text>
         <View style={styles.field}>
           <Text style={uiStyles.label}>Invite code</Text>
@@ -72,9 +72,9 @@ export default function JoinLeagueScreen() {
             autoCapitalize="characters"
             autoCorrect={false}
             editable={!loading}
-            maxLength={12}
+            maxLength={16}
             onChangeText={setInviteCode}
-            placeholder="A1B2C3D4"
+            placeholder="A1B2C3D4E5F6"
             placeholderTextColor={colors.muted}
             style={[uiStyles.input, styles.codeInput]}
             value={inviteCode}
