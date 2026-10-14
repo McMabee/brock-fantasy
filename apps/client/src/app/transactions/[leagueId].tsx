@@ -159,8 +159,14 @@ export default function TransactionsScreen() {
         />
       ) : (
         <Card>
-          {transactions.freeAgents.map((athlete) => (
-            <View key={athlete.id} style={styles.assetRow}>
+          {transactions.freeAgents.map((athlete, index) => (
+            <View
+              key={athlete.id}
+              style={[
+                styles.assetRow,
+                index === transactions.freeAgents.length - 1 && uiStyles.lastRow,
+              ]}
+            >
               <View style={styles.assetCopy}>
                 <Text style={styles.assetName}>{athlete.displayName}</Text>
                 <Text style={styles.assetMeta}>{athlete.position}</Text>
@@ -246,7 +252,7 @@ export default function TransactionsScreen() {
         />
       ) : (
         <Card>
-          {transactions.trades.map((trade) => {
+          {transactions.trades.map((trade, index) => {
             const offered = trade.items
               .filter((item) => item.fromTeamId === trade.proposingTeamId)
               .map((item) => athleteName(item.athleteId))
@@ -256,7 +262,13 @@ export default function TransactionsScreen() {
               .map((item) => athleteName(item.athleteId))
               .join(', ');
             return (
-              <View key={trade.id} style={styles.tradeRow}>
+              <View
+                key={trade.id}
+                style={[
+                  styles.tradeRow,
+                  index === transactions.trades.length - 1 && uiStyles.lastRow,
+                ]}
+              >
                 <View style={styles.assetCopy}>
                   <View style={styles.tradeHeading}>
                     <Text style={styles.assetName}>

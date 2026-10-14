@@ -1,6 +1,6 @@
 # Player directory and roster publication
 
-October 14 update: the revised supplied files contain 119 participating athletes. The prepared [metric update](BETA_FIXES.md) preserves their original IDs, imports supplied ADP/history/projections/heights, and applies one newly confirmed withdrawal. The original 120-player hosted directory remains unchanged until that transaction is published. Enrichment and regression fixtures use the protected original publication receipt; they do not treat changed CSVs as approved identity imports.
+October 14 update: the revised supplied files contain 119 participating athletes. The published [metric update](BETA_FIXES.md) preserves their original IDs, imports supplied ADP/history/projections/heights, and applies one newly confirmed withdrawal. Hosted readback confirms 119 visible eligible athletes, 110 supplied ADPs and 59 verified heights. The withdrawal is hidden from participant profile/ADP reads and cannot be drafted; historical picks and ownership remain intact. Enrichment and regression fixtures use the protected original publication receipt; they do not treat changed CSVs as new identity imports.
 
 Sign in and open `https://beta.brockfantasy.ca/players`. The directory displays
 the approved current roster independently of draft rankings. Search by name,

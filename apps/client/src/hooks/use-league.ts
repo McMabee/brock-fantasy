@@ -10,6 +10,7 @@ import { useFocusEffect } from 'expo-router';
 import { Platform } from 'react-native';
 
 import { firstRelated } from '@/lib/relations';
+import { LEAGUE_ROSTER_SELECT } from '@/lib/league-roster-query';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
 
@@ -251,9 +252,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
     const rosterResult = myTeamId
       ? await client
           .from('roster_entries')
-          .select(
-            'id, fantasy_team_id, athlete_id, slot_code, status, athlete:athletes!inner(display_name, position, jersey_number, bio, competition:competitions(name))',
-          )
+          .select(LEAGUE_ROSTER_SELECT)
           .eq('fantasy_team_id', myTeamId)
           .is('released_at', null)
       : { data: [] as RosterRow[], error: null };

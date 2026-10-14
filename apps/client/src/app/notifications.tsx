@@ -2,7 +2,7 @@ import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { AppShell, Card, EmptyState, LoadingState, Pill } from '@/components/ui';
+import { AppShell, Card, EmptyState, LoadingState, Pill, useUiStyles } from '@/components/ui';
 
 import { useNotifications } from '@/hooks/use-notifications';
 import { useRequireUser } from '@/hooks/use-route-access';
@@ -11,6 +11,7 @@ import { notificationTarget } from '@/lib/notification-target';
 type Category = 'all' | 'trade' | 'game' | 'draft';
 export default function NotificationsScreen() {
   const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   useRequireUser();
   const router = useRouter();
   const { notifications, unreadCount, loading, error, markRead } = useNotifications();
@@ -58,8 +59,11 @@ export default function NotificationsScreen() {
       ) : null}
       {filtered.length ? (
         <Card>
-          {filtered.map((n) => (
-            <View key={n.id} style={styles.row}>
+          {filtered.map((n, index) => (
+            <View
+              key={n.id}
+              style={[styles.row, index === filtered.length - 1 && uiStyles.lastRow]}
+            >
               <View style={[styles.dot, n.readAt ? styles.read : null]} />
               <Pressable
                 accessibilityRole="link"

@@ -1,6 +1,8 @@
 # October 14 beta fixes
 
-Implemented and validated locally on October 14, 2026 (America/Toronto). Hosted database publication and deployment are pending. Existing hosted readback still has 120 active athletes, no published heights, and migrations through `20261013233622`.
+Implemented on October 14, 2026 (America/Toronto). The hosted database now includes both October 14 migrations and the guarded roster-metrics publication. Readback confirms 119 visible eligible athletes, 110 supplied ADPs, 59 verified heights and the original 40 picks. The withdrawn athlete is inactive, hidden, absent from ADP and has no queued selections; an authenticated AAL1 profile read returns no record.
+
+The screenshot follow-up fixes the league roster query's ambiguous competition embedding by naming its direct foreign key. Lists retain separators between entries and omit the last separator, including after filtering. The weekly forecast and Back to players action now have a 20-pixel gap. Directory sorting caches supplied metrics and search text, and game scoring aggregates events in one pass.
 
 ## Behavior
 
@@ -32,13 +34,15 @@ The crosswalk checks program, name, jersey, positions, eligibility, study progra
 - `pnpm test:ui`: both themes, player/draft screens at 320/390/768/1024/1440px, Settings/roster/notifications at 320/390/1440px, commissioner versus manager visibility, own-team rename, completed-draft redirect/results, optional ADP outage, game times, notification spacing and footer alignment. There were zero browser errors and zero axe violations in the player-page checks at 390/1440px. The suite generated 64 screenshots using controlled APIs, not hosted accounts.
 - Web export, browser/server secret boundaries, public API/auth outage checks, web Auth/admin regressions and Android/iOS exports passed. Native exports do not establish real-device acceptance.
 - Browser report: `dev/tmp/ui-refresh/report.json`. Publication rehearsal: `dev/tmp/roster-metrics-rehearsal/readback.txt`. The original height-only publication rehearsal also passed.
-- Read-only hosted preflight matched all 120 canonical IDs/source bindings, confirmed the prepared publishing operator is an active administrator, and found the original 40 picks intact. `dev/tmp/roster-metrics-publication/hosted-preflight.txt` records that result; no hosted application rows were changed.
+- Read-only hosted preflight matched all 120 canonical IDs/source bindings, confirmed the publishing operator is an active administrator, and found the original 40 picks intact. The guarded publication then updated approved metrics and applied the confirmed withdrawal without deleting historical picks or ownership.
+- `pnpm test:roster-rest:local` passed 465 pgTAP assertions, migration upgrade and concurrent enrollment checks, and a disposable real PostgREST test. The previous roster query reproduces `PGRST201`; the shared explicit query returns the roster/program and supplied ADP successfully at AAL1.
+- The screenshot follow-up browser suite passed both themes, filtered/final-row separator checks, history separators, forecast spacing, supplied metrics and game-event aggregation. It generated 64 screenshots with zero browser errors and zero player-page axe violations. APIs are controlled fixtures.
 
 ## Hosted release
 
-1. Complete the existing backup/restore release gate and review the migration and protected metric plan. Apply both pending migrations, `20261014151316_player_display_metrics.sql` and `20261014210528_league_settings_and_live_adp.sql`, to the intended beta project.
+1. Completed: encrypted local/offsite backup, verified file recovery and isolated offsite database restore before publication. Applied `20261014151316_player_display_metrics.sql` and `20261014210528_league_settings_and_live_adp.sql` to the intended beta project without roles, seeds or Vault changes.
 2. Run `pnpm import:player-metrics` with the actual publishing administrator UUID in `BROCK_PUBLISH_OPERATOR_PROFILE_ID`. The command generates `dev/tmp/roster-metrics-publication/plan.json` and `publication.sql`; it does not apply SQL. It uses the original protected roster plan through `BROCK_PUBLISHED_ROSTER_PLAN`, or the October 8 publication receipt by default, and the retained October 14 suppression record.
-3. Apply the reviewed transaction using the explicit linked project and retain readback. Expect 119 participant-visible active athletes, 110 supplied ADPs and 59 populated heights, with the original identities, photos and picks preserved. Verify the canonical data/provenance and seed-plus-history ADP through an ordinary AAL1 account.
-4. Deploy the reviewed export and perform hosted manager/commissioner acceptance, including a completed draft URL, separate results, and ADP after another league completes a draft. Local mocked-browser evidence does not establish this hosted journey.
+3. Completed: applied the reviewed atomic transaction with the explicit linked project. Readback matches the expected 119 visible active eligible athletes, 110 supplied ADPs and 59 heights; all 40 picks remain. Protected source evidence, SQL and withdrawal details remain ignored.
+4. Deployment verification is recorded in the follow-up release receipt. Hosted signed-in manager/commissioner acceptance, including a completed draft URL, separate results, and ADP after another league completes a draft, remains distinct from mocked-browser and SQL-role evidence. No browser surface was available in this session.
 
-No commit, staging, push, hosted migration, hosted data mutation or deployment was performed in this implementation.
+The release targets only the beta alias; the production alias and paused scoring are unchanged. Full hosted Auth/app acceptance and real-device interaction remain separate checks.

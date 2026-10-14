@@ -115,8 +115,11 @@ export default function DashboardScreen() {
         />
       ) : (
         <Card style={styles.dataCard}>
-          {competitions.map((competition) => (
-            <View key={competition.id} style={styles.programRow}>
+          {competitions.map((competition, index) => (
+            <View
+              key={competition.id}
+              style={[styles.programRow, index === competitions.length - 1 && uiStyles.lastRow]}
+            >
               <View style={styles.leagueCopy}>
                 <Text style={styles.programName}>{competition.name}</Text>
                 <Text style={styles.leagueMeta}>{competition.seasonLabel}</Text>

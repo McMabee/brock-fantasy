@@ -278,13 +278,17 @@ function Roster({
   betaLeague: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   return (
     <View>
       <SectionTitle title={teamName} detail="Lineup locks at game start" />
       {entries.length > 0 ? (
         <Card>
-          {entries.map((entry) => (
-            <View key={entry.id} style={styles.rosterRow}>
+          {entries.map((entry, index) => (
+            <View
+              key={entry.id}
+              style={[styles.rosterRow, index === entries.length - 1 && uiStyles.lastRow]}
+            >
               <DraftPlayerPhoto
                 player={{ displayName: entry.displayName, bio: entry.bio }}
                 size={44}
@@ -331,6 +335,7 @@ function Standings({
   league: League | null;
 }) {
   const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   const nameFor = (teamId: string) =>
     teams.find((team) => team.id === teamId)?.name ?? 'Unknown team';
   return (
@@ -351,8 +356,11 @@ function Standings({
           <Text style={styles.standingStat}>L</Text>
           <Text style={styles.standingPoints}>PF</Text>
         </View>
-        {rows.map((row) => (
-          <View key={row.fantasyTeamId} style={styles.standingRow}>
+        {rows.map((row, index) => (
+          <View
+            key={row.fantasyTeamId}
+            style={[styles.standingRow, index === rows.length - 1 && uiStyles.lastRow]}
+          >
             <Text style={styles.standingRank}>{row.rank}</Text>
             <Text style={styles.standingTeam}>{nameFor(row.fantasyTeamId)}</Text>
             <Text style={styles.standingStat}>{row.wins}</Text>

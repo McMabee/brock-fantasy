@@ -427,6 +427,8 @@ export const createUiStyles = (colors: ReturnType<typeof useThemeColors>) =>
     row: { flexDirection: 'row', alignItems: 'center' },
     wrap: { flexDirection: 'row', flexWrap: 'wrap' },
     divider: { backgroundColor: colors.border, height: 1 },
+    lastRow: { borderBottomWidth: 0 },
+    listRow: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   });
 export const uiStyles = createUiStyles(colors);
 export function useUiStyles() {

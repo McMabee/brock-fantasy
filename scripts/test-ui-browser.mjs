@@ -60,6 +60,13 @@ const players = roster.players
         supplied_adp: metricById.get(player.id).suppliedAdp,
         stats: {},
       },
+      {
+        season_label: '2025-26',
+        kind: 'historical',
+        fantasy_points: metricById.get(player.id).historicalPoints,
+        games_played: metricById.get(player.id).historicalGames,
+        stats: metricById.get(player.id).historicalStats,
+      },
     ],
   }));
 const league = {
@@ -290,6 +297,61 @@ try {
           ]);
         if (table === 'scoring_rulesets') return reply({ draft_config: { pickSeconds: 120 } });
         if (table === 'roster_slot_rules') return reply([{ slot_count: 10 }]);
+        if (
+          table === 'roster_entries' &&
+          dataPath.searchParams.get('select')?.includes('competition:competitions(')
+        )
+          return reply({ code: 'PGRST201', message: 'Ambiguous competition relationship' }, 300);
+        if (table === 'normalized_player_game_stats')
+          return reply([
+            {
+              game_id: 'fixture-game-a',
+              stats: {},
+              fantasy_points: 2,
+              complete: true,
+              missing_stats: [],
+              updated_at: new Date().toISOString(),
+              game: {
+                id: 'fixture-game-a',
+                starts_at: new Date(Date.now() - 86400_000).toISOString(),
+                status: 'final',
+              },
+            },
+            {
+              game_id: 'fixture-game-b',
+              stats: {},
+              fantasy_points: 5,
+              complete: true,
+              missing_stats: [],
+              updated_at: new Date().toISOString(),
+              game: {
+                id: 'fixture-game-b',
+                starts_at: new Date(Date.now() - 172800_000).toISOString(),
+                status: 'final',
+              },
+            },
+          ]);
+        if (table === 'fantasy_point_events')
+          return reply([
+            {
+              game_id: 'fixture-game-a',
+              points: 3,
+              stat_key: 'goals',
+              created_at: new Date().toISOString(),
+            },
+            {
+              game_id: 'fixture-game-a',
+              points: -1,
+              stat_key: 'penalty_minutes',
+              created_at: new Date().toISOString(),
+            },
+            {
+              game_id: 'fixture-game-b',
+              points: 5,
+              stat_key: 'assists',
+              created_at: new Date().toISOString(),
+            },
+          ]);
         if (table === 'roster_entries')
           return reply([
             {
@@ -335,6 +397,36 @@ try {
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
         `Overflow: players ${theme} ${width}`,
       );
+      const playerRows = page
+        .getByRole('link')
+        .filter({ has: page.getByText('Projected FP', { exact: true }) });
+      assert.ok(
+        await playerRows
+          .first()
+          .evaluate(
+            (element) => parseFloat(window.getComputedStyle(element).borderBottomWidth) > 0,
+          ),
+        'Player rows have separators between entries',
+      );
+      assert.equal(
+        await playerRows
+          .last()
+          .evaluate((element) => parseFloat(window.getComputedStyle(element).borderBottomWidth)),
+        0,
+        'Last player row has no trailing separator',
+      );
+      await page
+        .getByRole('textbox', { name: 'Search players', exact: true })
+        .fill(players[0].display_name);
+      await page.getByText('1 shown', { exact: true }).waitFor();
+      assert.equal(
+        await playerRows
+          .first()
+          .evaluate((element) => parseFloat(window.getComputedStyle(element).borderBottomWidth)),
+        0,
+        'A filtered single player has no separator',
+      );
+      await page.getByRole('textbox', { name: 'Search players', exact: true }).fill('');
       await page.screenshot({ path: path.join(output, `players-${theme}-${width}.png`) });
       if (width === 390 || width === 1440) {
         const themeToggle = page.getByRole('button', {
@@ -370,7 +462,50 @@ try {
     await page.goto(origin + '/players/' + withHeight.id);
     await page.getByText('Height ·', { exact: false }).waitFor();
     await page.getByText('No recorded picks yet', { exact: true }).waitFor();
+    await page.getByText('2.0 pts', { exact: true }).waitFor();
+    const historyRow = (label) =>
+      page.getByText(label, { exact: true }).locator('..').locator('..');
+    assert.ok(
+      await historyRow('2026-27 · supplied projection').evaluate(
+        (element) => parseFloat(window.getComputedStyle(element).borderBottomWidth) > 0,
+      ),
+      'Historical records retain internal separators',
+    );
+    assert.equal(
+      await historyRow('2025-26 · historical').evaluate((element) =>
+        parseFloat(window.getComputedStyle(element).borderBottomWidth),
+      ),
+      0,
+      'Last history record has no trailing separator',
+    );
+    await page.getByText('2026-27', { exact: true }).click();
+    assert.equal(
+      await historyRow('2026-27 · supplied projection').evaluate((element) =>
+        parseFloat(window.getComputedStyle(element).borderBottomWidth),
+      ),
+      0,
+      'Filtered history omits its final separator',
+    );
+    const forecast = await page
+      .getByText('Weekly projections are not available yet.', { exact: true })
+      .locator('..')
+      .boundingBox();
+    const back = await page
+      .getByRole('link', { name: 'Back to players', exact: true })
+      .boundingBox();
+    assert.ok(
+      back.y - forecast.y - forecast.height >= 16,
+      'Forecast and return button have vertical spacing',
+    );
     await page.screenshot({ path: path.join(output, `player-detail-${theme}.png`) });
+    const seeded = players.find((player) => player.adp.base !== null);
+    await page.goto(origin + '/players/' + seeded.id);
+    await page.getByText('Supplied starting value', { exact: true }).waitFor();
+    assert.equal(
+      await page.getByText(seeded.adp.base.toFixed(1), { exact: true }).count(),
+      1,
+      'Supplied ADP displays on the player profile',
+    );
     for (const state of ['loading', 'empty', 'error']) {
       for (const width of [390, 1440]) {
         await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });

@@ -214,17 +214,16 @@ export default function PlayerScreen() {
     };
   }, [id, access.allowed, user?.id]);
 
-  const logs = useMemo(
-    () =>
-      stats.map((line) => {
-        const game = firstRelated(line.game);
-        const breakdown = events
-          .filter((event) => event.game_id === line.game_id)
-          .reduce((total, event) => total + event.points, 0);
-        return { ...line, game, scored: breakdown };
-      }),
-    [events, stats],
-  );
+  const logs = useMemo(() => {
+    // - Aggregate scoring events once instead of scanning them for each game
+    const pointsByGame = new Map<string, number>();
+    for (const event of events)
+      pointsByGame.set(event.game_id, (pointsByGame.get(event.game_id) ?? 0) + event.points);
+    return stats.map((line) => {
+      const game = firstRelated(line.game);
+      return { ...line, game, scored: pointsByGame.get(line.game_id) ?? 0 };
+    });
+  }, [events, stats]);
   const nextGame =
     upcomingGames[0] ??
     logs
@@ -235,6 +234,11 @@ export default function PlayerScreen() {
   const total = events.reduce((sum, event) => sum + event.points, 0);
   const lastUpdated = stats[0]?.updated_at;
   const metrics = playerMetrics(athlete?.bio ?? {}, history, BETA_SEASON);
+  const visibleHistory = useMemo(
+    () => history.filter((item) => !season || item.season_label === season),
+    [history, season],
+  );
+  const shownEvents = events.slice(0, 50);
 
   return (
     <AppShell
@@ -325,8 +329,11 @@ export default function PlayerScreen() {
             />
           ) : (
             <Card>
-              {logs.map((line) => (
-                <View key={line.game_id} style={styles.log}>
+              {logs.map((line, index) => (
+                <View
+                  key={line.game_id}
+                  style={[styles.log, index === logs.length - 1 && uiStyles.lastRow]}
+                >
                   <View style={styles.logCopy}>
                     <Text style={styles.logDate}>
                       {line.game ? new Date(line.game.starts_at).toLocaleString() : line.game_id}
@@ -347,8 +354,11 @@ export default function PlayerScreen() {
             detail="How each game contributes to your score"
           />
           <Card>
-            {events.slice(0, 50).map((event, index) => (
-              <View key={`${event.game_id}-${event.stat_key}-${index}`} style={styles.event}>
+            {shownEvents.map((event, index) => (
+              <View
+                key={`${event.game_id}-${event.stat_key}-${index}`}
+                style={[styles.event, index === shownEvents.length - 1 && uiStyles.lastRow]}
+              >
                 <Text style={styles.eventKey}>{event.stat_key.replaceAll('_', ' ')}</Text>
                 <Text style={styles.points}>
                   {event.points >= 0 ? '+' : ''}
@@ -378,21 +388,22 @@ export default function PlayerScreen() {
             </View>
           ) : null}
           <Card>
-            {history
-              .filter((item) => !season || item.season_label === season)
-              .map((item, index) => (
-                <View key={`${item.season_label}-${item.kind}-${index}`} style={styles.history}>
-                  <View>
-                    <Text style={styles.logDate}>
-                      {item.season_label} · {item.kind.replaceAll('_', ' ')}
-                    </Text>
-                    <Text style={styles.note}>
-                      {item.games_played ?? '—'} games · supplied record
-                    </Text>
-                  </View>
-                  <Text style={styles.points}>{item.fantasy_points ?? '—'}</Text>
+            {visibleHistory.map((item, index) => (
+              <View
+                key={`${item.season_label}-${item.kind}-${index}`}
+                style={[styles.history, index === visibleHistory.length - 1 && uiStyles.lastRow]}
+              >
+                <View>
+                  <Text style={styles.logDate}>
+                    {item.season_label} · {item.kind.replaceAll('_', ' ')}
+                  </Text>
+                  <Text style={styles.note}>
+                    {item.games_played ?? '—'} games · supplied record
+                  </Text>
                 </View>
-              ))}
+                <Text style={styles.points}>{item.fantasy_points ?? '—'}</Text>
+              </View>
+            ))}
             {!history.length ? (
               <Text style={uiStyles.body}>
                 No supplied historical totals are available for this player.
@@ -409,13 +420,16 @@ export default function PlayerScreen() {
           </Card>
         </>
       )}
-      <ActionButton label="Back to players" href="/players" variant="secondary" />
+      <View style={styles.backToPlayers}>
+        <ActionButton label="Back to players" href="/players" variant="secondary" />
+      </View>
     </AppShell>
   );
 }
 
 const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
   StyleSheet.create({
+    backToPlayers: { marginTop: 20 },
     playerHero: {
       flexDirection: 'row',
       flexWrap: 'wrap',

@@ -19,6 +19,8 @@ const key = (a) =>
 export function rosterMetricsPlan(current, published, officialHeights, operatorId, suppressions) {
   const baseline = rosterPlan(published, operatorId);
   const verifiedHeights = heightPlan(published, operatorId, officialHeights);
+  // - Index verified heights for constant time lookups during publication planning
+  const heightById = new Map(verifiedHeights.heights.map((item) => [item.id, item.height]));
   const remaining = new Map(baseline.players.map((player) => [key(player), player]));
   const archived = new Set(
     published.imports
@@ -66,7 +68,7 @@ export function rosterMetricsPlan(current, published, officialHeights, operatorI
       };
       const height = parsed
         ? { ...parsed, raw: athlete.suppliedHeight, ...provenance }
-        : (verifiedHeights.heights.find((item) => item.id === old.id)?.height ?? null);
+        : (heightById.get(old.id) ?? null);
       players.push({
         id: old.id,
         previousRevision: old.revisionHash,
@@ -149,8 +151,8 @@ and (s.supplied_adp is distinct from p."suppliedAdp" or s.fantasy_points is dist
 update public.athlete_season_summaries s set fantasy_points=p."historicalPoints",games_played=p."historicalGames",stats=s.stats||p."historicalStats"
 from metric_players p where s.athlete_id=p.id and s.season_label='${plan.historicalSeason}' and s.kind='historical'
 and (s.fantasy_points is distinct from p."historicalPoints" or s.games_played is distinct from p."historicalGames" or s.stats is distinct from s.stats||p."historicalStats");
--- Preserve historical picks and ownership, but suppress withdrawn athletes from
--- directory, draft selection, photo and aggregate reads through existing RLS.
+-- - Preserve historical picks and ownership
+-- - Suppress withdrawn athletes from directory, draft selection, photo and aggregate reads
 update public.athlete_seasons m set directory_visible=false,draft_eligible=false
 from metric_exclusions p where m.athlete_id=p.id and m.season_id='${plan.seasonId}';
 update public.athletes a set status='inactive',fantasy_withdrawn_at=coalesce(a.fantasy_withdrawn_at,clock_timestamp())

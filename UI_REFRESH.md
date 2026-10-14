@@ -1,6 +1,6 @@
 # Premium sports UI refresh
 
-The October 14 [beta fixes](BETA_FIXES.md) add league Settings/results, seed-plus-history ADP, updated supplied metrics, and spacing/phone layout corrections. Those changes are locally validated and await hosted publication/deployment.
+The October 14 [beta fixes](BETA_FIXES.md) add league Settings/results, seed-plus-history ADP, updated supplied metrics, and spacing/phone layout corrections. Their hosted migrations and metric publication are complete, including the confirmed withdrawal. The follow-up also repairs league roster embedding and removes separators from final list entries.
 
 The fantasy client uses a dark-led Brock design with a complete light theme, locally bundled Inter and Barlow Condensed, a desktop sidebar, and persistent phone navigation. Shared themed style factories also update native screens when the theme changes. The association checkout is outside this change.
 

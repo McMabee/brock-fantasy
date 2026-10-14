@@ -150,6 +150,15 @@ try {
     'Ten concurrent enrollments persisted one registration, ten receipts/consent events, and no Auth users.',
   );
 
+  if (process.env.BROCK_TEST_REST === '1') {
+    const { verifyLeagueRosterRest } = await import('./lib/league-roster-rest.mjs');
+    await verifyLeagueRosterRest({
+      database: db,
+      databaseContainer: container,
+      executeSql: (input) => sql(db, input),
+    });
+  }
+
   const upgrade = await scaffold('upgrade');
   await migrate(upgrade, migrations.slice(0, boundary));
   await sql(

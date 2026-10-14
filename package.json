@@ -35,6 +35,7 @@
     "test:admin:local": "node --experimental-strip-types scripts/test-admin-local.mjs",
     "test:beta-boundary": "node scripts/test-beta-boundary.mjs",
     "test:registration:local": "node scripts/test-registration-migrations.mjs",
+    "test:roster-rest:local": "node --experimental-strip-types scripts/test-league-roster-rest.mjs",
     "test:coverage": "pnpm --filter @brock-fantasy/domain test:coverage",
     "test:edge:local": "node scripts/test-edge-functions.mjs",
     "verify:auth-config": "node --experimental-strip-types scripts/verify-supabase-auth-config.mjs",

@@ -349,8 +349,11 @@ export default function DraftRoomScreen() {
         Pick history · {data.picks.length}/{order.length}
       </Text>
       <ScrollView style={{ maxHeight: 240 }} contentContainerStyle={{ gap: 10 }}>
-        {[...data.picks].reverse().map((pick) => (
-          <View key={pick.id} style={styles.historyRow}>
+        {[...data.picks].reverse().map((pick, index) => (
+          <View
+            key={pick.id}
+            style={[styles.historyRow, index === data.picks.length - 1 && uiStyles.lastRow]}
+          >
             <Text style={styles.stats}>
               #{pick.overallPick} ·{' '}
               {data.teams.find((t) => t.id === pick.fantasyTeamId)?.name ?? 'Team'} ·{' '}

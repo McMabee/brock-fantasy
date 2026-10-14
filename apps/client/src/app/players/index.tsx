@@ -106,24 +106,42 @@ export default function PlayerDirectoryScreen() {
     };
   }, [access.allowed, user?.id, reload]);
 
+  // - Cache season metrics and search text once per roster refresh
+  const directoryData = useMemo(
+    () =>
+      new Map(
+        players.map(
+          (player) =>
+            [
+              player.id,
+              {
+                metrics: playerMetrics(player.bio, player.summaries, BETA_SEASON),
+                searchText:
+                  `${player.display_name} ${player.position} ${player.bio.sourcePosition ?? ''} ${programs[player.bio.program ?? ''] ?? ''} ${player.jersey_number ?? ''}`.toLocaleLowerCase(
+                    'en-CA',
+                  ),
+              },
+            ] as const,
+        ),
+      ),
+    [players],
+  );
   const visible = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase('en-CA');
     const filtered = players.filter(
       (player) =>
         (program === 'all' || player.bio.program === program) &&
-        `${player.display_name} ${player.position} ${player.bio.sourcePosition ?? ''} ${programs[player.bio.program ?? ''] ?? ''} ${player.jersey_number ?? ''}`
-          .toLocaleLowerCase('en-CA')
-          .includes(needle),
+        directoryData.get(player.id)!.searchText.includes(needle),
     );
     return filtered.sort((a, b) => {
       if (sort === 'projection') {
         const points = (player: PlayerRow) =>
-          playerMetrics(player.bio, player.summaries, BETA_SEASON).projectedPoints ?? -Infinity;
+          directoryData.get(player.id)!.metrics.projectedPoints ?? -Infinity;
         if (points(a) !== points(b)) return points(a) > points(b) ? -1 : 1;
       }
       return a.display_name.localeCompare(b.display_name, 'en-CA');
     });
-  }, [players, query, program, sort]);
+  }, [players, directoryData, query, program, sort]);
 
   return (
     <AppShell
@@ -204,14 +222,14 @@ export default function PlayerDirectoryScreen() {
         />
       ) : (
         <Card style={styles.list}>
-          {visible.map((player) => {
-            const metrics = playerMetrics(player.bio, player.summaries, BETA_SEASON);
+          {visible.map((player, index) => {
+            const metrics = directoryData.get(player.id)!.metrics;
             return (
               <Pressable
                 accessibilityRole="link"
                 key={player.id}
                 onPress={() => router.push(`/players/${player.id}`)}
-                style={styles.row}
+                style={[styles.row, index === visible.length - 1 && uiStyles.lastRow]}
               >
                 <DraftPlayerPhoto
                   player={{ displayName: player.display_name, bio: player.bio }}

@@ -79,15 +79,19 @@ export default function DraftResultsScreen() {
             <EmptyState title="No recorded picks" body="No picks were recorded for this draft." />
           ) : (
             <Card>
-              {data.picks.map((pick) => (
+              {data.picks.map((pick, index) => (
                 <View
                   key={pick.id}
-                  style={{
-                    flexDirection: 'row',
-                    gap: 12,
-                    alignItems: 'center',
-                    paddingVertical: 14,
-                  }}
+                  style={[
+                    {
+                      flexDirection: 'row',
+                      gap: 12,
+                      alignItems: 'center',
+                      paddingVertical: 14,
+                    },
+                    styles.listRow,
+                    index === data.picks.length - 1 && styles.lastRow,
+                  ]}
                 >
                   <Text style={styles.label}>#{pick.overall_pick}</Text>
                   <DraftPlayerPhoto player={{ displayName: pick.display_name, bio: pick.bio }} />
