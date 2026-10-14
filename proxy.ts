@@ -1,5 +1,4 @@
 import { next, rewrite } from '@vercel/functions';
-import { canUseApp } from './apps/client/src/server/app-access';
 import { requestCookie } from './apps/client/src/server/session';
 
 const headers = { 'cache-control': 'no-store, private', 'x-content-type-options': 'nosniff' };
@@ -34,7 +33,7 @@ const policyPaths = new Set(
     'account-deletion-notice',
   ].map((name) => `/policies/${name}.html`),
 );
-export default async function proxy(request: Request): Promise<Response> {
+export default function proxy(request: Request): Response {
   const url = new URL(request.url);
   const local = process.env.EXPO_PUBLIC_APP_ENV === 'local' && process.env.VERCEL !== '1';
   const origin = process.env.EXPO_PUBLIC_APP_ORIGIN;
@@ -47,7 +46,20 @@ export default async function proxy(request: Request): Promise<Response> {
       headers,
     });
   const path = url.pathname;
+  const assetPath = path.startsWith('/_expo/static/')
+    ? path.replace(/%5b/giu, '[').replace(/%5d/giu, ']')
+    : path;
+  // Expo filenames include a content hash. They contain no account data and
+  // can be reused across visits without consulting Supabase or re-downloading.
+  if (
+    ['GET', 'HEAD'].includes(request.method) &&
+    !/%|\\|\/\//u.test(assetPath) &&
+    /^\/_expo\/static\/.*-[a-f0-9]{32}\.(?:js|css)$/u.test(assetPath)
+  )
+    return next({ headers: { 'cache-control': 'public, max-age=31536000, immutable' } });
   if (/%|\\|\/\//u.test(path)) return new Response('Not found.', { status: 404, headers });
+  if (['GET', 'HEAD'].includes(request.method) && path === '/draft-audio/On_The_Clock.mp3')
+    return next({ headers: { 'cache-control': 'public, max-age=86400' } });
   if ((path === '/mfa' && url.searchParams.has('invitation')) || path === '/staff-activate') {
     if (!['GET', 'HEAD'].includes(request.method))
       return new Response(null, { status: 405, headers });
@@ -78,18 +90,13 @@ export default async function proxy(request: Request): Promise<Response> {
     (path.startsWith('/api/')
       ? request.headers.get('authorization')?.match(/^Bearer (\S+)$/u)?.[1]
       : null);
-  try {
-    if (token && (await canUseApp(token)))
-      return next({ headers: { 'cache-control': 'no-store, private', vary: 'Cookie' } });
-  } catch {
-    return new Response('Application access is temporarily unavailable.', { status: 503, headers });
-  }
-  if (path.startsWith('/api/'))
-    return new Response(JSON.stringify({ error: 'Administrator access is required.' }), {
-      status: 403,
+  // The shell and assets contain no private records. API handlers validate live
+  // session, eligibility and resource authorization. Database outages must not
+  // replace the entire draft room with an error page.
+  if (path.startsWith('/api/') && !token)
+    return new Response(JSON.stringify({ error: 'Authentication is required.' }), {
+      status: 401,
       headers: { ...headers, 'content-type': 'application/json' },
     });
-  if (request.method === 'GET' && request.headers.get('accept')?.includes('text/html'))
-    return new Response(null, { status: 303, headers: { ...headers, location: '/auth' } });
-  return new Response('Administrator access is required.', { status: 403, headers });
+  return next({ headers: { 'cache-control': 'no-store, private', vary: 'Cookie' } });
 }

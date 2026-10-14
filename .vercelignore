@@ -12,3 +12,4 @@ playwright-report/
 .env*
 **/.env*
 *.log
+/On_The_Clock.mp3

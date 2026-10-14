@@ -1,5 +1,6 @@
 import type { FantasyTeam, League, MatchupResult, StandingsRow } from '@brock-fantasy/domain';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { Platform } from 'react-native';
 
 import { firstRelated } from '@/lib/relations';
@@ -18,6 +19,8 @@ interface LeagueRow {
   max_members: number;
   invite_code: string;
   state_version: number;
+  draft_scheduled_for: string | null;
+  draft_schedule_version: number;
 }
 
 interface TeamRow {
@@ -121,7 +124,28 @@ export function useLeague(leagueId: string | undefined): LeagueData {
     error: null,
   });
 
-  const reload = useCallback(async () => {
+  const pending = useRef<Promise<void> | null>(null);
+  const identity = (user?.id ?? '') + ':' + (leagueId ?? '');
+  const latestIdentity = useRef(identity);
+  latestIdentity.current = identity;
+  useEffect(() => {
+    pending.current = null;
+    setData((current) => ({
+      ...current,
+      league: null,
+      teams: [],
+      standings: [],
+      draftId: null,
+      myTeamId: null,
+      roster: [],
+      matchups: [],
+      messages: [],
+      loading: Boolean(user?.id),
+      error: null,
+    }));
+  }, [leagueId, user?.id]);
+  const load = useCallback(async () => {
+    const requestIdentity = latestIdentity.current;
     if (!supabase || !leagueId || !user) {
       setData((current) => ({ ...current, loading: false }));
       return;
@@ -132,7 +156,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
         client
           .from('leagues')
           .select(
-            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version',
+            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version, draft_scheduled_for, draft_schedule_version',
           )
           .eq('id', leagueId)
           .single(),
@@ -159,6 +183,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
           .order('created_at')
           .limit(100),
       ]);
+    if (requestIdentity !== latestIdentity.current) return;
     const error =
       leagueResult.error ??
       teamResult.error ??
@@ -187,6 +212,8 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       maxMembers: row.max_members,
       inviteCode: row.invite_code,
       stateVersion: row.state_version,
+      ...(row.draft_scheduled_for ? { draftScheduledFor: row.draft_scheduled_for } : {}),
+      draftScheduleVersion: row.draft_schedule_version,
     };
     const teamRows: TeamRow[] = teamResult.data ?? [];
     const teams = teamRows.map<FantasyTeam>((team) => ({
@@ -206,6 +233,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
           .eq('fantasy_team_id', myTeamId)
           .is('released_at', null)
       : { data: [] as RosterRow[], error: null };
+    if (requestIdentity !== latestIdentity.current) return;
     if (rosterResult.error) {
       setData((current) => ({ ...current, loading: false, error: rosterResult.error.message }));
       return;
@@ -269,46 +297,72 @@ export function useLeague(leagueId: string | undefined): LeagueData {
     });
   }, [leagueId, user]);
 
-  useEffect(() => {
-    void reload();
-    if (!supabase || !leagueId) return;
-    if (Platform.OS === 'web') {
-      const interval = setInterval(() => void reload(), 5_000);
-      return () => clearInterval(interval);
-    }
-    const client = supabase;
-    const channel = client
-      .channel(`league:${leagueId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'matchups', filter: `league_id=eq.${leagueId}` },
-        () => void reload(),
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `league_id=eq.${leagueId}`,
-        },
-        () => void reload(),
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'roster_entries',
-          filter: `league_id=eq.${leagueId}`,
-        },
-        () => void reload(),
-      )
-      .subscribe();
-    return () => {
-      void client.removeChannel(channel);
-    };
-  }, [leagueId, reload]);
+  const reload = useCallback(() => {
+    if (pending.current) return pending.current;
+    const request = load().catch(() =>
+      setData((current) => ({ ...current, loading: false, error: 'League is reconnecting…' })),
+    );
+    pending.current = request;
+    void request.finally(() => {
+      if (pending.current === request) pending.current = null;
+    });
+    return request;
+  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const poll = async () => {
+        await reload();
+        if (active && Platform.OS === 'web')
+          timer = setTimeout(
+            () => void poll(),
+            document.visibilityState === 'hidden' ? 30_000 : 5000,
+          );
+      };
+      void poll();
+      if (!supabase || !leagueId) return;
+      if (Platform.OS === 'web') {
+        return () => {
+          active = false;
+          if (timer) clearTimeout(timer);
+        };
+      }
+      const client = supabase;
+      const channel = client
+        .channel(`league:${leagueId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'matchups', filter: `league_id=eq.${leagueId}` },
+          () => void reload(),
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `league_id=eq.${leagueId}`,
+          },
+          () => void reload(),
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'roster_entries',
+            filter: `league_id=eq.${leagueId}`,
+          },
+          () => void reload(),
+        )
+        .subscribe();
+      return () => {
+        active = false;
+        void client.removeChannel(channel);
+      };
+    }, [leagueId, reload]),
+  );
 
   return { ...data, reload };
 }

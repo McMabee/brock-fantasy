@@ -6,7 +6,7 @@ import { webRequest } from '@/lib/web-request';
 export async function betaCommand<T>(
   command: string,
   payload: Record<string, unknown>,
-): Promise<{ data: T | null; error: string | null }> {
+): Promise<{ data: T | null; error: string | null; status?: number }> {
   if (Platform.OS === 'web') {
     return webRequest<T>(`/api/command/${command}`, { method: 'POST', body: payload });
   }

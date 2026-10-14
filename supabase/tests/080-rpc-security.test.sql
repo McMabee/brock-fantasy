@@ -4,7 +4,7 @@ select no_plan();
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'rpc_private' and p.proname not in ('can_use_app','require_app_access','is_admin_account_email','issue_account_signup_handoff')
-), 39, 'all 37 reported signatures and two league management commands have private implementations');
+), 45, 'existing commands plus eligibility, draft snapshot, schedule and service workers have private implementations');
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.prosecdef
@@ -30,7 +30,9 @@ where n.nspname = 'rpc_private' and private.proname not in ('can_use_app','requi
 select ok(
   not has_function_privilege('anon', exposed.oid, 'EXECUTE')
   and has_function_privilege('authenticated', exposed.oid, 'EXECUTE')
+    = (private.proname not in ('process_expired_drafts','process_in_app_reminders'))
   and has_function_privilege('authenticated', private.oid, 'EXECUTE')
+    = (private.proname not in ('process_expired_drafts','process_in_app_reminders'))
   and has_function_privilege('service_role', exposed.oid, 'EXECUTE')
     = has_function_privilege('service_role', private.oid, 'EXECUTE')
   and not exists (

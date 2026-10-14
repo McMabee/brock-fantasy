@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import { validatePublicAuthConfig } from './public-auth-config';
+import { refreshWebSession, sessionNeedsRenewal } from './web-session';
 
 // Expo inlines these public values at build time. No server secrets belong here.
 validatePublicAuthConfig({
@@ -33,7 +34,8 @@ async function cookieAuthenticatedRead(
   const target = new URL(request.url);
   const path = `${target.pathname}${target.search}`;
   if (!path.startsWith('/rest/v1/')) return fetch(request);
-  return fetch(`/api/data/supabase?path=${encodeURIComponent(path)}`, {
+  if (sessionNeedsRenewal()) await refreshWebSession();
+  const options: RequestInit = {
     method: request.method,
     headers: request.headers,
     credentials: 'include',
@@ -41,7 +43,14 @@ async function cookieAuthenticatedRead(
     ...(request.method === 'GET' || request.method === 'HEAD'
       ? {}
       : { body: await request.text() }),
-  });
+  };
+  let response = await fetch(`/api/data/supabase?path=${encodeURIComponent(path)}`, options);
+  if (response.status === 401) {
+    const renewal = await refreshWebSession();
+    if (!renewal.error)
+      response = await fetch(`/api/data/supabase?path=${encodeURIComponent(path)}`, options);
+  }
+  return response;
 }
 
 export const supabase: SupabaseClient | null =

@@ -1,7 +1,7 @@
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
 import { useSession } from '@/providers/session-provider';
 import { colors, heading } from '@/theme';
@@ -16,15 +16,16 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [eligibilityAttested, setEligibilityAttested] = useState(false);
   const submit = async () => {
     setError(null);
     if (!email.includes('@') || password.length < 8) {
-      setError('Enter your administrator email and password.');
+      setError('Enter your email and password.');
       return;
     }
     setLoading(true);
     try {
-      const message = await signIn(email.trim(), password);
+      const message = await signIn(email.trim(), password, eligibilityAttested);
       if (message) setError(message);
       else router.replace(next ? authReturnPath(next) : '/dashboard');
     } finally {
@@ -35,13 +36,12 @@ export default function AuthScreen() {
     <AppShell>
       <View style={[styles.layout, width >= 820 && styles.layoutWide]}>
         <View style={styles.copy}>
-          <Pill label="PRIVATE BETA" tone="positive" />
+          <Pill label="WEB BETA" tone="positive" />
           <Text accessibilityRole="header" style={styles.title}>
-            Administrator Sign In
+            Sign In
           </Text>
           <Text style={styles.body}>
-            The fantasy app is currently available to administrators only. Creating an account does
-            not grant beta access.
+            Sign in with a verified, eligible account to join leagues and play.
           </Text>
         </View>
         <Card style={styles.formCard}>
@@ -64,11 +64,19 @@ export default function AuthScreen() {
               {error}
             </Text>
           ) : null}
-          <ActionButton
-            label="Administrator sign-in"
-            onPress={() => void submit()}
-            loading={loading}
-          />
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: eligibilityAttested }}
+            onPress={() => setEligibilityAttested((value) => !value)}
+          >
+            <Text style={uiStyles.body}>
+              {eligibilityAttested ? '☑' : '☐'} I am 18 or turn 18 this calendar year.
+            </Text>
+          </Pressable>
+          <Text style={uiStyles.body}>
+            Existing accounts only need this confirmation if eligibility has not been recorded yet.
+          </Text>
+          <ActionButton label="Sign in" onPress={() => void submit()} loading={loading} />
           <Link href="/forgot-password" style={uiStyles.link}>
             Forgot password?
           </Link>

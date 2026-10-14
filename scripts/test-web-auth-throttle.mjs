@@ -49,7 +49,7 @@ try {
   results.push({ scenario: 'root Vercel entry serves home and dashboard HTML', status: 200 });
   for (const [route, heading] of [
     ['/signup', 'Create Your Account'],
-    ['/auth', 'Administrator Sign In'],
+    ['/auth', 'Sign In'],
     ['/forgot-password', 'Reset Your Password'],
     ['/reset-password', 'Choose a New Password'],
   ]) {
@@ -147,7 +147,15 @@ try {
     if (target.endsWith('/rpc/is_admin_account_email'))
       return Response.json(scenario !== 'unapproved');
     if (target.endsWith('/rpc/can_use_app'))
-      return Response.json(!['revoked', 'callback-regular'].includes(scenario));
+      return scenario === 'access-outage'
+        ? new Response(null, { status: 503 })
+        : Response.json(scenario !== 'revoked');
+    if (target.includes('grant_type=refresh_token'))
+      return Response.json({
+        access_token: 'private-access-token-fixture',
+        refresh_token: 'private-refresh-token-fixture',
+        expires_in: 3600,
+      });
     if (target.endsWith('/rpc/issue_account_signup_handoff')) {
       assert.equal(new Headers(init.headers).get('apikey'), process.env.SUPABASE_SECRET_KEY);
       const body = JSON.parse(init.body);
@@ -206,7 +214,7 @@ try {
   };
   for (const [name, expected] of [
     ['success', 200],
-    ['unapproved', 401],
+    ['unapproved', 200],
     ['revoked', 403],
     ['limited', 429],
     ['rpc-error', 503],
@@ -230,12 +238,12 @@ try {
     });
     assert.equal(result.status, expected, name);
     const payload = await result.json();
-    if (name === 'success') {
+    if (expected === 200) {
       assert.equal(payload.user.id, 'fixture-user');
       assert.equal(
         calls.length,
-        5,
-        'counter, admin lookup, password grant, user lookup, current entitlement',
+        4,
+        'counter, password grant, user lookup, trusted participant entitlement',
       );
       assert.ok(result.headers.getSetCookie().some((value) => value.includes('HttpOnly')));
     } else {
@@ -249,6 +257,27 @@ try {
     });
   }
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_auth_route_fixture';
+  for (const name of ['user-error', 'access-outage']) {
+    scenario = name;
+    const result = await networkFetch(`${url}/api/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'x-vercel-forwarded-for': '198.51.100.23',
+        cookie: '__Host-bf-refresh=fixture; bf_csrf=fixture',
+        'x-csrf-token': 'fixture',
+      },
+    });
+    assert.equal(result.status, 503);
+    assert.ok(
+      result.headers
+        .getSetCookie()
+        .some((value) => value.startsWith('__Host-bf-refresh=') && !value.includes('Max-Age=0')),
+      'rotated cookie is retained during access/user outage',
+    );
+    assert.equal(result.headers.get('retry-after'), '2');
+    results.push({ scenario: 'Rotated HttpOnly refresh retained during ' + name, status: 503 });
+  }
   for (const [name, expected] of [
     ['unapproved', 200],
     ['handoff-error', 503],
@@ -319,15 +348,13 @@ try {
     redirect: 'manual',
     headers: { ...headers, cookie: 'bf_pkce=fixture-verifier; bf_auth_flow=sign-up' },
   });
-  assert.equal(verified.status, 200);
-  const verifiedHtml = await verified.text();
-  assert.match(verifiedHtml, /api\/prelaunch\/complete-signup/u);
-  assert.doesNotMatch(verifiedHtml, /<button\b/u);
+  assert.equal(verified.status, 302);
+  assert.match(verified.headers.get('location'), /\/dashboard$/u);
   assert.ok(
     verified.headers
       .getSetCookie()
       .filter((v) => /(?:bf-access|bf-refresh|bf_access|bf_refresh)=/u.test(v))
-      .every((v) => v.includes('Max-Age=0')),
+      .some((v) => v.includes('HttpOnly') && !v.includes('Max-Age=0')),
   );
   scenario = 'success';
   const adminCallback = await networkFetch(`${url}/api/auth/callback?code=fixture-code`, {
@@ -338,8 +365,8 @@ try {
   assert.match(adminCallback.headers.get('location'), /\/dashboard$/u);
   results.push({
     scenario:
-      'regular verification returns to thanks without application session; administrator callback preserves application session',
-    status: 200,
+      'verified eligible ordinary and administrator accounts receive cookie sessions and reach the dashboard',
+    status: 302,
   });
   const logged = diagnostics.join('\n');
   for (const code of [

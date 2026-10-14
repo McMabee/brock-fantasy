@@ -208,6 +208,15 @@ function Overview({
       <View style={styles.contentSide}>
         <Card>
           <Text style={styles.panelTitle}>League controls</Text>
+          {league?.draftScheduledFor ? (
+            <Text style={uiStyles.body}>
+              Draft planned for{' '}
+              {new Date(league.draftScheduledFor).toLocaleString('en-CA', {
+                timeZone: 'America/Toronto',
+              })}{' '}
+              (Toronto time). The commissioner starts the draft manually.
+            </Text>
+          ) : null}
           <Text style={uiStyles.body}>
             Server-authoritative snake draft, lineup locks, free agents, waivers, and trades for
             this{' '}

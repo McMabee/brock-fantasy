@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { torontoDateFields, torontoDateTime } from '@brock-fantasy/domain';
 
 import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
 import { useDraft } from '@/hooks/use-draft';
@@ -45,6 +46,39 @@ export default function CommissionerScreen() {
     key: string;
   } | null>(null);
   const [confirmationName, setConfirmationName] = useState('');
+  const [plannedDate, setPlannedDate] = useState('');
+  const [plannedTime, setPlannedTime] = useState('19:00');
+  useEffect(() => {
+    const scheduled = leagueData.league?.draftScheduledFor;
+    if (scheduled) {
+      const fields = torontoDateFields(scheduled);
+      setPlannedDate(fields.date);
+      setPlannedTime(fields.time);
+    } else setPlannedDate('');
+  }, [leagueData.league?.draftScheduledFor]);
+  const saveDraftSchedule = async (clear = false) => {
+    if (!leagueId || !leagueData.league) return;
+    const scheduled = clear ? null : torontoDateTime(plannedDate, plannedTime);
+    if (!clear && !scheduled) {
+      setMessage('Choose a valid draft date and time.');
+      return;
+    }
+    setWorking(true);
+    const result = await betaCommand('schedule_league_draft', {
+      p_league_id: leagueId,
+      p_scheduled_for: scheduled,
+      p_expected_version: leagueData.league.stateVersion,
+      p_idempotency_key: crypto.randomUUID(),
+    });
+    setWorking(false);
+    if (result.error) setMessage(result.error);
+    else {
+      setMessage(
+        clear ? 'Draft schedule cleared.' : 'Draft time saved. Members will receive reminders.',
+      );
+      await leagueData.reload();
+    }
+  };
   const [deleting, setDeleting] = useState(false);
   const deletePending = useRef(false);
   const authorized = Boolean(user && leagueData.league?.commissionerId === user.id);
@@ -208,6 +242,70 @@ export default function CommissionerScreen() {
       ) : null}
       <SectionTitle title="Draft" detail={`${leagueData.teams.length} managers`} />
       <Card style={styles.card}>
+        {!leagueData.draftId ? (
+          <View style={{ gap: 12 }}>
+            <Text style={styles.title}>Planned draft time</Text>
+            <Text style={uiStyles.body}>
+              America/Toronto. Reminders use this time; you start the draft manually.
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              {Platform.OS === 'web' ? (
+                <>
+                  <label style={{ color: colors.text }}>
+                    Draft date{' '}
+                    <input
+                      aria-label="Draft date"
+                      type="date"
+                      value={plannedDate}
+                      onChange={(e) => setPlannedDate(e.currentTarget.value)}
+                      disabled={working}
+                    />
+                  </label>
+                  <label style={{ color: colors.text }}>
+                    Draft time{' '}
+                    <input
+                      aria-label="Draft time"
+                      type="time"
+                      value={plannedTime}
+                      onChange={(e) => setPlannedTime(e.currentTarget.value)}
+                      disabled={working}
+                    />
+                  </label>
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    accessibilityLabel="Draft date YYYY-MM-DD"
+                    style={uiStyles.input}
+                    value={plannedDate}
+                    onChangeText={setPlannedDate}
+                    placeholder="YYYY-MM-DD"
+                  />
+                  <TextInput
+                    accessibilityLabel="Draft time HH:mm"
+                    style={uiStyles.input}
+                    value={plannedTime}
+                    onChangeText={setPlannedTime}
+                  />
+                </>
+              )}
+            </View>
+            <View style={styles.actions}>
+              <ActionButton
+                label="Save draft time"
+                onPress={() => void saveDraftSchedule()}
+                disabled={working || deleting || !plannedDate}
+                variant="secondary"
+              />
+              <ActionButton
+                label="Clear draft time"
+                onPress={() => void saveDraftSchedule(true)}
+                disabled={working || deleting || !leagueData.league?.draftScheduledFor}
+                variant="secondary"
+              />
+            </View>
+          </View>
+        ) : null}
         <Text style={styles.title}>{leagueData.league?.name ?? 'Loading league…'}</Text>
         <Text style={uiStyles.body}>
           {config

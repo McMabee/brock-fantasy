@@ -135,7 +135,7 @@ select pg_temp.league_actor('95000000-0000-4000-8000-000000000003');
 set local role authenticated;
 select throws_ok($$select public.delete_league(current_setting('test.league_id')::uuid,
   'League commands fixture', 1, 'league-access-denied')$$,
-  '42501', 'Application access required', 'ordinary registered accounts cannot use the deletion command');
+  '42501', 'Commissioner access required', 'ordinary participants cannot delete another commissioner league');
 reset role;
 select pg_temp.league_actor('95000000-0000-4000-8000-000000000001');
 set local role authenticated;

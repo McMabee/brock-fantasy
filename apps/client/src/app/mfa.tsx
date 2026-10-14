@@ -4,7 +4,7 @@ import { Image, Platform, StyleSheet, Text, TextInput, View } from 'react-native
 
 import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
-import { adminReturnPath } from '@/lib/admin-navigation';
+import { authReturnPath } from '@/lib/admin-navigation';
 import { webRequest } from '@/lib/web-request';
 import { betaCommand } from '@/lib/web-api';
 import { useSession } from '@/providers/session-provider';
@@ -77,7 +77,7 @@ export default function MfaScreen() {
             result.data.factor ? { ...result.data.factor, qrCode: null, secret: null } : null,
           );
           if (!invitationId && result.data.aal === 'aal2' && result.data.hasAdminRole && next)
-            router.replace(adminReturnPath(next));
+            router.replace(authReturnPath(next));
         }
       } else if (supabase) {
         const [assurance, factors, role] = await Promise.all([
@@ -106,7 +106,7 @@ export default function MfaScreen() {
           setHasAdminRole(Boolean(role.data));
           setVerifiedSession(assurance.data?.currentLevel === 'aal2');
           if (!invitationId && assurance.data?.currentLevel === 'aal2' && role.data && next)
-            router.replace(adminReturnPath(next));
+            router.replace(authReturnPath(next));
         }
       } else setMessage('Authenticator security is not configured.');
       setLoading(false);
@@ -220,7 +220,7 @@ export default function MfaScreen() {
     setFactor({ id: factor.id, qrCode: null, secret: null, verified: true });
     setVerifiedSession(true);
     if (invitationId && invitationValid) await acceptInvitation();
-    else if (hasAdminRole) router.replace(adminReturnPath(next));
+    else if (hasAdminRole) router.replace(authReturnPath(next));
     else
       setMessage(
         'Authenticator verified. An admin invitation from Ty Mabee is required to activate staff access.',
@@ -254,7 +254,7 @@ export default function MfaScreen() {
         ) : verifiedSession ? (
           <ActionButton
             label={hasAdminRole ? 'Open admin panel' : 'Back to account'}
-            href={hasAdminRole ? adminReturnPath(next) : '/account'}
+            href={hasAdminRole ? authReturnPath(next) : '/account'}
           />
         ) : !factor ? (
           <>

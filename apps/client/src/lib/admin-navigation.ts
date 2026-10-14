@@ -5,7 +5,25 @@ export function adminReturnPath(value: unknown): (typeof adminRoutes)[number] {
 }
 
 export function authReturnPath(value: unknown): string {
-  if (value === '/leagues/join') return value;
+  if (typeof value !== 'string') return '/dashboard';
+  if (
+    [
+      '/dashboard',
+      '/players',
+      '/account',
+      '/notifications',
+      '/leagues/new',
+      '/leagues/join',
+      ...adminRoutes,
+    ].includes(value)
+  )
+    return value;
+  if (
+    /^\/(?:draft|league|commissioner|lineup-beta|lineup|transactions|players)\/[0-9a-f-]{36}$/iu.test(
+      value,
+    )
+  )
+    return value;
   if (typeof value === 'string' && /^\/mfa\?invitation=[0-9a-f-]{36}$/iu.test(value)) return value;
-  return adminReturnPath(value);
+  return '/dashboard';
 }

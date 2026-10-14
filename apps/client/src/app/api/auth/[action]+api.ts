@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'expo-router/server';
 import { ELIGIBILITY_POLICY_VERSION, registrationYearAt } from '@brock-fantasy/domain';
 import { limitAuthRequest } from '../../../server/auth-rate-limit';
-import { AppAccessUnavailable, adminAccountEmail, canUseApp } from '../../../server/app-access';
+import { AppAccessUnavailable, canUseApp } from '../../../server/app-access';
 import { signupHandoff, handoffPage } from '../../../server/signup-handoff';
 import { testerPage } from '../../../server/tester-entry';
 import { authReturnPath } from '../../../lib/admin-navigation';
@@ -230,18 +230,46 @@ function authError(status: number): Response {
     return response({ error: 'Too many requests. Please wait and try again.' }, 429);
   return response({ error: 'Authentication could not be completed.' }, status >= 500 ? 503 : 401);
 }
+async function accountAccess(token: string, attested: unknown): Promise<boolean> {
+  if (await canUseApp(token)) return true;
+  if (attested !== true) return false;
+  const { url, key } = config();
+  const result = await fetch(url + '/rest/v1/rpc/record_account_eligibility', {
+    method: 'POST',
+    headers: { apikey: key, authorization: 'Bearer ' + token, 'content-type': 'application/json' },
+    body: JSON.stringify({ p_attested: true, p_policy_version: ELIGIBILITY_POLICY_VERSION }),
+    signal: AbortSignal.timeout(5000),
+    redirect: 'error',
+  }).catch(() => {
+    throw unavailable('eligibility_confirmation_unavailable');
+  });
+  if (result.status >= 500) throw unavailable('eligibility_confirmation_unavailable');
+  return result.ok && (await canUseApp(token));
+}
 
 const get: RequestHandler = async (request, params) => {
   const action = params.action as AuthAction;
   if (action === 'csrf') return response({ ok: true }, 200, [csrfCookie()]);
   if (action !== 'session') return response({ error: 'Not found.' }, 404);
   const accessToken = cookie(request, ACCESS_COOKIE);
-  if (!accessToken) return response({ user: null });
+  if (!accessToken)
+    return response({ user: null, canRefresh: Boolean(cookie(request, REFRESH_COOKIE)) });
   const user = await currentUser(accessToken);
   return user && (await canUseApp(accessToken))
-    ? response({ user })
-    : response({ user: null }, 200, clearSessionCookies());
+    ? response({ user, expiresAt: accessTokenExpiry(accessToken) })
+    : response({ user: null, canRefresh: Boolean(cookie(request, REFRESH_COOKIE)) }, 401);
 };
+
+function accessTokenExpiry(token: string): number {
+  try {
+    const value = JSON.parse(
+      atob(token.split('.')[1]!.replace(/-/gu, '+').replace(/_/gu, '/')),
+    ) as { exp?: number };
+    return typeof value.exp === 'number' ? value.exp * 1000 : Date.now() + 60_000;
+  } catch {
+    return Date.now() + 60_000;
+  }
+}
 
 const post: RequestHandler = async (request, params) => {
   const action = params.action as AuthAction;
@@ -294,10 +322,32 @@ const post: RequestHandler = async (request, params) => {
     });
     if (!refreshed.ok) return authError(refreshed.status);
     const tokens = await providerTokens(refreshed);
-    const user = await currentUser(tokens.access_token);
-    return user && (await canUseApp(tokens.access_token))
-      ? response({ user }, 200, sessionCookies(tokens))
-      : response({ error: 'Administrator access is required.' }, 403, clearSessionCookies());
+    try {
+      const user = await currentUser(tokens.access_token);
+      return user && (await canUseApp(tokens.access_token))
+        ? response(
+            { user, expiresAt: Date.now() + (tokens.expires_in ?? 3600) * 1000 },
+            200,
+            sessionCookies(tokens),
+          )
+        : response(
+            { error: 'A verified, eligible account is required.' },
+            403,
+            clearSessionCookies(),
+          );
+    } catch (error) {
+      if (!(error instanceof AuthUnavailableError) && !(error instanceof AppAccessUnavailable))
+        throw error;
+      // Supabase has already rotated this refresh token. Retain the new pair
+      // even while eligibility/user reads fail, or a retry can revoke the session.
+      const retry = response(
+        { error: 'Connection unavailable. Retrying…' },
+        503,
+        sessionCookies(tokens),
+      );
+      retry.headers.set('retry-after', '2');
+      return retry;
+    }
   }
 
   const body = await json(request);
@@ -307,7 +357,7 @@ const post: RequestHandler = async (request, params) => {
     const email = string(body.email, 320)?.trim().toLowerCase();
     const password = string(body.password, 512);
     if (!email || !password) return response({ error: 'Email and password are required.' }, 400);
-    if (!(await adminAccountEmail(email))) return authError(401);
+
     const signedIn = await authFetch('/token?grant_type=password', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -322,9 +372,20 @@ const post: RequestHandler = async (request, params) => {
         403,
         clearSessionCookies(),
       );
-    if (!(await canUseApp(tokens.access_token)))
-      return response({ error: 'Administrator access is required.' }, 403, clearSessionCookies());
-    return response({ user }, 200, sessionCookies(tokens));
+    if (!(await accountAccess(tokens.access_token, body.eligibilityAttested)))
+      return response(
+        {
+          error:
+            'A verified, eligible account is required. If you meet the eligibility requirement, check the confirmation box and sign in again.',
+        },
+        403,
+        clearSessionCookies(),
+      );
+    return response(
+      { user, expiresAt: Date.now() + (tokens.expires_in ?? 3600) * 1000 },
+      200,
+      sessionCookies(tokens),
+    );
   }
 
   const requestUrl = requestOrigin(request);
@@ -332,7 +393,7 @@ const post: RequestHandler = async (request, params) => {
     const email = string(body.email, 320)?.trim().toLowerCase();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email))
       return response({ error: 'A valid email is required.' }, 400);
-    if (action === 'recover' && !(await adminAccountEmail(email))) return response({ ok: true });
+
     if (action === 'sign-up' && typeof body.website === 'string' && body.website !== '')
       return response({ error: 'This registration could not be accepted.' }, 400);
     const verifier =
@@ -388,8 +449,12 @@ const post: RequestHandler = async (request, params) => {
 
   const accessToken = cookie(request, ACCESS_COOKIE);
   if (!accessToken) return authError(401);
-  if (!(await canUseApp(accessToken)))
-    return response({ error: 'Administrator access is required.' }, 403, clearSessionCookies());
+  if (!(await accountAccess(accessToken, body.eligibilityAttested)))
+    return response(
+      { error: 'A verified, eligible account is required.' },
+      403,
+      clearSessionCookies(),
+    );
   const password = string(body.password, 512);
   if (!password || password.length < 8)
     return response({ error: 'Use an 8+ character password.' }, 400);

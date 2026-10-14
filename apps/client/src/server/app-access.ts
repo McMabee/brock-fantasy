@@ -1,4 +1,36 @@
+import type { RequestHandler } from 'expo-router/server';
+
 export class AppAccessUnavailable extends Error {}
+
+export function withAvailability(handler: RequestHandler): RequestHandler {
+  return async (request, params) => {
+    try {
+      return await handler(request, params);
+    } catch (error) {
+      if (!(error instanceof AppAccessUnavailable)) throw error;
+      console.warn(
+        JSON.stringify({
+          event: 'brock_app_access_unavailable',
+          path: new URL(request.url).pathname,
+        }),
+      );
+      return new Response(
+        JSON.stringify({
+          error: 'Application access is temporarily unavailable. Reconnecting…',
+          code: 'service_unavailable',
+        }),
+        {
+          status: 503,
+          headers: {
+            'content-type': 'application/json',
+            'cache-control': 'no-store, private',
+            'retry-after': '2',
+          },
+        },
+      );
+    }
+  };
+}
 
 export async function canUseApp(accessToken: string): Promise<boolean> {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/$/u, '');
@@ -19,12 +51,29 @@ export async function canUseApp(accessToken: string): Promise<boolean> {
       cache: 'no-store',
     });
     if (result.status === 401 || result.status === 403) return false;
-    if (!result.ok) throw new AppAccessUnavailable('Application access is unavailable.');
+    if (!result.ok) {
+      console.warn(
+        JSON.stringify({
+          event: 'brock_app_access_failed',
+          phase: 'eligibility',
+          status: result.status,
+        }),
+      );
+      throw new AppAccessUnavailable('Application access is unavailable.');
+    }
     const value: unknown = await result.json();
     if (typeof value !== 'boolean')
       throw new AppAccessUnavailable('Application access is unavailable.');
     return value;
-  } catch {
+  } catch (error) {
+    if (!(error instanceof AppAccessUnavailable))
+      console.warn(
+        JSON.stringify({
+          event: 'brock_app_access_failed',
+          phase: 'eligibility',
+          reason: 'network_or_timeout',
+        }),
+      );
     throw new AppAccessUnavailable('Application access is unavailable.');
   }
 }

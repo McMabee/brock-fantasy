@@ -20,6 +20,7 @@ import { ASSOCIATION_INSTAGRAM_URL } from '@/lib/association';
 import { useSession } from '@/providers/session-provider';
 import { useTheme } from '@/providers/theme-provider';
 import { colors, heading, radii, shadow } from '@/theme';
+import { useNotifications } from '@/hooks/use-notifications';
 
 export function AppShell({
   children,
@@ -34,7 +35,8 @@ export function AppShell({
 }) {
   const { width } = useWindowDimensions();
   const router = useRouter();
-  const { user } = useSession();
+  const { user, error: sessionError } = useSession();
+  const { unreadCount } = useNotifications();
   const { mode, toggleMode, palette } = useTheme();
   const wide = width >= 820;
 
@@ -70,7 +72,9 @@ export function AppShell({
           ) : null}
           {user ? (
             <Pressable accessibilityRole="link" onPress={() => router.push('/notifications')}>
-              <Text style={styles.navLink}>Updates</Text>
+              <Text style={styles.navLink}>
+                Notifications{unreadCount ? ' (' + unreadCount + ')' : ''}
+              </Text>
             </Pressable>
           ) : null}
           <Pressable
@@ -95,6 +99,11 @@ export function AppShell({
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={[styles.page, wide && styles.pageWide]}>
+          {sessionError ? (
+            <Text accessibilityRole="alert" style={{ color: colors.danger }}>
+              {sessionError}
+            </Text>
+          ) : null}
           {title ? (
             <View style={styles.pageHeading}>
               <View style={styles.pageHeadingCopy}>

@@ -1,0 +1,211 @@
+{
+  "date": "2026-10-13",
+  "timezone": "America/Toronto",
+  "deployment": "dpl_B1p5i9i3j1sY8vRrR6qDqB6Zx6ca",
+  "hostname": "https://beta.brockfantasy.ca",
+  "status": "release candidate; hosted browser and multi-user acceptance pending",
+  "sourceCommitted": false,
+  "tests": {
+    "repositoryCheck": "passed",
+    "databaseAssertions": 429,
+    "domainTests": 37,
+    "scriptTests": 59,
+    "completedLocalDraftManagers": [4, 10],
+    "lateAutopicks": 20,
+    "slowestLateAutopickSeconds": 0.59,
+    "matchingParityCases": 80,
+    "independentWorkerOverlap": "passed",
+    "concurrentPickDuplicateQueue": "passed",
+    "sessionRotationDuringOutages": "passed",
+    "dependencyAdvisories": {
+      "high": 2,
+      "critical": 0,
+      "exceptionsApproved": false,
+      "moderate": 2
+    }
+  },
+  "hosted": {
+    "migrations": 29,
+    "games": 129,
+    "sourceGameMappings": 129,
+    "activePrograms": 6,
+    "activeEligibleAthletes": 120,
+    "headshots": 119,
+    "missingHeadshots": 1,
+    "preservedLeagues": 1,
+    "preservedPicks": 40,
+    "completedRostersLegal": true,
+    "aal1": {
+      "participantAccess": true,
+      "staffWithoutMfa": false,
+      "picks": 40,
+      "roster": 40,
+      "programs": 6,
+      "games": 129
+    },
+    "publicHttp": {
+      "checkedAt": "2026-10-14T00:46:25.908Z",
+      "deployment": "dpl_B1p5i9i3j1sY8vRrR6qDqB6Zx6ca",
+      "authenticatedBrowserTested": false,
+      "receipts": [
+        {
+          "path": "/auth",
+          "status": 200,
+          "bytes": 1518,
+          "elapsedMs": 429,
+          "cacheControl": "no-store, private",
+          "assets": []
+        },
+        {
+          "path": "/signup",
+          "status": 200,
+          "bytes": 1849,
+          "elapsedMs": 368,
+          "cacheControl": "no-store, private",
+          "assets": []
+        },
+        {
+          "path": "/dashboard",
+          "status": 200,
+          "bytes": 30918,
+          "elapsedMs": 350,
+          "cacheControl": "no-store, private",
+          "assets": [
+            "/_expo/static/js/web/__expo-metro-runtime-1f8f5d3ca6b7f58204d51e14506d73fb.js",
+            "/_expo/static/js/web/_layout-d0c42a2a9f6685d0a1216debe80fedbf.js",
+            "/_expo/static/js/web/dashboard-b94a877032ca0ddd417593836b8eec06.js",
+            "/_expo/static/js/web/__common-d6ff4250fefdb5a33f572e81ed633b28.js",
+            "/_expo/static/js/web/entry-53b3d66278c03b1c7fc273c52f4f23b1.js"
+          ]
+        },
+        {
+          "path": "/draft/bfab82f5-96de-4208-a45b-a824464068fd",
+          "status": 200,
+          "bytes": 35999,
+          "elapsedMs": 425,
+          "cacheControl": "no-store, private",
+          "assets": [
+            "/_expo/static/js/web/__expo-metro-runtime-1f8f5d3ca6b7f58204d51e14506d73fb.js",
+            "/_expo/static/js/web/_layout-d0c42a2a9f6685d0a1216debe80fedbf.js",
+            "/_expo/static/js/web/[id]-0e655534f6ebef2b3c17bc111a0b9e6f.js",
+            "/_expo/static/js/web/__common-d6ff4250fefdb5a33f572e81ed633b28.js",
+            "/_expo/static/js/web/entry-53b3d66278c03b1c7fc273c52f4f23b1.js"
+          ]
+        },
+        {
+          "path": "/api/data/supabase",
+          "status": 401,
+          "bytes": 39,
+          "elapsedMs": 288,
+          "cacheControl": "no-store, private",
+          "assets": []
+        },
+        {
+          "path": "/api/draft/bfab82f5-96de-4208-a45b-a824464068fd/state",
+          "status": 401,
+          "bytes": 39,
+          "elapsedMs": 234,
+          "cacheControl": "no-store, private",
+          "assets": []
+        }
+      ],
+      "assets": [
+        {
+          "path": "/_expo/static/js/web/__expo-metro-runtime-1f8f5d3ca6b7f58204d51e14506d73fb.js",
+          "status": 200,
+          "cacheControl": "public, max-age=31536000, immutable",
+          "encoding": "br"
+        },
+        {
+          "path": "/_expo/static/js/web/_layout-d0c42a2a9f6685d0a1216debe80fedbf.js",
+          "status": 200,
+          "cacheControl": "public, max-age=31536000, immutable",
+          "encoding": "br"
+        },
+        {
+          "path": "/_expo/static/js/web/dashboard-b94a877032ca0ddd417593836b8eec06.js",
+          "status": 200,
+          "cacheControl": "public, max-age=31536000, immutable",
+          "encoding": "br"
+        },
+        {
+          "path": "/_expo/static/js/web/__common-d6ff4250fefdb5a33f572e81ed633b28.js",
+          "status": 200,
+          "cacheControl": "public, max-age=31536000, immutable",
+          "encoding": "br"
+        },
+        {
+          "path": "/_expo/static/js/web/entry-53b3d66278c03b1c7fc273c52f4f23b1.js",
+          "status": 200,
+          "cacheControl": "public, max-age=31536000, immutable",
+          "encoding": "br"
+        },
+        {
+          "path": "/_expo/static/js/web/[id]-0e655534f6ebef2b3c17bc111a0b9e6f.js",
+          "status": 200,
+          "cacheControl": "public, max-age=31536000, immutable",
+          "encoding": "br"
+        },
+        {
+          "path": "encoded route chunk",
+          "status": 200
+        }
+      ],
+      "audio": {
+        "status": 200,
+        "bytes": 2106904,
+        "originalHashMatches": true
+      }
+    },
+    "anonymousRestRpcReadback": [
+      {
+        "name": "get_draft_room_snapshot",
+        "status": 401,
+        "code": "42501",
+        "schemaCacheVerified": true
+      },
+      {
+        "name": "schedule_league_draft",
+        "status": 401,
+        "code": "42501",
+        "schemaCacheVerified": true
+      },
+      {
+        "name": "record_account_eligibility",
+        "status": 401,
+        "code": "42501",
+        "schemaCacheVerified": true
+      },
+      {
+        "name": "create_beta_league",
+        "status": 401,
+        "code": "42501",
+        "schemaCacheVerified": true
+      }
+    ]
+  },
+  "backup": {
+    "capturedAt": "2026-10-14T00:43:08.4055579Z",
+    "snapshotId": "7c483fccafc3182a9843902b08b142347be785abda5ac78ff170ecc85af41ce9",
+    "offsiteSnapshotId": "7797a6a60b705b228fd2ba31faa7ce9520b8eb54f04d36680c7cccb59e43f6a4",
+    "encrypted": true,
+    "offsiteExportRecoveryVerified": true,
+    "databaseRestoreVerified": true,
+    "restoreSeconds": 26.112,
+    "applicationJourneysVerified": false,
+    "independentRecoveryPasswordVerified": false
+  },
+  "browser": {
+    "availableSurfaces": 0,
+    "error": "Browser is not available: iab",
+    "signedInSessionTested": false,
+    "coreWebVitalsMeasured": false
+  },
+  "remaining": [
+    "Hosted registration/email confirmation/recovery and participant create/join/draft journey",
+    "Hosted multi-user mock including late autopicks and queue races",
+    "Desktop/mobile keyboard, light/dark and reduced-motion acceptance including chat, photos and sound",
+    "Named scorekeeper publication/correction rehearsal using canonical schedules",
+    "Review existing policy, dependency exception and operational release gates"
+  ]
+}

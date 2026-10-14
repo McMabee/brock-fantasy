@@ -462,7 +462,7 @@ try {
     method: 'POST',
     body: { p_invitation_id: invitationId },
   });
-  assert.equal(result.response.status, 403);
+  assert.equal(result.response.status, 401);
   assert.equal(role, false, 'pending invitees cannot use the ordinary command boundary');
   entries = [];
   const staffCookieName = '__Host-bf-staff-access';
@@ -613,7 +613,7 @@ try {
     '/leagues/join/../../admin',
     ['/mfa'],
   ])
-    assert.equal(authReturnPath(value), '/admin');
+    assert.equal(authReturnPath(value), '/dashboard');
   process.env.EXPO_PUBLIC_APP_ORIGIN = 'https://play.brockfantasy.ca';
   failure = '';
   result = await request('/api/admin/mfa', {

@@ -106,13 +106,18 @@ export default function AdminScreen() {
         <View style={styles.side}>
           <SectionTitle title="Actions" />
           <Card style={styles.actions}>
-            <Text style={styles.actionTitle}>Ingestion and scoring</Text>
+            <Text style={styles.actionTitle}>Game scores and player statistics</Text>
             <Text style={uiStyles.body}>
-              Imports are immutable and replay through the same normalization pipeline as provider
-              data.
+              Select a scheduled game, enter individual player statistics, and review the scoring
+              preview.
             </Text>
-            <ActionButton label="Import provider snapshot" href="/admin/import" />
-            <ActionButton label="Scorekeeping workspace" href="/admin/games" variant="secondary" />
+            <ActionButton label="Update game scores and stats" href="/admin/games" />
+            <Text style={uiStyles.label}>Advanced tools</Text>
+            <ActionButton
+              label="Import provider snapshot"
+              href="/admin/import"
+              variant="secondary"
+            />
             {canManageAccounts ? (
               <ActionButton
                 label="Administrator invitations"

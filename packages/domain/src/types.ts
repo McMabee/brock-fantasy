@@ -81,6 +81,8 @@ export interface League {
   maxMembers: number;
   inviteCode: string;
   stateVersion?: number;
+  draftScheduledFor?: string;
+  draftScheduleVersion?: number;
 }
 
 export interface FantasyTeam {

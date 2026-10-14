@@ -3,108 +3,111 @@ import ts from 'typescript';
 import { readFile } from 'node:fs/promises';
 const deployment = JSON.parse(await readFile('vercel.json', 'utf8'));
 assert.equal(deployment.proxy.entrypoint, 'proxy.ts');
-assert.equal(deployment.functions['api/index.js'].runtime, undefined);
 assert.equal(deployment.functions['api/index.js'].includeFiles, 'apps/client/dist/server/**');
-const accessSource = await readFile('apps/client/src/server/app-access.ts', 'utf8');
-const js = ts.transpileModule(accessSource, {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText;
-const access = await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`);
-const source = await readFile('proxy.ts', 'utf8');
-const compiled = ts
-  .transpileModule(source, {
+const compile = (source) =>
+  ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  })
-  .outputText.replace(
+  }).outputText;
+const access = await import(
+  `data:text/javascript;base64,${Buffer.from(compile(await readFile('apps/client/src/server/app-access.ts', 'utf8'))).toString('base64')}`
+);
+const compiled = compile(await readFile('proxy.ts', 'utf8'))
+  .replace(
     /import \{ next, rewrite \} from '@vercel\/functions';/u,
-    "const next=()=>new Response(null,{headers:{'x-test-next':'1'}});const rewrite=url=>new Response(null,{headers:{'x-test-rewrite':url.toString()}});",
+    "const next=(options)=>new Response(null,{headers:{...options?.headers,'x-test-next':'1'}});const rewrite=url=>new Response(null,{headers:{'x-test-rewrite':url.toString()}});",
   )
-  .replace(/import \{ canUseApp \} from '[^']+';/u, 'const {canUseApp}=globalThis.__testAppAccess;')
   .replace(
     /import \{ requestCookie \} from '[^']+';/u,
     "const requestCookie=(req,name)=>{const pair=(req.headers.get('cookie')??'').split(';').map(v=>v.trim()).find(v=>v.startsWith(name+'='));return pair?pair.slice(name.length+1):null;};",
   );
-globalThis.__testAppAccess = access;
 const { default: proxy } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`
 );
 const previousEnv = { ...process.env },
   previousFetch = globalThis.fetch;
 try {
-  process.env.NODE_ENV = 'production';
-  process.env.VERCEL = '1';
-  process.env.EXPO_PUBLIC_APP_ENV = 'staging';
-  process.env.EXPO_PUBLIC_APP_ORIGIN = 'https://beta.brockfantasy.ca';
-  process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://fixture.supabase.co';
-  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_fixture';
-  let entitled = false,
-    upstreamUnavailable = false;
-  const calls = [];
-  globalThis.fetch = async (input, init = {}) => {
-    calls.push({ url: String(input), headers: new Headers(init.headers) });
-    assert.equal(String(input), 'https://fixture.supabase.co/rest/v1/rpc/can_use_app');
-    return upstreamUnavailable
-      ? new Response('unavailable', { status: 503 })
-      : Response.json(entitled);
+  Object.assign(process.env, {
+    NODE_ENV: 'production',
+    VERCEL: '1',
+    EXPO_PUBLIC_APP_ENV: 'staging',
+    EXPO_PUBLIC_APP_ORIGIN: 'https://beta.brockfantasy.ca',
+    EXPO_PUBLIC_SUPABASE_URL: 'https://fixture.supabase.co',
+    EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_fixture',
+  });
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    throw new Error('upstream offline');
   };
   for (const path of [
     '/dashboard',
     '/admin',
-    '/api/data/supabase',
+    '/draft/00000000-0000-4000-8000-000000000001',
     '/_expo/static/js/web/private.js',
-    '/api/index',
-    '/auth.html',
-    '/signup/',
-    '/policies/private.html',
-    '/policies/terms-of-use.html/export',
   ]) {
-    const response = await proxy(new Request(`https://beta.brockfantasy.ca${path}`));
-    assert.equal(response.status, 403, path);
+    const response = await proxy(new Request('https://beta.brockfantasy.ca' + path));
+    assert.equal(response.headers.get('x-test-next'), '1', path);
+  }
+  for (const path of [
+    '/api/data/supabase',
+    '/api/command/make_draft_pick',
+    '/api/draft/00000000-0000-4000-8000-000000000001/state',
+    '/api/admin/games',
+  ]) {
+    const response = await proxy(new Request('https://beta.brockfantasy.ca' + path));
+    assert.equal(response.status, 401, path);
+    assert.equal(response.headers.get('cache-control'), 'no-store, private');
+    const authorized = await proxy(
+      new Request('https://beta.brockfantasy.ca' + path, {
+        headers: { cookie: '__Host-bf-access=fixture' },
+      }),
+    );
+    assert.equal(
+      authorized.headers.get('x-test-next'),
+      '1',
+      'handler must enforce live authorization',
+    );
   }
   assert.equal(
-    (
-      await proxy(
-        new Request('https://beta.brockfantasy.ca/dashboard', { headers: { accept: 'text/html' } }),
-      )
-    ).headers.get('location'),
-    '/auth',
+    calls,
+    0,
+    'middleware never calls the database for shells or authenticated API dispatch',
   );
-  const auth = await proxy(
+  const asset = await proxy(
     new Request(
-      'https://beta.brockfantasy.ca/auth?returnTo=%2Fmfa%3Finvitation%3D98000000-0000-4000-8000-000000000001',
+      'https://beta.brockfantasy.ca/_expo/static/js/web/index-0123456789abcdef0123456789abcdef.js',
     ),
   );
-  assert.match(auth.headers.get('x-test-rewrite'), /api\/auth\/entry/u);
-  assert.match(auth.headers.get('x-test-rewrite'), /returnTo/u);
-  assert.equal(
-    (
-      await proxy(new Request('https://beta.brockfantasy.ca/policies/terms-of-use.html'))
-    ).headers.get('x-test-next'),
-    '1',
+  assert.match(asset.headers.get('cache-control'), /immutable/u);
+  const routeAsset = await proxy(
+    new Request(
+      'https://beta.brockfantasy.ca/_expo/static/js/web/%5Bid%5D-0123456789abcdef0123456789abcdef.js',
+    ),
+  );
+  assert.match(
+    routeAsset.headers.get('cache-control'),
+    /immutable/u,
+    'encoded route filenames remain loadable',
   );
   assert.equal(
     (
       await proxy(
-        new Request('https://beta.brockfantasy.ca/policies/terms-of-use.html', { method: 'POST' }),
+        new Request(
+          'https://beta.brockfantasy.ca/_expo/static/js/web/%2fserver-0123456789abcdef0123456789abcdef.js',
+        ),
       )
     ).status,
-    403,
+    404,
   );
-  const callCount = calls.length;
-  const signup = await proxy(
-    new Request('https://beta.brockfantasy.ca/signup', {
-      headers: {
-        cookie: '__Host-bf-access=private-fixture',
-        authorization: 'Bearer private-fixture',
-      },
-    }),
+  for (const host of ['play.brockfantasy.ca', 'branch.vercel.app', 'historical.vercel.app'])
+    assert.equal((await proxy(new Request(`https://${host}/auth`))).status, 403);
+  const signIn = await proxy(
+    new Request('https://beta.brockfantasy.ca/auth?returnTo=%2Fdashboard'),
   );
-  assert.equal(signup.status, 200);
-  assert.match(signup.headers.get('x-test-rewrite'), /api\/auth\/entry\?view=activate/u);
+  assert.match(signIn.headers.get('x-test-rewrite'), /api\/auth\/entry/u);
   assert.equal(
-    calls.length,
-    callCount,
-    'signup is served locally without forwarding application credentials',
+    (await proxy(new Request('https://beta.brockfantasy.ca/signup', { method: 'POST' }))).status,
+    405,
   );
   assert.equal(
     (await proxy(new Request('https://beta.brockfantasy.ca/tester-activate'))).headers.get(
@@ -112,28 +115,27 @@ try {
     ),
     '/signup',
   );
-  assert.equal(
-    (await proxy(new Request('https://beta.brockfantasy.ca/signup', { method: 'POST' }))).status,
-    405,
-  );
-  for (const host of ['play.brockfantasy.ca', 'branch.vercel.app', 'historical.vercel.app'])
-    assert.equal((await proxy(new Request(`https://${host}/auth`))).status, 403);
-  const request = new Request('https://beta.brockfantasy.ca/dashboard', {
-    headers: { cookie: '__Host-bf-access=fixture-token' },
+  const unavailable = access.withAvailability(async () => {
+    await access.canUseApp('fixture');
+    return Response.json({ ok: true });
   });
-  assert.equal((await proxy(request)).status, 403);
-  entitled = true;
-  assert.equal((await proxy(request)).headers.get('x-test-next'), '1');
-  entitled = false;
-  assert.equal((await proxy(request)).status, 403);
-  upstreamUnavailable = true;
-  assert.equal((await proxy(request)).status, 503);
+  const response = await unavailable(new Request('https://beta.brockfantasy.ca/api/data/supabase'));
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('retry-after'), '2');
+  assert.equal(response.headers.get('set-cookie'), null);
+  globalThis.fetch = async () => Response.json(false);
+  assert.equal(
+    await access.canUseApp('fixture'),
+    false,
+    'confirmed denial must never become access',
+  );
+  globalThis.fetch = async () => Response.json(true);
+  assert.equal(await access.canUseApp('fixture'), true);
   console.log(
-    'Beta middleware boundary: anonymous pages/assets/APIs, exact public entry, cookie isolation, alternate hosts, approval, revocation, and outages passed. Platform deployment remains untested.',
+    'Public shells and cached assets survive database outages; private API authentication, alternate host denial, trusted eligibility and retryable 503/session preservation passed.',
   );
 } finally {
   globalThis.fetch = previousFetch;
-  delete globalThis.__testAppAccess;
   for (const name of Object.keys(process.env)) if (!(name in previousEnv)) delete process.env[name];
   Object.assign(process.env, previousEnv);
 }

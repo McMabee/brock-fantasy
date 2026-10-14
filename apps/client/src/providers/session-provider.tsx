@@ -14,11 +14,17 @@ import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import { ensureCsrfToken, webAuth, type WebSessionUser } from '@/lib/web-auth';
+import { onSessionRenewed, refreshWebSession, sessionNeedsRenewal } from '@/lib/web-session';
 
 interface SessionContextValue {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<string | null>;
+  error: string | null;
+  signIn: (
+    email: string,
+    password: string,
+    eligibilityAttested?: boolean,
+  ) => Promise<string | null>;
   signUp: (
     email: string,
     password: string,
@@ -35,22 +41,55 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
-      void (async () => {
+      let active = true;
+      let retry: ReturnType<typeof setTimeout> | undefined;
+      const restore = async () => {
         try {
           await ensureCsrfToken();
           const result = await webAuth<{ user: WebSessionUser | null }>('session', {
             method: 'GET',
             csrf: false,
           });
+          if (!active) return;
+          if (result.status && result.status >= 500) {
+            setError('Connection unavailable. Retrying…');
+            retry = setTimeout(() => void restore(), 5000);
+            return;
+          }
+          setError(null);
           setUser(result.data?.user ? asSupabaseUser(result.data.user) : null);
-        } finally {
           setLoading(false);
+        } catch {
+          if (active) {
+            setError('Connection unavailable. Retrying…');
+            retry = setTimeout(() => void restore(), 5000);
+          }
         }
-      })();
-      return;
+      };
+      void restore();
+      const unsubscribe = onSessionRenewed((result) => {
+        if (!active) return;
+        if (result.data) {
+          setUser(asSupabaseUser(result.data.user));
+          setError(null);
+        } else if ([401, 403].includes(result.status)) {
+          setUser(null);
+          setLoading(false);
+        } else setError(result.error);
+      });
+      const timer = setInterval(() => {
+        if (sessionNeedsRenewal()) void refreshWebSession();
+      }, 30_000);
+      return () => {
+        active = false;
+        if (retry) clearTimeout(retry);
+        clearInterval(timer);
+        unsubscribe();
+      };
     }
     if (!supabase) {
       setLoading(false);
@@ -94,27 +133,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    if (Platform.OS === 'web') {
-      await ensureCsrfToken();
-      const result = await webAuth<{ user: WebSessionUser }>('sign-in', {
-        body: { email, password },
-        csrf: false,
-      });
-      if (result.data?.user) setUser(asSupabaseUser(result.data.user));
-      return result.error;
-    }
-    if (!supabase) return 'Authentication is not configured for this environment.';
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return error.message;
-    const access = await supabase.rpc('can_use_app');
-    if (access.error || access.data !== true) {
-      await supabase.auth.signOut({ scope: 'local' });
-      setUser(null);
-      return 'Administrator access is required.';
-    }
-    return null;
-  }, []);
+  const signIn = useCallback(
+    async (email: string, password: string, eligibilityAttested = false) => {
+      if (Platform.OS === 'web') {
+        await ensureCsrfToken();
+        const result = await webAuth<{ user: WebSessionUser }>('sign-in', {
+          body: { email, password, eligibilityAttested },
+          csrf: false,
+        });
+        if (result.data?.user) setUser(asSupabaseUser(result.data.user));
+        return result.error;
+      }
+      if (!supabase) return 'Authentication is not configured for this environment.';
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return error.message;
+      const access = await supabase.rpc('can_use_app');
+      if (access.error || access.data !== true) {
+        await supabase.auth.signOut({ scope: 'local' });
+        setUser(null);
+        return 'A verified, eligible account is required.';
+      }
+      return null;
+    },
+    [],
+  );
 
   const signUp = useCallback(
     async (email: string, password: string, displayName: string, eligibilityAttested: boolean) => {
@@ -180,13 +222,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
+      error,
       signIn,
       signUp,
       requestPasswordReset,
       updatePassword,
       signOut,
     }),
-    [loading, requestPasswordReset, signIn, signOut, signUp, updatePassword, user],
+    [error, loading, requestPasswordReset, signIn, signOut, signUp, updatePassword, user],
   );
 
   return <SessionContext value={value}>{children}</SessionContext>;

@@ -1,276 +1,221 @@
-import type { Athlete, DraftPick, DraftState, FantasyTeam } from '@brock-fantasy/domain';
-import { useCallback, useEffect, useState } from 'react';
+import { legalDraftAthletes } from '@brock-fantasy/domain';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-
-import { firstRelated } from '@/lib/relations';
 import { supabase } from '@/lib/supabase';
+import { webRequest } from '@/lib/web-request';
 import { useSession } from '@/providers/session-provider';
+import type { DraftSnapshot, DraftViewState } from '@/lib/draft-state';
 
-interface DraftRow {
-  id: string;
-  league_id: string;
-  status: DraftState['status'];
-  rounds: number;
-  current_overall_pick: number;
-  pick_deadline: string | null;
-  state_version: number;
-  team_order: string[];
-}
-
-interface LeagueRow {
-  id: string;
-  name: string;
-  competition_id: string | null;
-  pool_id: string | null;
-}
-
-interface TeamRow {
-  id: string;
-  league_id: string;
-  owner_id: string | null;
-  name: string;
-  draft_position: number | null;
-}
-
-interface AthleteRow {
-  id: string;
-  competition_id: string;
-  team_id: string;
-  display_name: string;
-  position: string;
-  jersey_number: string | null;
-  status: Athlete['status'];
-}
-
-interface PickRow {
-  id: string;
-  draft_id: string;
-  fantasy_team_id: string;
-  athlete_id: string;
-  overall_pick: number;
-  round: number;
-  pick_in_round: number;
-  source: DraftPick['source'];
-  created_at: string;
-}
-
-interface RankingRow {
-  athlete_id: string;
-  rank: number;
-}
-
-interface PoolRankingRow extends RankingRow {
-  athlete: AthleteRow | readonly AthleteRow[];
-}
-
-interface QueueRow {
-  athlete_id: string;
-  priority: number;
-}
-
-export interface DraftViewState {
-  draft: DraftState | null;
-  leagueName: string;
-  teams: readonly FantasyTeam[];
-  athletes: readonly Athlete[];
-  picks: readonly DraftPick[];
-  rankings: ReadonlyMap<string, number>;
-  queuedAthleteIds: readonly string[];
-  myTeamId: string | null;
-  loading: boolean;
-  error: string | null;
-  reload: () => Promise<void>;
-}
-
+export type { DraftViewState } from '@/lib/draft-state';
+const initial: Omit<DraftViewState, 'reload'> = {
+  draft: null,
+  leagueName: '',
+  teams: [],
+  athletes: [],
+  picks: [],
+  rankings: new Map(),
+  queuedAthleteIds: [],
+  myTeamId: null,
+  roster: [],
+  slots: [],
+  candidates: [],
+  legalAthleteIds: new Set(),
+  serverOffset: 0,
+  loading: true,
+  connected: false,
+  error: null,
+};
 export function useDraft(draftId: string | undefined): DraftViewState {
   const { user } = useSession();
-  const [state, setState] = useState<Omit<DraftViewState, 'reload'>>({
-    draft: null,
-    leagueName: '',
-    teams: [],
-    athletes: [],
-    picks: [],
-    rankings: new Map(),
-    queuedAthleteIds: [],
-    myTeamId: null,
-    loading: true,
-    error: null,
-  });
-
-  const reload = useCallback(async () => {
-    if (!supabase || !user || !draftId) {
-      setState((current) => ({ ...current, loading: false }));
-      return;
-    }
-    const client = supabase;
-    const draftResult = await client
-      .from('drafts')
-      .select(
-        'id, league_id, status, rounds, current_overall_pick, pick_deadline, state_version, team_order',
-      )
-      .eq('id', draftId)
-      .single();
-    if (draftResult.error) {
-      setState((current) => ({ ...current, loading: false, error: draftResult.error.message }));
-      return;
-    }
-    const draftRow: DraftRow = draftResult.data;
-    const leagueResult = await client
-      .from('leagues')
-      .select('id, name, competition_id, pool_id')
-      .eq('id', draftRow.league_id)
-      .single();
-    if (leagueResult.error) {
-      setState((current) => ({ ...current, loading: false, error: leagueResult.error.message }));
-      return;
-    }
-    const leagueRow: LeagueRow = leagueResult.data;
-    const [teamResult, athleteResult, pickResult, rankingResult] = await Promise.all([
-      client
-        .from('fantasy_teams')
-        .select('id, league_id, owner_id, name, draft_position')
-        .eq('league_id', draftRow.league_id)
-        .order('draft_position'),
-      leagueRow.pool_id
-        ? client
-            .from('pool_rankings')
-            .select(
-              'athlete_id, rank, athlete:athletes!inner(id, competition_id, team_id, display_name, position, jersey_number, status)',
-            )
-            .eq('pool_id', leagueRow.pool_id)
-            .order('rank')
-        : client
-            .from('athletes')
-            .select('id, competition_id, team_id, display_name, position, jersey_number, status')
-            .eq('competition_id', leagueRow.competition_id!)
-            .eq('status', 'active'),
-      client
-        .from('draft_picks')
-        .select(
-          'id, draft_id, fantasy_team_id, athlete_id, overall_pick, round, pick_in_round, source, created_at',
+  const [state, setState] = useState(initial);
+  const revision = useRef<string | undefined>(undefined);
+  const poolRevision = useRef<string | undefined>(undefined);
+  const generation = useRef(0);
+  const pending = useRef<Promise<boolean> | null>(null);
+  const failures = useRef(0);
+  const reload = useCallback((): Promise<boolean> => {
+    if (pending.current) return pending.current;
+    const currentGeneration = generation.current;
+    const promise = (async () => {
+      if (!draftId || !user?.id) {
+        setState((s) => ({ ...s, loading: false }));
+        return false;
+      }
+      const query = new URLSearchParams();
+      if (revision.current) query.set('revision', revision.current);
+      if (poolRevision.current) query.set('poolRevision', poolRevision.current);
+      try {
+        const result =
+          Platform.OS === 'web'
+            ? await webRequest<DraftSnapshot>(
+                '/api/draft/' + draftId + '/state?' + query.toString(),
+              )
+            : supabase
+              ? ((await supabase.rpc('get_draft_room_snapshot', {
+                  p_draft_id: draftId,
+                  p_known_revision: revision.current ?? null,
+                  p_known_pool_revision: poolRevision.current ?? null,
+                })) as { data: DraftSnapshot | null; error: { message: string } | null })
+              : { data: null, error: 'Draft service is unavailable.' };
+        if (currentGeneration !== generation.current) return false;
+        if (result.error || !result.data) {
+          failures.current++;
+          const denied = 'status' in result && (result.status === 401 || result.status === 403);
+          setState((s) => ({
+            ...(denied ? initial : s),
+            loading: false,
+            connected: false,
+            error:
+              typeof result.error === 'string'
+                ? result.error
+                : (result.error?.message ?? 'Reconnecting…'),
+          }));
+          return false;
+        }
+        const snapshot = result.data;
+        if (
+          typeof snapshot.revision !== 'string' ||
+          typeof snapshot.poolRevision !== 'string' ||
+          !Number.isFinite(Date.parse(snapshot.serverTime))
         )
-        .eq('draft_id', draftId)
-        .order('overall_pick'),
-      leagueRow.pool_id
-        ? client
-            .from('pool_rankings')
-            .select('athlete_id, rank')
-            .eq('pool_id', leagueRow.pool_id)
-            .order('rank')
-        : client
-            .from('athlete_rankings')
-            .select('athlete_id, rank')
-            .eq('competition_id', leagueRow.competition_id!)
-            .order('rank'),
-    ]);
-    const teamRows: TeamRow[] = teamResult.data ?? [];
-    const myTeam = teamRows.find((team) => team.owner_id === user.id);
-    const queueResult = myTeam
-      ? await client
-          .from('draft_queues')
-          .select('athlete_id, priority')
-          .eq('draft_id', draftId)
-          .eq('fantasy_team_id', myTeam.id)
-          .order('priority')
-      : { data: [] as QueueRow[], error: null };
-    const error =
-      teamResult.error ??
-      athleteResult.error ??
-      pickResult.error ??
-      rankingResult.error ??
-      queueResult.error;
-    if (error) {
-      setState((current) => ({ ...current, loading: false, error: error.message }));
-      return;
-    }
-    const picks = (pickResult.data as PickRow[]).map<DraftPick>((row) => ({
-      id: row.id,
-      draftId: row.draft_id,
-      fantasyTeamId: row.fantasy_team_id,
-      athleteId: row.athlete_id,
-      overallPick: row.overall_pick,
-      round: row.round,
-      pickInRound: row.pick_in_round,
-      source: row.source,
-      createdAt: row.created_at,
-    }));
-    const teams = teamRows.map<FantasyTeam>((row) => ({
-      id: row.id,
-      leagueId: row.league_id,
-      ownerId: row.owner_id ?? '',
-      name: row.name,
-      draftPosition: row.draft_position ?? 0,
-    }));
-    const athletes: AthleteRow[] = leagueRow.pool_id
-      ? (athleteResult.data as unknown as PoolRankingRow[]).flatMap((row): AthleteRow[] => {
-          const athlete = firstRelated(row.athlete);
-          return athlete ? [athlete] : [];
-        })
-      : (athleteResult.data as unknown as AthleteRow[]);
-    setState({
-      draft: {
-        id: draftRow.id,
-        leagueId: draftRow.league_id,
-        status: draftRow.status,
-        rounds: draftRow.rounds,
-        currentOverallPick: draftRow.current_overall_pick,
-        stateVersion: draftRow.state_version,
-        ...(draftRow.pick_deadline ? { pickDeadline: draftRow.pick_deadline } : {}),
-        teamIdsInDraftOrder: draftRow.team_order,
-        picks,
-      },
-      leagueName: leagueRow.name,
-      teams,
-      athletes: athletes.map<Athlete>((row) => ({
-        id: row.id,
-        competitionId: row.competition_id,
-        teamId: row.team_id,
-        displayName: row.display_name,
-        position: row.position,
-        ...(row.jersey_number ? { jerseyNumber: row.jersey_number } : {}),
-        status: row.status,
-      })),
-      picks,
-      rankings: new Map(
-        (rankingResult.data as RankingRow[]).map((row) => [row.athlete_id, row.rank]),
-      ),
-      queuedAthleteIds: (queueResult.data as QueueRow[]).map((row) => row.athlete_id),
-      myTeamId: myTeam?.id ?? null,
-      loading: false,
-      error: null,
+          throw new Error('Invalid draft response');
+        const serverOffset = Date.parse(snapshot.serverTime) - Date.now();
+        if (snapshot.unchanged) {
+          if (!revision.current) throw new Error('Missing initial draft snapshot');
+          failures.current = 0;
+          setState((s) =>
+            s.connected && !s.error && Math.abs(s.serverOffset - serverOffset) < 250
+              ? s
+              : { ...s, connected: true, error: null, serverOffset },
+          );
+          return true;
+        }
+        const d = snapshot.draft;
+        if (!d || !snapshot.league) throw new Error('Invalid draft response');
+        failures.current = 0;
+        revision.current = snapshot.revision;
+        poolRevision.current = snapshot.poolRevision;
+        setState((s) => {
+          const picks = (snapshot.picks ?? []).map((p) => ({
+            id: p.id,
+            draftId: p.draft_id,
+            fantasyTeamId: p.fantasy_team_id,
+            athleteId: p.athlete_id,
+            overallPick: p.overall_pick,
+            round: p.round,
+            pickInRound: p.pick_in_round,
+            source: p.source,
+            createdAt: p.created_at,
+          }));
+          const athletes = snapshot.players
+            ? snapshot.players.map((a) => ({
+                id: a.id,
+                competitionId: a.competition_id,
+                teamId: a.team_id,
+                displayName: a.display_name,
+                position: a.position,
+                ...(a.jersey_number ? { jerseyNumber: a.jersey_number } : {}),
+                status: a.status,
+                positions: a.positions,
+                program: a.program,
+                rank: a.rank,
+                bio: a.bio,
+                summaries: a.summaries,
+              }))
+            : s.athletes;
+          return {
+            draft: {
+              id: d.id,
+              leagueId: d.league_id,
+              status: d.status,
+              rounds: d.rounds,
+              currentOverallPick: d.current_overall_pick,
+              stateVersion: d.state_version,
+              ...(d.pick_deadline ? { pickDeadline: d.pick_deadline } : {}),
+              teamIdsInDraftOrder: d.team_order,
+              picks,
+            },
+            leagueName: snapshot.league!.name,
+            teams: (snapshot.teams ?? []).map((t) => ({
+              id: t.id,
+              leagueId: t.league_id,
+              ownerId: t.owner_id ?? '',
+              name: t.name,
+              draftPosition: t.draft_position,
+            })),
+            athletes,
+            picks,
+            rankings: new Map(athletes.map((a) => [a.id, a.rank])),
+            queuedAthleteIds: snapshot.queue ?? [],
+            myTeamId: snapshot.myTeamId ?? null,
+            roster: snapshot.roster ?? [],
+            slots: snapshot.slots ?? [],
+            candidates: snapshot.candidates ?? [],
+            legalAthleteIds: new Set(
+              snapshot.legalAthleteIds ??
+                (snapshot.myTeamId
+                  ? legalDraftAthletes(
+                      snapshot.candidates ?? [],
+                      snapshot.slots ?? [],
+                      snapshot.myTeamId,
+                    )
+                  : []),
+            ),
+            serverOffset,
+            loading: false,
+            connected: true,
+            error: null,
+          };
+        });
+        return true;
+      } catch {
+        if (currentGeneration === generation.current) {
+          failures.current++;
+          setState((s) => ({
+            ...s,
+            loading: false,
+            connected: false,
+            error: 'Connection unavailable. Reconnecting…',
+          }));
+        }
+        return false;
+      }
+    })();
+    pending.current = promise;
+    void promise.finally(() => {
+      if (pending.current === promise) pending.current = null;
     });
-  }, [draftId, user]);
-
+    return promise;
+  }, [draftId, user?.id]);
   useEffect(() => {
-    void reload();
-    if (!supabase || !draftId) return;
-    if (Platform.OS === 'web') {
-      const interval = setInterval(() => void reload(), 2_000);
-      return () => clearInterval(interval);
-    }
-    const client = supabase;
-    const channel = client
-      .channel(`draft:${draftId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'drafts', filter: `id=eq.${draftId}` },
-        () => void reload(),
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'draft_picks',
-          filter: `draft_id=eq.${draftId}`,
-        },
-        () => void reload(),
-      )
-      .subscribe();
-    return () => {
-      void client.removeChannel(channel);
+    generation.current++;
+    revision.current = undefined;
+    poolRevision.current = undefined;
+    pending.current = null;
+    failures.current = 0;
+    setState(initial);
+    if (!draftId || !user?.id) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      await reload();
+      if (active)
+        timer = setTimeout(
+          () => void poll(),
+          Math.min(15_000, 2000 * 2 ** Math.min(failures.current, 3)),
+        );
     };
-  }, [draftId, reload]);
-
+    void poll();
+    const focus = () => {
+      if (active) void reload();
+    };
+    if (Platform.OS === 'web') window.addEventListener('focus', focus);
+    return () => {
+      active = false;
+      generation.current++;
+      clearTimeout(timer);
+      if (Platform.OS === 'web') window.removeEventListener('focus', focus);
+    };
+  }, [draftId, reload, user?.id]);
   return { ...state, reload };
 }

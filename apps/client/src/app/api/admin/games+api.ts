@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'expo-router/server';
 
 import { actor, apiConfig, isAdmin, json } from '@/server/session';
+import { withAvailability } from '@/server/app-access';
 
 interface RestRow {
   id: string;
@@ -48,14 +49,18 @@ async function withTeams(games: RestRow[], accessToken: string): Promise<RestRow
   const byTeam = new Map(
     teams.map((team) => [team.id, { name: team.name, shortName: team.short_name }]),
   );
+  const competitions = await rest<RestRow[]>('competitions?select=id,name', accessToken);
+  if (!competitions) return null;
+  const byCompetition = new Map(competitions.map((c) => [c.id, c.name]));
   return games.map((game) => ({
     ...game,
     home: byTeam.get(String(game.home_team_id)) ?? null,
     away: byTeam.get(String(game.away_team_id)) ?? null,
+    program: byCompetition.get(String(game.competition_id)) ?? null,
   }));
 }
 
-export const GET: RequestHandler = async (request) => {
+const handle: RequestHandler = async (request) => {
   const current = await adminActor(request);
   if (!current) return json({ error: 'Administrator AAL2 access is required.' }, 403);
   const gameId = new URL(request.url).searchParams.get('gameId');
@@ -63,7 +68,7 @@ export const GET: RequestHandler = async (request) => {
   if (gameId) {
     const [games, stats] = await Promise.all([
       rest<RestRow[]>(
-        `games?id=eq.${encodeURIComponent(gameId)}&select=id,competition_id,home_team_id,away_team_id,starts_at,status,home_score,away_score,state_version,stats_complete,manual_override,source_updated_at`,
+        `games?id=eq.${encodeURIComponent(gameId)}&select=id,competition_id,home_team_id,away_team_id,starts_at,status,home_score,away_score,state_version,stats_complete,manual_override,source_updated_at,source_url`,
         current.accessToken,
       ),
       rest<RestRow[]>(
@@ -99,7 +104,7 @@ export const GET: RequestHandler = async (request) => {
       : json({ error: 'Game not found.' }, 404);
   }
   const games = await rest<RestRow[]>(
-    'games?select=id,competition_id,home_team_id,away_team_id,starts_at,status,home_score,away_score,state_version,stats_complete,manual_override,source_updated_at&order=starts_at.desc&limit=200',
+    'games?select=id,competition_id,home_team_id,away_team_id,starts_at,status,home_score,away_score,state_version,stats_complete,manual_override,source_updated_at,source_url&order=starts_at.desc&limit=200',
     current.accessToken,
   );
   if (!games) return json({ error: 'Game search is unavailable.' }, 503);
@@ -108,3 +113,4 @@ export const GET: RequestHandler = async (request) => {
     ? json({ games: enrichedGames })
     : json({ error: 'Game search is unavailable.' }, 503);
 };
+export const GET = withAvailability(handle);

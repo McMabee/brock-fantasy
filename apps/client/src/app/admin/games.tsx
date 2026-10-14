@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
   ActionButton,
@@ -27,6 +27,8 @@ interface AdminGame {
   manual_override: boolean;
   home: { name: string } | null;
   away: { name: string } | null;
+  program?: string | null;
+  source_url?: string | null;
 }
 
 interface GameDetail {
@@ -110,6 +112,8 @@ export default function AdminGamesScreen() {
   const [games, setGames] = useState<readonly AdminGame[]>([]);
   const [selected, setSelected] = useState<GameDetail | null>(null);
   const [query, setQuery] = useState('');
+  const [gameDate, setGameDate] = useState('');
+  const [programFilter, setProgramFilter] = useState('');
   const [status, setStatus] = useState<AdminGame['status']>('final');
   const [homeScore, setHomeScore] = useState('0');
   const [awayScore, setAwayScore] = useState('0');
@@ -141,14 +145,18 @@ export default function AdminGamesScreen() {
 
   const filteredGames = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return games;
-    return games.filter((game) =>
-      [game.home?.name, game.away?.name, game.status, game.id]
-        .join(' ')
-        .toLowerCase()
-        .includes(needle),
+    return games.filter(
+      (game) =>
+        (!gameDate ||
+          new Date(game.starts_at).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) ===
+            gameDate) &&
+        (!programFilter || game.program === programFilter) &&
+        [game.home?.name, game.away?.name, game.program, game.status]
+          .join(' ')
+          .toLowerCase()
+          .includes(needle),
     );
-  }, [games, query]);
+  }, [gameDate, games, programFilter, query]);
 
   const selectGame = async (game: AdminGame) => {
     const requestId = ++selectionRequest.current;
@@ -171,6 +179,7 @@ export default function AdminGamesScreen() {
       result.data.stats.map((line) => [line.athlete_id, line.stats]),
     );
     setSelected(result.data);
+    setSource(result.data.game.source_url ?? '');
     setStatus(result.data.game.status);
     setHomeScore(String(result.data.game.home_score ?? 0));
     setAwayScore(String(result.data.game.away_score ?? 0));
@@ -294,12 +303,12 @@ export default function AdminGamesScreen() {
   return (
     <AppShell
       eyebrow="Administrator scorekeeping"
-      title="Games and score revisions"
+      title="Update game scores and stats"
       action={<Pill label="AAL2 VERIFIED" tone="warning" />}
     >
       <Text style={uiStyles.body}>
-        Search an official or manual game record, inspect the current normalized player lines,
-        preview point changes, then publish one audited revision.
+        Choose a game, add the players credited in it, and enter their individual statistics.
+        Preview fantasy points before saving.
       </Text>
       {message ? (
         <Text accessibilityRole="alert" style={styles.message}>
@@ -308,10 +317,35 @@ export default function AdminGamesScreen() {
       ) : null}
       <View style={styles.layout}>
         <Card style={styles.searchPane}>
+          {Platform.OS === 'web' ? (
+            <label style={{ color: colors.text }}>
+              Game date (Toronto)
+              <input
+                aria-label="Filter game date"
+                type="date"
+                value={gameDate}
+                onChange={(e) => setGameDate(e.currentTarget.value)}
+              />
+            </label>
+          ) : (
+            <Field label="Game date YYYY-MM-DD" value={gameDate} onChange={setGameDate} />
+          )}
+          <Choice
+            label="Sport / program"
+            value={programFilter}
+            onChange={setProgramFilter}
+            disabled={working}
+            options={[
+              { value: '', label: 'All programs' },
+              ...[...new Set(games.flatMap((g) => (g.program ? [g.program] : [])))]
+                .sort()
+                .map((p) => ({ value: p, label: p })),
+            ]}
+          />
           <TextInput
             accessibilityLabel="Search games"
             onChangeText={setQuery}
-            placeholder="Search team, status, or game ID"
+            placeholder="Search team or game status"
             placeholderTextColor={colors.muted}
             style={uiStyles.input}
             value={query}
@@ -323,7 +357,7 @@ export default function AdminGamesScreen() {
             disabled={working}
             variant="secondary"
           />
-          <View style={styles.gameList}>
+          <ScrollView style={{ maxHeight: 440 }} contentContainerStyle={styles.gameList}>
             {filteredGames.map((game) => (
               <Pressable
                 key={game.id}
@@ -349,7 +383,7 @@ export default function AdminGamesScreen() {
                 body="Import or reconcile schedules before scorekeeping."
               />
             ) : null}
-          </View>
+          </ScrollView>
         </Card>
         <Card style={styles.editor}>
           {!selected ? (
@@ -368,10 +402,16 @@ export default function AdminGamesScreen() {
                 detail={`Revision ${selected.game.state_version}`}
               />
               <View style={styles.scores}>
-                <Field
+                <Choice
                   label="Status"
                   value={status}
                   disabled={working}
+                  options={['scheduled', 'in_progress', 'final', 'postponed', 'cancelled'].map(
+                    (v) => ({
+                      value: v,
+                      label: v === 'in_progress' ? 'In progress' : v[0]!.toUpperCase() + v.slice(1),
+                    }),
+                  )}
                   onChange={(value) => {
                     if (
                       ['scheduled', 'in_progress', 'final', 'postponed', 'cancelled'].includes(
@@ -439,16 +479,36 @@ export default function AdminGamesScreen() {
                           {included ? (
                             <View style={styles.statInputs}>
                               {statisticKeys(selected.sport ?? 'hockey', athlete.position).map(
-                                (key) => (
-                                  <Field
-                                    key={key}
-                                    label={displayStat(key)}
-                                    value={values[key] === undefined ? '' : String(values[key])}
-                                    onChange={(value) => updateStat(athlete.id, key, value)}
-                                    numeric
-                                    disabled={working}
-                                  />
-                                ),
+                                (key) =>
+                                  [
+                                    'wins',
+                                    'losses',
+                                    'full_game_solo',
+                                    'shootout',
+                                    'foul_out',
+                                  ].includes(key) ? (
+                                    <Choice
+                                      key={key}
+                                      label={displayStat(key).replace(' (0 or 1)', '')}
+                                      value={values[key] === undefined ? '' : String(values[key])}
+                                      onChange={(value) => updateStat(athlete.id, key, value)}
+                                      disabled={working}
+                                      options={[
+                                        { value: '', label: 'Not recorded' },
+                                        { value: '0', label: 'No' },
+                                        { value: '1', label: 'Yes' },
+                                      ]}
+                                    />
+                                  ) : (
+                                    <Field
+                                      key={key}
+                                      label={displayStat(key)}
+                                      value={values[key] === undefined ? '' : String(values[key])}
+                                      onChange={(value) => updateStat(athlete.id, key, value)}
+                                      numeric
+                                      disabled={working}
+                                    />
+                                  ),
                               )}
                             </View>
                           ) : null}
@@ -513,6 +573,61 @@ export default function AdminGamesScreen() {
   );
 }
 
+function Choice({
+  label,
+  value,
+  onChange,
+  options,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: readonly { value: string; label: string }[];
+  disabled?: boolean;
+}) {
+  return (
+    <View style={styles.field}>
+      <Text style={uiStyles.label}>{label}</Text>
+      {Platform.OS === 'web' ? (
+        <select
+          aria-label={label}
+          value={value}
+          onChange={(e) => onChange(e.currentTarget.value)}
+          disabled={disabled}
+          style={{
+            padding: 12,
+            borderRadius: 8,
+            color: colors.text,
+            background: colors.panel,
+            border: '1px solid ' + colors.border,
+          }}
+        >
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {options.map((o) => (
+            <Pressable
+              key={o.value}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: value === o.value }}
+              onPress={() => onChange(o.value)}
+              disabled={disabled}
+            >
+              <Text style={uiStyles.body}>{o.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function Field({
   label,
   value,
@@ -547,7 +662,7 @@ const styles = StyleSheet.create({
   layout: { gap: 16, marginTop: 16 },
   searchPane: { gap: 12 },
   editor: { gap: 11 },
-  gameList: { gap: 6, maxHeight: 440 },
+  gameList: { gap: 6 },
   gameRow: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 11 },
   gameRowActive: { borderColor: colors.red },
   gameName: { color: colors.text, fontWeight: '800', fontSize: 13 },

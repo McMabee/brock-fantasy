@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'expo-router/server';
 import { actor } from '../../../server/session';
+import { AppAccessUnavailable, withAvailability } from '../../../server/app-access';
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const commands: Readonly<Record<string, readonly string[]>> = {
@@ -8,6 +9,12 @@ const commands: Readonly<Record<string, readonly string[]>> = {
   create_beta_league: ['p_name', 'p_team_name', 'p_pool_id', 'p_max_members', 'p_idempotency_key'],
   delete_league: ['p_league_id', 'p_confirmation_name', 'p_expected_version', 'p_idempotency_key'],
   start_draft: ['p_league_id', 'p_rounds', 'p_pick_seconds', 'p_idempotency_key'],
+  schedule_league_draft: [
+    'p_league_id',
+    'p_scheduled_for',
+    'p_expected_version',
+    'p_idempotency_key',
+  ],
   make_draft_pick: [
     'p_draft_id',
     'p_athlete_id',
@@ -86,7 +93,7 @@ function validRequest(request: Request): string | null {
   return null;
 }
 
-export const POST: RequestHandler = async (request, params) => {
+const handle: RequestHandler = async (request, params) => {
   const name = params.name;
   const allowed = typeof name === 'string' ? commands[name] : undefined;
   if (!allowed) return json({ error: 'Unknown command.' }, 404);
@@ -109,7 +116,7 @@ export const POST: RequestHandler = async (request, params) => {
   if (Object.keys(payload).some((field) => !allowed.includes(field)))
     return json({ error: 'Unexpected command input.' }, 400);
   const current = await actor(request);
-  if (!current) return json({ error: 'Approved tester access is required.' }, 403);
+  if (!current) return json({ error: 'Sign in with a verified, eligible account.' }, 401);
   const result = await fetch(`${url}/rest/v1/rpc/${name}`, {
     method: 'POST',
     headers: {
@@ -119,7 +126,11 @@ export const POST: RequestHandler = async (request, params) => {
       prefer: 'return=representation',
     },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(12000),
+  }).catch(() => {
+    throw new AppAccessUnavailable('Command confirmation unavailable.');
   });
+  if (result.status >= 500) throw new AppAccessUnavailable('Command confirmation unavailable.');
   const response: unknown = await result.json().catch((): null => null);
   if (!result.ok) {
     const errorResponse =
@@ -134,3 +145,5 @@ export const POST: RequestHandler = async (request, params) => {
   }
   return json(response);
 };
+
+export const POST = withAvailability(handle);

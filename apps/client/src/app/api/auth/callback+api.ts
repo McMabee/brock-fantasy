@@ -73,7 +73,7 @@ export const GET: RequestHandler = async (request) => {
   )
     return redirect(new URL('/auth?recovery=invalid', requestUrl), [clearPkce(), clearFlow()]);
   try {
-    if (!(await canUseApp(tokens.access_token))) {
+    if (flow !== 'recover' && !(await canUseApp(tokens.access_token))) {
       const result = await fetch(`${url.replace(/\/$/u, '')}/auth/v1/user`, {
         headers: { apikey: key, authorization: `Bearer ${tokens.access_token}` },
         signal: AbortSignal.timeout(5000),
@@ -89,10 +89,30 @@ export const GET: RequestHandler = async (request) => {
       ]);
     }
   } catch {
-    return new Response('Application access is temporarily unavailable.', {
-      status: 503,
-      headers: { 'cache-control': 'no-store, private' },
+    const headers = new Headers({
+      'cache-control': 'no-store, private',
+      'retry-after': '2',
+      'content-type': 'text/html; charset=utf-8',
     });
+    headers.append(
+      'set-cookie',
+      sessionCookie(
+        ACCESS_COOKIE,
+        tokens.access_token,
+        typeof tokens.expires_in === 'number' ? tokens.expires_in : 3600,
+      ),
+    );
+    headers.append(
+      'set-cookie',
+      sessionCookie(REFRESH_COOKIE, tokens.refresh_token, 60 * 60 * 24 * 30),
+    );
+    return new Response(
+      '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width"><title>Reconnecting | Brock Fantasy</title><p>Connection temporarily unavailable. Your sign-in has been saved.</p><a href="/dashboard">Continue to Brock Fantasy</a></html>',
+      {
+        status: 503,
+        headers,
+      },
+    );
   }
   return redirect(new URL(flow === 'recover' ? '/reset-password' : '/dashboard', requestUrl), [
     sessionCookie(
