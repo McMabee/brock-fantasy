@@ -1,6 +1,6 @@
 # Friday beta release candidate
 
-October 14 follow-up: [league settings, draft results, player metrics and screenshot fixes](BETA_FIXES.md) are implemented and locally validated. Hosted migrations and guarded data publication are complete: 119 visible eligible athletes, 110 supplied ADPs, 59 verified heights and all 40 recorded picks retained. The confirmed withdrawal is hidden and ineligible. The follow-up release receipt records deployment and checks; the original deployed receipt below describes the October 13 version.
+October 14 follow-up: [league settings, draft results, player metrics, rules and screenshot fixes](BETA_FIXES.md) are implemented and locally validated. Hosted migrations and guarded data publication are complete: 119 visible eligible athletes, all 119 supplied ADPs, 59 verified heights and all 40 recorded picks retained. An independent audit found zero source/seed/average mismatches. The confirmed withdrawal is hidden and ineligible. The follow-up release receipt records deployment and checks; the original deployed receipt below describes the October 13 version.
 
 Updated October 13, 2026 (America/Toronto). Target acceptance: Friday, October 16.
 

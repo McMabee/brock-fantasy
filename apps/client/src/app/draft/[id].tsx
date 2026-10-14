@@ -20,6 +20,8 @@ import { useRequireUser } from '@/hooks/use-route-access';
 import { betaCommand } from '@/lib/web-api';
 import type { DraftPlayer } from '@/lib/draft-state';
 import { heading } from '@/theme';
+import { RulesLink } from '@/components/rules-link';
+import { rosterSlotLabel } from '@/lib/roster-guide';
 
 type Tab = 'available' | 'roster' | 'queue' | 'chat' | 'history';
 export default function DraftRoomScreen() {
@@ -260,6 +262,7 @@ export default function DraftRoomScreen() {
         Your roster · {mine.length}/{mySlots.length || 10}
       </Text>
       <Text style={styles.meta}>✓ Drafted · ⏳ Queued previews</Text>
+      <RulesLink section="draft" label="Draft rules & roster requirements" />
       <ScrollView style={{ maxHeight: 360 }} contentContainerStyle={{ gap: 8 }}>
         {rosterCells.map((cell, index) => {
           const ghost = previewByCell.get(index);
@@ -267,7 +270,7 @@ export default function DraftRoomScreen() {
           const name =
             cell.slot.code === 'BN'
               ? 'Bench ' + (index - mySlots.filter((s) => s.code !== 'BN').length + 1)
-              : cell.slot.label;
+              : rosterSlotLabel(cell.slot.code);
           return (
             <View key={index} style={[styles.rosterSlot, ghost ? styles.preview : null]}>
               <Text style={styles.slotLabel}>{name}</Text>

@@ -2,7 +2,7 @@ import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-resp
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { formatFantasyPoints } from '@brock-fantasy/domain';
 import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
@@ -23,6 +23,8 @@ import { supabase } from '@/lib/supabase';
 import { betaCommand } from '@/lib/web-api';
 import { LeagueSettings } from '@/components/league-settings';
 import { DraftPlayerPhoto } from '@/components/draft-player-panel';
+import { RulesLink } from '@/components/rules-link';
+import { ROSTER_GUIDE, positionLabel, rosterSlotLabel, slotEligibility } from '@/lib/roster-guide';
 import type { FantasyTeam, League, MatchupResult, StandingsRow } from '@brock-fantasy/domain';
 
 type Tab = 'overview' | 'roster' | 'standings' | 'chat' | 'settings';
@@ -239,11 +241,11 @@ function Overview({
             </Text>
           ) : null}
           <Text style={uiStyles.body}>
-            Server-authoritative snake draft, lineup locks, free agents, waivers, and trades for
-            this{' '}
+            Draft your team, choose your starters, and earn points from their real games in this{' '}
             {league?.format === 'points_leaderboard' ? 'points leaderboard' : 'head-to-head league'}
             .
           </Text>
+          <RulesLink label="League rules & how to play" />
           <View style={styles.controlActions}>
             {draftId && draftStatus && ['active', 'paused', 'scheduled'].includes(draftStatus) ? (
               <ActionButton
@@ -279,28 +281,97 @@ function Roster({
 }) {
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
+  // - Group once so starter slots and bench entries use constant time lookups
+  const entriesBySlot = useMemo(() => {
+    const grouped = new Map<string, LeagueRosterEntry[]>();
+    for (const entry of entries) {
+      const group = grouped.get(entry.slotCode) ?? [];
+      group.push(entry);
+      grouped.set(entry.slotCode, group);
+    }
+    return grouped;
+  }, [entries]);
+  const starters = entries.filter((entry) => entry.status === 'starter');
+  const bench = entriesBySlot.get('BN') ?? [];
+  const starterSlots = ROSTER_GUIDE.filter((slot) => slot.code !== 'BN');
   return (
     <View>
-      <SectionTitle title={teamName} detail="Lineup locks at game start" />
-      {entries.length > 0 ? (
+      <SectionTitle
+        title={teamName}
+        detail={
+          betaLeague ? `${starters.length}/6 starters · ${bench.length}/4 bench` : 'Your athletes'
+        }
+      />
+      {betaLeague ? (
+        <>
+          <Card style={{ gap: 8 }}>
+            <Text style={uiStyles.body}>
+              Your ten-athlete team has six starters and four bench spots. Starters earn matchup
+              points; bench athletes are reserves. Use Set lineup to move athletes into eligible
+              spots.
+            </Text>
+            <Text style={uiStyles.body}>
+              Each athlete and their slot lock at their first game of the fantasy period, then
+              unlock when the period ends. Bench assignments lock too.
+            </Text>
+            <RulesLink section="roster" label="Roster rules & eligible positions" />
+          </Card>
+          <SectionTitle title="Starters" detail="These six spots earn your team points" />
+          <Card>
+            {starterSlots.map((slot, index) => {
+              const athletes = entriesBySlot.get(slot.code) ?? [];
+              return (
+                <View
+                  key={slot.code}
+                  style={[
+                    styles.starterSlot,
+                    index !== starterSlots.length - 1 && uiStyles.listRow,
+                  ]}
+                >
+                  <Text style={uiStyles.label}>{slot.label}</Text>
+                  <Text style={styles.rosterMeta}>Eligible: {slotEligibility(slot.code)}</Text>
+                  {athletes.length ? (
+                    athletes.map((entry) => (
+                      <RosterAthlete key={entry.id} entry={entry} betaLeague />
+                    ))
+                  ) : (
+                    <Text style={styles.emptySlot}>
+                      Empty spot · add an eligible athlete or update your lineup
+                    </Text>
+                  )}
+                </View>
+              );
+            })}
+          </Card>
+          <SectionTitle
+            title={`Bench · ${bench.length}/4`}
+            detail="Reserves · points do not count toward your matchup"
+          />
+          <Card>
+            {bench.length ? (
+              bench.map((entry, index) => (
+                <View
+                  key={entry.id}
+                  style={[styles.rosterRow, index === bench.length - 1 && uiStyles.lastRow]}
+                >
+                  <RosterAthlete entry={entry} betaLeague />
+                </View>
+              ))
+            ) : (
+              <Text style={uiStyles.body}>
+                Your four bench spots are empty. Any eligible athlete can be a reserve.
+              </Text>
+            )}
+          </Card>
+        </>
+      ) : entries.length > 0 ? (
         <Card>
           {entries.map((entry, index) => (
             <View
               key={entry.id}
               style={[styles.rosterRow, index === entries.length - 1 && uiStyles.lastRow]}
             >
-              <DraftPlayerPhoto
-                player={{ displayName: entry.displayName, bio: entry.bio }}
-                size={44}
-              />
-              <View style={styles.rosterCopy}>
-                <Text style={styles.rosterName}>{entry.displayName}</Text>
-                <Text style={styles.rosterMeta}>
-                  {entry.jerseyNumber !== null ? `#${entry.jerseyNumber} · ` : ''}
-                  {entry.programName.replace(/^Brock /u, '')} · {entry.position} · {entry.slotCode}{' '}
-                  · {entry.status}
-                </Text>
-              </View>
+              <RosterAthlete entry={entry} betaLeague={false} />
             </View>
           ))}
         </Card>
@@ -320,6 +391,29 @@ function Roster({
           href={`/transactions/${leagueId}`}
           variant="secondary"
         />
+        {!betaLeague ? (
+          <RulesLink section="roster" label="Roster rules & eligible positions" />
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function RosterAthlete({ entry, betaLeague }: { entry: LeagueRosterEntry; betaLeague: boolean }) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={styles.athleteRow}>
+      <DraftPlayerPhoto player={{ displayName: entry.displayName, bio: entry.bio }} size={44} />
+      <View style={styles.rosterCopy}>
+        <Text style={styles.rosterName}>{entry.displayName}</Text>
+        <Text style={styles.rosterMeta}>
+          {entry.programName.replace(/^Brock /u, '')}
+          {entry.jerseyNumber !== null ? ` · #${entry.jerseyNumber}` : ''}
+        </Text>
+        <Text style={styles.rosterMeta}>
+          Player position: {betaLeague ? positionLabel(entry.position) : entry.position}
+          {!betaLeague ? ` · Assigned to ${rosterSlotLabel(entry.slotCode)} · ${entry.status}` : ''}
+        </Text>
       </View>
     </View>
   );
@@ -557,6 +651,22 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     },
     positionText: { fontFamily: 'Inter', color: colors.text, fontSize: 11, fontWeight: '900' },
     rosterCopy: { flex: 1 },
+    starterSlot: { paddingVertical: 14, gap: 4 },
+    athleteRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingTop: 8,
+      flex: 1,
+      minWidth: 0,
+    },
+    emptySlot: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 12,
+      lineHeight: 18,
+      paddingVertical: 10,
+    },
     rosterName: { fontFamily: 'Inter', color: colors.text, fontSize: 13, fontWeight: '800' },
     rosterMeta: { fontFamily: 'Inter', color: colors.muted, fontSize: 10, marginTop: 3 },
     rosterPoints: { alignItems: 'flex-end' },

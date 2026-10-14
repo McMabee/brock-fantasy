@@ -10,6 +10,7 @@ import { buildPublishedManifest as buildManifest } from './lib/published-rosters
 import { rosterPlan } from './lib/roster-materialization.mjs';
 import { buildManifest as buildCurrentManifest } from './import-brock-beta-data.mjs';
 import { rosterMetricsPlan } from './lib/roster-metrics.mjs';
+import { BETA_SLOTS } from '../packages/domain/src/beta.ts';
 
 // Controlled browser fixtures never sign in, mutate, or query the hosted project.
 const roster = rosterPlan(await buildManifest(), '11111111-1111-4111-8111-111111111111');
@@ -20,13 +21,16 @@ const leagueId = '22222222-2222-4222-8222-222222222222';
 const draftId = '33333333-3333-4333-8333-333333333333';
 const teamId = '44444444-4444-4444-8444-444444444444';
 const otherTeam = '55555555-5555-4555-8555-555555555555';
-const metrics = rosterMetricsPlan(
-  await buildCurrentManifest(),
-  await buildManifest(),
-  heights,
-  userId,
-  JSON.parse(await readFile('dev/docs/evidence/2026-10-14-roster-suppressions.json', 'utf8')),
-);
+// - Use an approved snapshot when roster source files are being edited
+const metrics = process.env.BROCK_UI_METRIC_PLAN
+  ? JSON.parse(await readFile(process.env.BROCK_UI_METRIC_PLAN, 'utf8'))
+  : rosterMetricsPlan(
+      await buildCurrentManifest(),
+      await buildManifest(),
+      heights,
+      userId,
+      JSON.parse(await readFile('dev/docs/evidence/2026-10-14-roster-suppressions.json', 'utf8')),
+    );
 const metricById = new Map(metrics.players.map((item) => [item.id, item]));
 const players = roster.players
   .filter((player) => metricById.has(player.id))
@@ -69,6 +73,61 @@ const players = roster.players
       },
     ],
   }));
+const benchPlayer = players.find(
+  (player) => player.bio.program === 'mens_basketball' && player.position === 'BC',
+);
+const observedPlayer = players.find((player) => player.adp.base !== null);
+const slotLabels = {
+  HK_F: 'Hockey forward',
+  HK_DG: 'Hockey defence / goalie',
+  BB_BC: 'Basketball back court',
+  BB_FC: 'Basketball front court',
+  VB_HT: 'Volleyball hitter',
+  VB_LS: 'Volleyball libero / setter',
+  BN: 'Bench',
+};
+const slotRules = Object.entries(BETA_SLOTS).map(([code, positions]) => ({
+  slot_code: code,
+  label: slotLabels[code],
+  allowed_positions: positions,
+  slot_count: code === 'BN' ? 4 : 1,
+  is_starter: code !== 'BN',
+}));
+const fullRosterPlayers = [];
+for (const slot of slotRules.filter((item) => item.is_starter)) {
+  const player = players.find(
+    (athlete) =>
+      !fullRosterPlayers.some((item) => item.athlete_id === athlete.id) &&
+      athlete.positions.some((position) => slot.allowed_positions.includes(position)),
+  );
+  fullRosterPlayers.push({
+    athlete_id: player.id,
+    display_name: player.display_name,
+    positions: player.positions,
+    slot_code: slot.slot_code,
+    status: 'starter',
+    locked: slot.slot_code === 'BB_BC',
+    locks_at: null,
+    unlocks_at: null,
+  });
+}
+for (const position of ['HT', 'BC', 'F', 'S']) {
+  const player = players.find(
+    (athlete) =>
+      !fullRosterPlayers.some((item) => item.athlete_id === athlete.id) &&
+      athlete.positions.includes(position),
+  );
+  fullRosterPlayers.push({
+    athlete_id: player.id,
+    display_name: player.display_name,
+    positions: player.positions,
+    slot_code: 'BN',
+    status: 'bench',
+    locked: false,
+    locks_at: null,
+    unlocks_at: null,
+  });
+}
 const league = {
   id: leagueId,
   competition_id: null,
@@ -147,6 +206,8 @@ try {
     let pendingPick = false;
     let queue = [];
     let picks = [];
+    let fullLineupEntries = fullRosterPlayers.map((entry) => ({ ...entry }));
+    let savedLineup = null;
     const snapshot = () => ({
       revision: 'revision-' + picks.length + '-' + queue.join(','),
       poolRevision: 'pool-1',
@@ -219,6 +280,15 @@ try {
           queue = payload.p_athlete_ids;
           return reply({ queue });
         }
+        if (url.pathname.endsWith('set_period_lineup')) {
+          savedLineup = payload.p_entries;
+          const assignments = new Map(savedLineup.map((item) => [item.athlete_id, item.slot_code]));
+          fullLineupEntries = fullLineupEntries.map((entry) => ({
+            ...entry,
+            slot_code: assignments.get(entry.athlete_id),
+          }));
+          return reply({ state_version: 2 });
+        }
         if (url.pathname.endsWith('make_draft_pick')) {
           pendingPick = true;
           await new Promise((resolve) => setTimeout(resolve, 350));
@@ -255,7 +325,49 @@ try {
         if (table === 'get_pool_adp')
           return scenario === 'adp-error'
             ? reply({ message: 'New ADP RPC not installed' }, 404)
-            : reply(Object.fromEntries(players.map((player) => [player.id, player.adp])));
+            : reply(
+                Object.fromEntries(
+                  players.map((player) => [
+                    player.id,
+                    scenario === 'adp-adjusted' && player.id === observedPlayer.id
+                      ? { ...player.adp, average: (player.adp.base + 10) / 2, samples: 1 }
+                      : player.adp,
+                  ]),
+                ),
+              );
+        if (table === 'get_beta_lineup' && scenario === 'full-lineup')
+          return reply({
+            period: { number: 1, ends_at: new Date(Date.now() + 86400_000).toISOString() },
+            state_version: 1,
+            entries: fullLineupEntries,
+          });
+        if (table === 'get_beta_lineup')
+          return reply({
+            period: { number: 1, ends_at: new Date(Date.now() + 86400_000).toISOString() },
+            state_version: 1,
+            entries: [
+              {
+                athlete_id: players[0].id,
+                display_name: players[0].display_name,
+                positions: ['HT'],
+                slot_code: 'VB_HT',
+                status: 'starter',
+                locked: false,
+                locks_at: null,
+                unlocks_at: null,
+              },
+              {
+                athlete_id: benchPlayer.id,
+                display_name: benchPlayer.display_name,
+                positions: ['BC'],
+                slot_code: 'BN',
+                status: 'bench',
+                locked: true,
+                locks_at: null,
+                unlocks_at: null,
+              },
+            ],
+          });
         if (table === 'get_draft_results')
           return reply({
             league: { id: leagueId, name: league.name },
@@ -296,7 +408,7 @@ try {
             },
           ]);
         if (table === 'scoring_rulesets') return reply({ draft_config: { pickSeconds: 120 } });
-        if (table === 'roster_slot_rules') return reply([{ slot_count: 10 }]);
+        if (table === 'roster_slot_rules') return reply(slotRules);
         if (
           table === 'roster_entries' &&
           dataPath.searchParams.get('select')?.includes('competition:competitions(')
@@ -362,6 +474,14 @@ try {
               status: 'starter',
               athlete: { ...players[0], competition: { name: "Brock Women's Volleyball" } },
             },
+            {
+              id: 'bench-entry',
+              fantasy_team_id: teamId,
+              athlete_id: benchPlayer.id,
+              slot_code: 'BN',
+              status: 'bench',
+              athlete: { ...benchPlayer, competition: { name: "Brock Men's Basketball" } },
+            },
           ]);
         if (table === 'leagues') {
           const row = { ...league, commissioner_id: commissioner ? userId : otherTeam };
@@ -400,6 +520,33 @@ try {
       const playerRows = page
         .getByRole('link')
         .filter({ has: page.getByText('Projected FP', { exact: true }) });
+      const byName = (a, b) => a.display_name.localeCompare(b.display_name, 'en-CA');
+      for (const option of [
+        {
+          label: 'ADP',
+          expected: [...players].sort(
+            (a, b) => (a.adp.average ?? Infinity) - (b.adp.average ?? Infinity) || byName(a, b),
+          )[0],
+        },
+        {
+          label: 'Projected FP',
+          expected: [...players].sort(
+            (a, b) =>
+              (b.summaries[0].fantasy_points ?? -Infinity) -
+                (a.summaries[0].fantasy_points ?? -Infinity) || byName(a, b),
+          )[0],
+        },
+        { label: 'Name', expected: [...players].sort(byName)[0] },
+      ]) {
+        await page.getByRole('button', { name: `Sort by ${option.label}`, exact: true }).click();
+        await playerRows.first().getByText(option.expected.display_name, { exact: true }).waitFor();
+        assert.equal(
+          await page
+            .getByRole('button', { name: `Sort by ${option.label}`, exact: true })
+            .getAttribute('aria-pressed'),
+          'true',
+        );
+      }
       assert.ok(
         await playerRows
           .first()
@@ -461,7 +608,12 @@ try {
     const withHeight = players.find((p) => p.bio.height);
     await page.goto(origin + '/players/' + withHeight.id);
     await page.getByText('Height ·', { exact: false }).waitFor();
-    await page.getByText('No recorded picks yet', { exact: true }).waitFor();
+    await page
+      .getByText(
+        withHeight.adp.base === null ? 'No recorded picks yet' : 'Supplied starting value',
+        { exact: true },
+      )
+      .waitFor();
     await page.getByText('2.0 pts', { exact: true }).waitFor();
     const historyRow = (label) =>
       page.getByText(label, { exact: true }).locator('..').locator('..');
@@ -506,6 +658,18 @@ try {
       1,
       'Supplied ADP displays on the player profile',
     );
+    scenario = 'adp-adjusted';
+    await page.goto(origin + '/players/' + observedPlayer.id);
+    await page.getByText(`Supplied ADP: ${observedPlayer.adp.base}`, { exact: true }).waitFor();
+    await page
+      .getByText(((observedPlayer.adp.base + 10) / 2).toFixed(1), { exact: true })
+      .waitFor();
+    await page
+      .getByText('1 recorded pick across leagues · includes supplied starting value', {
+        exact: true,
+      })
+      .waitFor();
+    scenario = 'populated';
     for (const state of ['loading', 'empty', 'error']) {
       for (const width of [390, 1440]) {
         await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
@@ -615,7 +779,29 @@ try {
       );
       await page.screenshot({ path: path.join(output, `league-settings-${theme}-${width}.png`) });
       await page.getByRole('tab', { name: 'roster', exact: true }).click();
-      await page.getByText(/Women's Volleyball · HT · VB_HT/).waitFor();
+      await page.getByText('Volleyball hitter', { exact: true }).waitFor();
+      await page.getByText('Player position: Hitter / middle blocker', { exact: true }).waitFor();
+      await page.getByText('Bench · 1/4', { exact: true }).waitFor();
+      assert.equal(
+        await page
+          .getByText('Empty spot · add an eligible athlete or update your lineup', { exact: true })
+          .count(),
+        5,
+      );
+      assert.ok(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        'Beginner roster fits the viewport',
+      );
+      await page
+        .getByRole('link', { name: 'Roster rules & eligible positions', exact: true })
+        .click();
+      await page.getByText('Six starters + four bench = ten athletes', { exact: true }).waitFor();
+      assert.ok(
+        page.url().includes('section=roster'),
+        'Roster help opens the matching rules topic',
+      );
+      await page.getByRole('button', { name: 'Go back', exact: true }).click();
+      await page.getByRole('tab', { name: 'roster', exact: true }).click();
       await page.screenshot({ path: path.join(output, `league-roster-${theme}-${width}.png`) });
       commissioner = false;
       await page.goto(origin + '/league/' + leagueId);
@@ -658,11 +844,117 @@ try {
       await page.getByText('Unable to load the player list. Try again.', { exact: true }).count(),
       0,
     );
+    scenario = 'populated';
+    for (const width of [320, 390, 1440]) {
+      await page.setViewportSize({ width, height: width <= 390 ? 844 : 1000 });
+      await page.goto(origin + '/lineup-beta/' + leagueId);
+      await page.getByText(players[0].display_name, { exact: true }).waitFor();
+      await page
+        .getByRole('button', { name: 'Volleyball hitter · 1/1 selected', exact: true })
+        .waitFor();
+      assert.ok(
+        await page
+          .getByRole('button', { name: 'Basketball back court · 0/1 selected', exact: true })
+          .isDisabled(),
+        'Locked reserves cannot be promoted',
+      );
+      assert.ok(
+        await page.getByRole('button', { name: 'Save lineup', exact: true }).isDisabled(),
+        'Incomplete roster cannot save',
+      );
+      assert.ok(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        `Lineup labels fit ${theme} ${width}`,
+      );
+      await page.getByRole('button', { name: 'Bench · 1/4 selected', exact: true }).first().click();
+      await page
+        .getByRole('button', { name: 'Volleyball hitter · 0/1 selected', exact: true })
+        .waitFor();
+      await page.screenshot({ path: path.join(output, `lineup-beginner-${theme}-${width}.png`) });
+      await page.goto(origin + '/rules');
+      await page.getByText('How to play Brock Fantasy', { exact: true }).waitFor();
+      for (const topic of [
+        'Getting started',
+        'Roster & positions',
+        'Draft',
+        'Lineup & locks',
+        'Scoring',
+        'Waivers & trades',
+        'Stats & ADP',
+      ]) {
+        await page.getByRole('tab', { name: topic, exact: true }).click();
+        assert.ok(
+          await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+          `Rules topic fits: ${topic} ${theme} ${width}`,
+        );
+        assert.equal(
+          await page.getByRole('tab', { name: topic, exact: true }).getAttribute('aria-selected'),
+          'true',
+        );
+      }
+      await page.getByRole('tab', { name: 'Roster & positions', exact: true }).click();
+      assert.equal(
+        await page.getByText(/spot[s]?$/).count(),
+        7,
+        'Rules show all six starter slots and four bench spaces',
+      );
+      await page.screenshot({ path: path.join(output, `rules-roster-${theme}-${width}.png`) });
+      await page.getByRole('tab', { name: 'Scoring', exact: true }).click();
+      await page.getByText('Hockey goalies', { exact: true }).waitFor();
+      const rulesAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+      assert.equal(rulesAxe.violations.length, 0, `Rules accessibility: ${theme} ${width}`);
+      accessibility.push({ page: 'rules', theme, width, violations: rulesAxe.violations });
+    }
+    scenario = 'full-lineup';
+    await page.goto(origin + '/lineup-beta/' + leagueId);
+    const reserve = fullRosterPlayers.find(
+      (entry) => entry.slot_code === 'BN' && entry.positions.includes('HT'),
+    );
+    const oldStarter = fullRosterPlayers.find((entry) => entry.slot_code === 'VB_HT');
+    const athleteCard = (name) =>
+      page.getByText(name, { exact: true }).locator('..').locator('..').locator('..');
+    await athleteCard(reserve.display_name)
+      .getByRole('button', { name: 'Volleyball hitter · 1/1 selected', exact: true })
+      .click();
+    await page
+      .getByText(
+        `${reserve.display_name} and ${oldStarter.display_name} swapped spots. Save your lineup to confirm.`,
+        { exact: true },
+      )
+      .waitFor();
+    const reserveGuard = fullRosterPlayers.find(
+      (entry) => entry.slot_code === 'BN' && entry.positions.includes('BC'),
+    );
+    await athleteCard(reserveGuard.display_name)
+      .getByRole('button', { name: 'Basketball back court · 1/1 selected', exact: true })
+      .click();
+    await page
+      .getByText('That starter is locked until the period ends.', { exact: true })
+      .waitFor();
+    await page.getByRole('button', { name: 'Save lineup', exact: true }).click();
+    await page.getByText(/Period lineup committed/).waitFor();
+    assert.equal(
+      savedLineup.find((entry) => entry.athlete_id === reserve.athlete_id).slot_code,
+      'VB_HT',
+    );
+    assert.equal(
+      savedLineup.find((entry) => entry.athlete_id === oldStarter.athlete_id).slot_code,
+      'BN',
+    );
+    assert.equal(savedLineup.filter((entry) => entry.slot_code === 'BN').length, 4);
+    assert.equal(
+      savedLineup.find((entry) => entry.athlete_id === reserveGuard.athlete_id).slot_code,
+      'BN',
+      'Locked starter blocks the attempted swap',
+    );
     await context.close();
     results.push(
       `settings/results/roster/notifications ${theme}: commissioner visibility, rename, completed-room redirect, ADP rollout tolerance`,
     );
     results.push(`draft ${theme}: queue, details, acknowledged pick, expired clock, reconnect`);
+    results.push(
+      `rules/roster ${theme}: every topic, contextual links, starter/bench labels, 320/390/1440px`,
+    );
   }
   // Real server forms: theme readback, local fonts, responsive layout and CSP.
   for (const theme of ['dark', 'light']) {
@@ -678,6 +970,10 @@ try {
       assert.equal(await page.evaluate(() => document.documentElement.dataset.brockTheme), theme);
       await page.screenshot({ path: path.join(output, `${route.slice(1)}-${theme}-390.png`) });
     }
+    await page.goto(origin + '/rules?section=roster');
+    await page.getByText('Six starters + four bench = ten athletes', { exact: true }).waitFor();
+    assert.ok(page.url().includes('/rules'), 'Rules are readable without signing in');
+    await page.screenshot({ path: path.join(output, `rules-public-${theme}-390.png`) });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(origin + '/auth');
     await page.screenshot({ path: path.join(output, `auth-${theme}-1440.png`) });

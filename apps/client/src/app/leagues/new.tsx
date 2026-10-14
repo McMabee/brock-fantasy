@@ -8,6 +8,7 @@ import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui
 import { betaCommand } from '@/lib/web-api';
 
 import { useRequireUser } from '@/hooks/use-route-access';
+import { RulesLink } from '@/components/rules-link';
 
 export default function NewLeagueScreen() {
   const styles = useThemedStyles(createStyles);
@@ -130,6 +131,7 @@ export default function NewLeagueScreen() {
             Each roster has six cross-sport starters and four bench positions. Draft order is
             randomized once, with two-minute snake-draft picks and server-side autopicks.
           </Text>
+          <RulesLink label="Read the league rules before creating a team" />
         </View>
         {error ? (
           <Text accessibilityRole="alert" style={styles.error}>

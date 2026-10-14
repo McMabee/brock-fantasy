@@ -6,6 +6,7 @@ import type { useLeague } from '@/hooks/use-league';
 import { useSession } from '@/providers/session-provider';
 import { betaCommand } from '@/lib/web-api';
 import { useThemeColors } from '@/providers/theme-provider';
+import { RulesLink } from './rules-link';
 
 export function LeagueSettings({ data }: { data: ReturnType<typeof useLeague> }) {
   const styles = useUiStyles();
@@ -75,6 +76,7 @@ export function LeagueSettings({ data }: { data: ReturnType<typeof useLeague> })
             variant="secondary"
           />
           <ActionButton label="Account settings" href="/account" variant="ghost" />
+          <RulesLink label="League rules & how to play" />
         </View>
       </Card>
       <SectionTitle title="Draft" />

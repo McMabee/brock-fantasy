@@ -8,6 +8,7 @@ import type { DraftPlayer } from '@/lib/draft-state';
 
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { adpLabel } from '@/lib/player-adp';
+import { RulesLink } from './rules-link';
 
 export function playerHeadshot(player: Pick<DraftPlayer, 'bio'>): string | null {
   const item = player.bio.headshot;
@@ -190,8 +191,12 @@ export function DraftPlayerPanel({
                       {player.adp?.average?.toFixed(1) ?? metrics?.suppliedAdp?.toFixed(1) ?? '—'}
                     </Text>
                     <Text style={uiStyles.body}>{adpLabel(player.adp)}</Text>
+                    <Text style={uiStyles.body}>
+                      Supplied ADP: {player.adp?.base ?? metrics?.suppliedAdp ?? '—'}
+                    </Text>
                   </View>
                 </View>
+                <RulesLink section="stats" label="How projected points and ADP work" />
                 {(['eligibility', 'major', 'hometown'] as const).map((key) =>
                   typeof player.bio[key] === 'string' ? (
                     <Text key={key} style={uiStyles.body}>

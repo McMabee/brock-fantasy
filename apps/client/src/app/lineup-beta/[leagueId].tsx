@@ -18,6 +18,8 @@ import { supabase } from '@/lib/supabase';
 import { betaCommand } from '@/lib/web-api';
 
 import { useRequireUser } from '@/hooks/use-route-access';
+import { RulesLink } from '@/components/rules-link';
+import { positionLabel, rosterSlotLabel } from '@/lib/roster-guide';
 
 interface SlotRule {
   slot_code: string;
@@ -83,14 +85,13 @@ export default function BetaLineupScreen() {
     void load();
   }, [load]);
 
-  const used = useMemo(
-    () =>
-      Object.values(assignment).reduce<Record<string, number>>(
-        (counts, slot) => ({ ...counts, [slot]: (counts[slot] ?? 0) + 1 }),
-        {},
-      ),
-    [assignment],
-  );
+  const used = useMemo(() => {
+    // - Count assignments in one pass without copying the accumulator
+    const counts: Record<string, number> = {};
+    for (const slot of Object.values(assignment)) counts[slot] = (counts[slot] ?? 0) + 1;
+    return counts;
+  }, [assignment]);
+  const slotByCode = useMemo(() => new Map(slots.map((slot) => [slot.slot_code, slot])), [slots]);
   const assign = (entry: BetaEntry, slot: SlotRule) => {
     if (
       entry.locked ||
@@ -99,6 +100,38 @@ export default function BetaLineupScreen() {
       return;
     const current = assignment[entry.athlete_id];
     if (current !== slot.slot_code && (used[slot.slot_code] ?? 0) >= slot.slot_count) {
+      const sourceSlot = current ? slotByCode.get(current) : undefined;
+      const occupant =
+        slot.slot_count === 1
+          ? lineup?.entries.find((athlete) => assignment[athlete.athlete_id] === slot.slot_code)
+          : undefined;
+      // - Swap compatible unlocked athletes without requiring an extra roster spot
+      if (
+        occupant &&
+        sourceSlot &&
+        !occupant.locked &&
+        occupant.positions.some((position) => sourceSlot.allowed_positions.includes(position))
+      ) {
+        setAssignment((value) => ({
+          ...value,
+          [entry.athlete_id]: slot.slot_code,
+          [occupant.athlete_id]: sourceSlot.slot_code,
+        }));
+        setMessage(
+          `${entry.display_name} and ${occupant.display_name} swapped spots. Save your lineup to confirm.`,
+        );
+        return;
+      }
+      if (occupant?.locked) {
+        setMessage('That starter is locked until the period ends.');
+        return;
+      }
+      if (slot.slot_code === 'BN') {
+        setMessage(
+          'Bench is full. Choose an eligible reserve and select a starter spot to swap athletes.',
+        );
+        return;
+      }
       setMessage(`${slot.label} is full.`);
       return;
     }
@@ -154,9 +187,12 @@ export default function BetaLineupScreen() {
       }
     >
       <Text style={uiStyles.body}>
-        Starter and bench status are both protected once an athlete’s scheduled game starts. Locked
-        athletes remain visible and cannot be moved until the period ends.
+        Choose six starters to earn points and keep four reserves on your bench. To replace a
+        starter, select their spot on an eligible reserve’s card. The athletes swap if both can
+        move. Save your lineup to confirm the change. Each athlete and their slot lock at their
+        first game until the period ends, including bench athletes.
       </Text>
+      <RulesLink section="lineup" label="Lineup locks & eligible positions explained" />
       {message ? (
         <Text accessibilityRole="alert" style={styles.message}>
           {message}
@@ -182,17 +218,22 @@ export default function BetaLineupScreen() {
             {lineup.entries.map((entry) => (
               <Card key={entry.athlete_id} style={[styles.entry, entry.locked && styles.locked]}>
                 <View style={styles.entryHeading}>
-                  <View>
+                  <View style={{ minWidth: 0, flexBasis: 170, flexGrow: 1 }}>
                     <Text style={styles.name}>{entry.display_name}</Text>
                     <Text style={styles.meta}>
-                      {entry.positions.join(' / ')} ·{' '}
+                      {entry.positions.map(positionLabel).join(' / ')} ·{' '}
                       {entry.locked
                         ? `LOCKED ${entry.locks_at ? `since ${new Date(entry.locks_at).toLocaleString()}` : ''}`
                         : 'UNLOCKED'}
                     </Text>
                   </View>
                   <Pill
-                    label={entry.locked ? 'LOCKED' : (assignment[entry.athlete_id] ?? 'UNASSIGNED')}
+                    label={
+                      entry.locked
+                        ? 'LOCKED'
+                        : (slotByCode.get(assignment[entry.athlete_id] ?? '')?.label ??
+                          'Unassigned')
+                    }
                     tone={entry.locked ? 'warning' : 'info'}
                   />
                 </View>
@@ -204,6 +245,12 @@ export default function BetaLineupScreen() {
                     .map((slot) => (
                       <Pressable
                         key={slot.slot_code}
+                        accessibilityRole="button"
+                        aria-pressed={assignment[entry.athlete_id] === slot.slot_code}
+                        accessibilityState={{
+                          selected: assignment[entry.athlete_id] === slot.slot_code,
+                          disabled: entry.locked,
+                        }}
                         disabled={entry.locked}
                         onPress={() => assign(entry, slot)}
                         style={[
@@ -213,7 +260,8 @@ export default function BetaLineupScreen() {
                         ]}
                       >
                         <Text style={styles.choiceText}>
-                          {slot.slot_code} · {used[slot.slot_code] ?? 0}/{slot.slot_count}
+                          {slot.label || rosterSlotLabel(slot.slot_code)} ·{' '}
+                          {used[slot.slot_code] ?? 0}/{slot.slot_count} selected
                         </Text>
                       </Pressable>
                     ))}
@@ -228,7 +276,7 @@ export default function BetaLineupScreen() {
               variant="ghost"
             />
             <ActionButton
-              label="Commit period lineup"
+              label="Save lineup"
               onPress={() => void save()}
               loading={saving}
               disabled={!lineup.period || lineup.entries.length !== 10}
@@ -248,6 +296,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     locked: { borderColor: colors.red },
     entryHeading: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       justifyContent: 'space-between',
       gap: 10,
       alignItems: 'flex-start',

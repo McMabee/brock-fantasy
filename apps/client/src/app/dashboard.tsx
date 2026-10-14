@@ -17,6 +17,7 @@ import { useProgramGames } from '@/hooks/use-program-games';
 import { useMyLeagues } from '@/hooks/use-my-leagues';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { heading } from '@/theme';
+import { RulesLink } from '@/components/rules-link';
 
 export default function DashboardScreen() {
   const styles = useThemedStyles(createStyles);
@@ -43,6 +44,7 @@ export default function DashboardScreen() {
         Pick up where you left off. Draft your team, get your lineup ready, and follow the
         competition.
       </Text>
+      <RulesLink label="New to fantasy? Start here" />
       <SectionTitle
         title="Your leagues"
         detail={leagueQuery.loading ? 'Updating…' : `${leagues.length} total`}

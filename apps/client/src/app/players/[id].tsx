@@ -23,6 +23,7 @@ import { useRequireUser } from '@/hooks/use-route-access';
 import { useSession } from '@/providers/session-provider';
 import { loadPlayerAdps, adpLabel, type PlayerAdp } from '@/lib/player-adp';
 import { programNames } from '@/lib/player-program';
+import { RulesLink } from '@/components/rules-link';
 
 interface AthleteRow {
   id: string;
@@ -307,6 +308,9 @@ export default function PlayerScreen() {
                 {adp?.average?.toFixed(1) ?? metrics.suppliedAdp?.toFixed(1) ?? '—'}
               </Text>
               <Text style={styles.note}>{adpError ?? adpLabel(adp)}</Text>
+              <Text style={styles.note}>
+                Supplied ADP: {adp?.base ?? metrics.suppliedAdp ?? '—'}
+              </Text>
             </Card>
             <Card style={styles.metric}>
               <Text style={styles.metricLabel}>NEXT GAME / LOCK</Text>
@@ -318,6 +322,7 @@ export default function PlayerScreen() {
               </Text>
             </Card>
           </View>
+          <RulesLink section="stats" label="How projected points and ADP work" />
           <SectionTitle
             title="Current season"
             detail={`${memberships.flatMap((membership) => membership.positions).join(' / ') || athlete.position} · ${lastUpdated ? `updated ${new Date(lastUpdated).toLocaleString()}` : 'No current statistics'}`}

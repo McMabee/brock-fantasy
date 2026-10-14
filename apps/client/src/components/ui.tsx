@@ -202,6 +202,13 @@ export function AppShell({
                   <Pressable
                     accessibilityRole="link"
                     style={{ minHeight: 44, justifyContent: 'center' }}
+                    onPress={() => router.push('/rules')}
+                  >
+                    <Text style={styles.footerLink}>Rules</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="link"
+                    style={{ minHeight: 44, justifyContent: 'center' }}
                     onPress={() => router.push('/privacy')}
                   >
                     <Text style={styles.footerLink}>Privacy</Text>

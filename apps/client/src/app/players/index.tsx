@@ -48,7 +48,7 @@ export default function PlayerDirectoryScreen() {
   const [players, setPlayers] = useState<readonly PlayerRow[]>([]);
   const [query, setQuery] = useState('');
   const [program, setProgram] = useState('all');
-  const [sort, setSort] = useState<'name' | 'projection'>('name');
+  const [sort, setSort] = useState<'name' | 'projection' | 'adp'>('name');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [adps, setAdps] = useState<PlayerAdps>({});
@@ -135,13 +135,20 @@ export default function PlayerDirectoryScreen() {
     );
     return filtered.sort((a, b) => {
       if (sort === 'projection') {
-        const points = (player: PlayerRow) =>
-          directoryData.get(player.id)!.metrics.projectedPoints ?? -Infinity;
-        if (points(a) !== points(b)) return points(a) > points(b) ? -1 : 1;
+        const left = directoryData.get(a.id)!.metrics.projectedPoints ?? -Infinity;
+        const right = directoryData.get(b.id)!.metrics.projectedPoints ?? -Infinity;
+        if (left !== right) return left > right ? -1 : 1;
+      }
+      if (sort === 'adp') {
+        const left =
+          adps[a.id]?.average ?? directoryData.get(a.id)!.metrics.suppliedAdp ?? Infinity;
+        const right =
+          adps[b.id]?.average ?? directoryData.get(b.id)!.metrics.suppliedAdp ?? Infinity;
+        if (left !== right) return left < right ? -1 : 1;
       }
       return a.display_name.localeCompare(b.display_name, 'en-CA');
     });
-  }, [players, directoryData, query, program, sort]);
+  }, [players, directoryData, adps, query, program, sort]);
 
   return (
     <AppShell
@@ -183,16 +190,35 @@ export default function PlayerDirectoryScreen() {
       <View style={styles.toolbar}>
         <Text style={uiStyles.body}>{visible.length} shown</Text>
         <ActionButton
-          label={sort === 'name' ? 'Sort by projected FP' : 'Sort by name'}
-          onPress={() => setSort(sort === 'name' ? 'projection' : 'name')}
-          variant="secondary"
-        />
-        <ActionButton
           label="Refresh"
           onPress={() => setReload((value) => value + 1)}
           loading={loading}
           variant="ghost"
         />
+      </View>
+      <View style={styles.toolbar}>
+        <Text style={uiStyles.body}>Sort by</Text>
+        {(
+          [
+            { value: 'name', label: 'Name' },
+            { value: 'projection', label: 'Projected FP' },
+            { value: 'adp', label: 'ADP' },
+          ] as const
+        ).map((option) => (
+          <Pressable
+            key={option.value}
+            accessibilityRole="button"
+            accessibilityLabel={`Sort by ${option.label}`}
+            aria-pressed={sort === option.value}
+            accessibilityState={{ selected: sort === option.value }}
+            onPress={() => setSort(option.value)}
+            style={[styles.filter, sort === option.value && styles.selected]}
+          >
+            <Text style={[styles.filterText, sort === option.value && styles.selectedText]}>
+              {option.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
       {error && players.length > 0 ? (
         <ErrorState
