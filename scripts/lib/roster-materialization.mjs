@@ -101,6 +101,13 @@ export function rosterPlan(manifest, operatorId) {
         historicalReason: athlete.historicalAvailabilityReason,
         projectedPoints: numeric(athlete.suppliedSeasonProjection),
         projectedGames: numeric(athlete.suppliedProjectedGames),
+        suppliedAdp: numeric(athlete.suppliedAdp),
+        historicalStats: Object.fromEntries(
+          Object.entries(athlete.historicalStats ?? {}).map(([key, value]) => [
+            key,
+            numeric(value),
+          ]),
+        ),
       });
     }
     return {
@@ -155,7 +162,7 @@ select p.* from roster_release r, jsonb_to_recordset(r.payload->'players') as p(
   id uuid, "membershipId" uuid, program text, name text, positions text[], jersey text,
   "sourceKey" text, source text, "revisionHash" text, "rowNumber" integer, bio jsonb,
   "historicalPoints" numeric, "historicalGames" numeric, "historicalReason" text,
-  "projectedPoints" numeric, "projectedGames" numeric);
+  "projectedPoints" numeric, "projectedGames" numeric, "suppliedAdp" numeric, "historicalStats" jsonb);
 create temporary table roster_programs on commit drop as
 select p.* from roster_release r, jsonb_to_recordset(r.payload->'programs') as p(
   program text, sport text, division text, name text, "sportId" uuid, "competitionId" uuid, "teamId" uuid);
@@ -219,11 +226,11 @@ select e."membershipId",e.id,(r.payload->>'seasonId')::uuid,p."competitionId",p.
 cross join roster_release r on conflict(athlete_id,season_id) do nothing;
 insert into public.athlete_season_summaries(athlete_id,season_label,source,fantasy_points,games_played,stats,kind,import_id)
 select e.id,r.payload->>'historicalSeason',e.source,e."historicalPoints",e."historicalGames",
-jsonb_build_object('availabilityReason',e."historicalReason"),'historical',i.id
+jsonb_build_object('availabilityReason',e."historicalReason")||e."historicalStats",'historical',i.id
 from roster_expected e cross join roster_release r join public.source_imports i
 on i.source=e.source and i.source_hash=e."revisionHash" on conflict do nothing;
-insert into public.athlete_season_summaries(athlete_id,season_label,source,fantasy_points,games_played,stats,kind,import_id)
-select e.id,r.payload->>'season',e.source,e."projectedPoints",e."projectedGames",'{}'::jsonb,'supplied_projection',i.id
+insert into public.athlete_season_summaries(athlete_id,season_label,source,fantasy_points,games_played,stats,kind,import_id,supplied_adp)
+select e.id,r.payload->>'season',e.source,e."projectedPoints",e."projectedGames",'{}'::jsonb,'supplied_projection',i.id,e."suppliedAdp"
 from roster_expected e cross join roster_release r join public.source_imports i
 on i.source=e.source and i.source_hash=e."revisionHash" on conflict do nothing;
 do $$ begin

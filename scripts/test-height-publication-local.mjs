@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { buildManifest } from './import-brock-beta-data.mjs';
+import { buildPublishedManifest as buildManifest } from './lib/published-rosters.mjs';
 import { rosterPlan, rosterSql, sourceUuid } from './lib/roster-materialization.mjs';
 import { heightPlan, heightSql } from './lib/height-materialization.mjs';
 

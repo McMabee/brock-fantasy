@@ -21,6 +21,8 @@ import { supabase } from '@/lib/supabase';
 
 import { useRequireUser } from '@/hooks/use-route-access';
 import { useSession } from '@/providers/session-provider';
+import { loadPlayerAdps, adpLabel, type PlayerAdp } from '@/lib/player-adp';
+import { programNames } from '@/lib/player-program';
 
 interface AthleteRow {
   id: string;
@@ -92,6 +94,8 @@ export default function PlayerScreen() {
   const [season, setSeason] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adp, setAdp] = useState<PlayerAdp | undefined>(undefined);
+  const [adpError, setAdpError] = useState<string | null>(null);
 
   useEffect(() => {
     const client = supabase;
@@ -106,6 +110,16 @@ export default function PlayerScreen() {
     setSeason(null);
     setError(null);
     setLoading(true);
+    setAdp(undefined);
+    setAdpError(null);
+    void loadPlayerAdps().then(
+      (values) => {
+        if (!cancelled) setAdp(values[id]);
+      },
+      () => {
+        if (!cancelled) setAdpError('Average draft position is temporarily unavailable.');
+      },
+    );
     const load = async () => {
       const [
         athleteResult,
@@ -141,7 +155,7 @@ export default function PlayerScreen() {
           .limit(500),
         client
           .from('athlete_season_summaries')
-          .select('season_label, kind, fantasy_points, games_played, stats, supplied_adp')
+          .select('*')
           .eq('athlete_id', id)
           .order('season_label', { ascending: false }),
         client
@@ -258,6 +272,7 @@ export default function PlayerScreen() {
             />
             <View style={{ flex: 1, minWidth: 150, gap: 8 }}>
               <Text style={uiStyles.body}>
+                {programNames[String(athlete.bio.program)] ?? 'Brock athlete'} ·{' '}
                 {athlete.bio.sourcePosition ?? athlete.position}
                 {athlete.jersey_number !== null ? ` · #${athlete.jersey_number}` : ''}
                 {athlete.bio.eligibility ? ` · ${athlete.bio.eligibility}` : ''}
@@ -284,10 +299,10 @@ export default function PlayerScreen() {
             </Card>
             <Card style={styles.metric}>
               <Text style={styles.metricLabel}>ADP</Text>
-              <Text style={styles.metricValue}>{metrics.suppliedAdp?.toFixed(1) ?? '—'}</Text>
-              <Text style={styles.note}>
-                {metrics.suppliedAdp === null ? 'Not supplied yet' : 'Supplied season ADP'}
+              <Text style={styles.metricValue}>
+                {adp?.average?.toFixed(1) ?? metrics.suppliedAdp?.toFixed(1) ?? '—'}
               </Text>
+              <Text style={styles.note}>{adpError ?? adpLabel(adp)}</Text>
             </Card>
             <Card style={styles.metric}>
               <Text style={styles.metricLabel}>NEXT GAME / LOCK</Text>

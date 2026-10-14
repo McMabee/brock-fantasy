@@ -1,5 +1,7 @@
 # Player directory and roster publication
 
+October 14 update: the revised supplied files contain 119 participating athletes. The prepared [metric update](BETA_FIXES.md) preserves their original IDs, imports supplied ADP/history/projections/heights, and applies one newly confirmed withdrawal. The original 120-player hosted directory remains unchanged until that transaction is published. Enrichment and regression fixtures use the protected original publication receipt; they do not treat changed CSVs as approved identity imports.
+
 Sign in and open `https://beta.brockfantasy.ca/players`. The directory displays
 the approved current roster independently of draft rankings. Search by name,
 position, program or jersey number, filter any of the six programs, or sort by
@@ -12,7 +14,7 @@ administrator test, with 120 eligible players and frozen supplied-projection
 rankings. Scoring is paused. See [the live draft instructions](ADMIN_DRAFT_TEST.md)
 for four-manager setup, verification and recovery.
 
-The current `logic/` rosters contain 122 players. The two recorded opt-outs are
+The original October 8 `logic/` rosters contained 122 players. The two recorded opt-outs were
 excluded from canonical player creation and directory publication, including
 when a later CSV omits their `**` marker. Included counts are:
 

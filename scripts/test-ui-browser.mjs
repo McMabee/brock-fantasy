@@ -6,8 +6,10 @@ import path from 'node:path';
 import { chromium } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import handler from '../api/index.js';
-import { buildManifest } from './import-brock-beta-data.mjs';
+import { buildPublishedManifest as buildManifest } from './lib/published-rosters.mjs';
 import { rosterPlan } from './lib/roster-materialization.mjs';
+import { buildManifest as buildCurrentManifest } from './import-brock-beta-data.mjs';
+import { rosterMetricsPlan } from './lib/roster-metrics.mjs';
 
 // Controlled browser fixtures never sign in, mutate, or query the hosted project.
 const roster = rosterPlan(await buildManifest(), '11111111-1111-4111-8111-111111111111');
@@ -18,37 +20,52 @@ const leagueId = '22222222-2222-4222-8222-222222222222';
 const draftId = '33333333-3333-4333-8333-333333333333';
 const teamId = '44444444-4444-4444-8444-444444444444';
 const otherTeam = '55555555-5555-4555-8555-555555555555';
-const players = roster.players.map((player, index) => ({
-  id: player.id,
-  competition_id: 'c',
-  team_id: 't',
-  display_name: player.name,
-  position: player.positions[0],
-  jersey_number: player.jersey,
-  status: 'active',
-  bio: {
-    ...player.bio,
-    height: heights.heights.find((h) => h.id === player.id)?.height,
-    headshot: portraits.headshots.find((h) => h.id === player.id)?.headshot,
-  },
-  positions: player.positions,
-  program: player.program.replaceAll('_', ' '),
-  rank: index + 1,
-  summaries: [
-    {
-      season_label: '2026-27',
-      kind: 'supplied_projection',
-      fantasy_points: player.projectedPoints,
-      games_played: player.projectedGames,
-      supplied_adp: null,
-      stats: {},
+const metrics = rosterMetricsPlan(
+  await buildCurrentManifest(),
+  await buildManifest(),
+  heights,
+  userId,
+  JSON.parse(await readFile('dev/docs/evidence/2026-10-14-roster-suppressions.json', 'utf8')),
+);
+const metricById = new Map(metrics.players.map((item) => [item.id, item]));
+const players = roster.players
+  .filter((player) => metricById.has(player.id))
+  .map((player, index) => ({
+    id: player.id,
+    competition_id: 'c',
+    team_id: 't',
+    display_name: player.name,
+    position: player.positions[0],
+    jersey_number: player.jersey,
+    status: 'active',
+    bio: {
+      ...player.bio,
+      height: metricById.get(player.id).height,
+      headshot: portraits.headshots.find((h) => h.id === player.id)?.headshot,
     },
-  ],
-}));
+    positions: player.positions,
+    program: player.program.replaceAll('_', ' '),
+    rank: index + 1,
+    adp: {
+      average: metricById.get(player.id).suppliedAdp,
+      base: metricById.get(player.id).suppliedAdp,
+      samples: 0,
+    },
+    summaries: [
+      {
+        season_label: '2026-27',
+        kind: 'supplied_projection',
+        fantasy_points: metricById.get(player.id).projectedPoints,
+        games_played: metricById.get(player.id).projectedGames,
+        supplied_adp: metricById.get(player.id).suppliedAdp,
+        stats: {},
+      },
+    ],
+  }));
 const league = {
   id: leagueId,
   competition_id: null,
-  pool_id: roster.poolId,
+  pool_id: 'b0000000-0000-4000-8000-000000000003',
   commissioner_id: userId,
   ruleset_id: 'b0000000-0000-4000-8000-000000000004',
   name: 'Badgers Club',
@@ -116,6 +133,8 @@ try {
       { name: 'bf_csrf', value: 'test-csrf', url: origin },
     ]);
     let scenario = 'populated';
+    let complete = false;
+    let commissioner = true;
     let connected = true;
     let expired = false;
     let pendingPick = false;
@@ -126,17 +145,18 @@ try {
       poolRevision: 'pool-1',
       serverTime: new Date().toISOString(),
       unchanged: false,
+      closed: complete,
       draft: {
         id: draftId,
         league_id: leagueId,
-        status: 'active',
+        status: complete ? 'complete' : 'active',
         rounds: 10,
         current_overall_pick: picks.length + 1,
         pick_deadline: new Date(Date.now() + (expired ? -10000 : 900000)).toISOString(),
         state_version: picks.length + 1,
         team_order: [teamId, otherTeam],
       },
-      league: { id: leagueId, name: league.name, pool_id: roster.poolId },
+      league: { id: leagueId, name: league.name, pool_id: 'b0000000-0000-4000-8000-000000000003' },
       teams,
       picks,
       roster: picks.map((p) => ({
@@ -176,6 +196,7 @@ try {
           },
           expiresAt: Date.now() + 3600000,
         });
+      if (url.pathname === '/api/admin/status') return reply({ isAdmin: false });
       if (url.pathname === '/api/auth/csrf') return reply({});
       if (url.pathname.startsWith('/api/draft/')) {
         if (!connected) return reply({ error: 'Connection unavailable. Reconnecting…' }, 503);
@@ -183,6 +204,10 @@ try {
       }
       if (url.pathname.startsWith('/api/command/')) {
         const payload = route.request().postDataJSON();
+        if (url.pathname.endsWith('rename_my_fantasy_team')) {
+          teams[0].name = payload.p_name;
+          return reply({ team_id: teamId, name: payload.p_name });
+        }
         if (url.pathname.endsWith('set_draft_queue')) {
           queue = payload.p_athlete_ids;
           return reply({ queue });
@@ -213,14 +238,77 @@ try {
           await new Promise((resolve) => setTimeout(resolve, 1100));
         if (scenario === 'error' && table === 'athletes')
           return reply({ message: 'Fixture failure' }, 503);
+        if (dataPath.searchParams.get('select')?.includes('supplied_adp'))
+          return reply({ message: 'Missing supplied_adp column' }, 400);
         if (table === 'athletes') {
           if (scenario === 'empty') return reply([]);
           const id = dataPath.searchParams.get('id')?.replace('eq.', '');
           return reply(id ? players.find((p) => p.id === id) : players);
         }
-        if (table === 'leagues') return reply(dataPath.searchParams.has('id') ? league : [league]);
+        if (table === 'get_pool_adp')
+          return scenario === 'adp-error'
+            ? reply({ message: 'New ADP RPC not installed' }, 404)
+            : reply(Object.fromEntries(players.map((player) => [player.id, player.adp])));
+        if (table === 'get_draft_results')
+          return reply({
+            league: { id: leagueId, name: league.name },
+            picks: [
+              {
+                id: 'fixture-result',
+                athlete_id: players[0].id,
+                display_name: players[0].display_name,
+                bio: players[0].bio,
+                program: players[0].program,
+                overall_pick: 1,
+                round: 1,
+                pick_in_round: 1,
+                source: 'manager',
+                team_name: teams[0].name,
+              },
+            ],
+          });
+        if (table === 'competitions')
+          return reply([
+            {
+              id: 'c',
+              division: 'womens',
+              name: "Brock Women's Volleyball",
+              season_label: '2026-27',
+              is_active: true,
+              ruleset_id: league.ruleset_id,
+              sports: { code: 'volleyball' },
+            },
+          ]);
+        if (table === 'games')
+          return reply([
+            {
+              id: 'g',
+              competition_id: 'c',
+              starts_at: new Date(Date.now() + 3600_000).toISOString(),
+              status: 'scheduled',
+            },
+          ]);
+        if (table === 'scoring_rulesets') return reply({ draft_config: { pickSeconds: 120 } });
+        if (table === 'roster_slot_rules') return reply([{ slot_count: 10 }]);
+        if (table === 'roster_entries')
+          return reply([
+            {
+              id: 'roster-entry',
+              fantasy_team_id: teamId,
+              athlete_id: players[0].id,
+              slot_code: 'VB_HT',
+              status: 'starter',
+              athlete: { ...players[0], competition: { name: "Brock Women's Volleyball" } },
+            },
+          ]);
+        if (table === 'leagues') {
+          const row = { ...league, commissioner_id: commissioner ? userId : otherTeam };
+          return reply(dataPath.searchParams.has('id') ? row : [row]);
+        }
         if (table === 'drafts')
-          return reply([{ id: draftId, league_id: leagueId, status: 'active' }]);
+          return reply([
+            { id: draftId, league_id: leagueId, status: complete ? 'complete' : 'active' },
+          ]);
         if (table === 'fantasy_teams') return reply(teams);
         if (table === 'athlete_seasons')
           return reply([{ competition_id: 'c', team_id: 't', positions: ['HT'] }]);
@@ -276,11 +364,12 @@ try {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(origin + '/dashboard');
     await page.getByText('Badgers Club', { exact: true }).waitFor();
+    await page.getByText(/Next game ·/).waitFor();
     await page.screenshot({ path: path.join(output, `dashboard-${theme}.png`) });
     const withHeight = players.find((p) => p.bio.height);
     await page.goto(origin + '/players/' + withHeight.id);
     await page.getByText('Height ·', { exact: false }).waitFor();
-    await page.getByText('Not supplied yet', { exact: true }).waitFor();
+    await page.getByText('No recorded picks yet', { exact: true }).waitFor();
     await page.screenshot({ path: path.join(output, `player-detail-${theme}.png`) });
     for (const state of ['loading', 'empty', 'error']) {
       for (const width of [390, 1440]) {
@@ -350,7 +439,94 @@ try {
       );
       await page.screenshot({ path: path.join(output, `draft-${theme}-${width}.png`) });
     }
+    complete = true;
+    await page.goto(origin + '/draft/' + draftId);
+    await page.waitForURL('**/draft-results/' + draftId);
+    await page.getByText('All draft picks', { exact: true }).waitFor();
+    assert.equal(await page.getByText('Available players', { exact: true }).count(), 0);
+    for (const width of [320, 390, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      commissioner = true;
+      await page.goto(origin + '/league/' + leagueId);
+      await page.getByRole('tab', { name: 'settings', exact: true }).click();
+      await page.getByText('Commissioner settings', { exact: true }).waitFor();
+      const transactionLink = page.getByRole('link', {
+        name: 'Free agents, waivers & trades',
+        exact: true,
+      });
+      const transactionBounds = await transactionLink.boundingBox();
+      assert.ok(
+        transactionBounds.x >= 0 && transactionBounds.x + transactionBounds.width <= width,
+        'Manager controls stay inside the phone width',
+      );
+      assert.ok(
+        await transactionLink.evaluate((element) => element.scrollWidth <= element.clientWidth),
+        'Manager button text fits its control',
+      );
+      assert.equal(
+        await page.getByRole('link', { name: 'Open draft room', exact: true }).count(),
+        0,
+      );
+      await page.getByRole('link', { name: 'View draft results', exact: true }).first().waitFor();
+      await page.getByRole('textbox', { name: 'Your team name', exact: true }).fill('New Badgers');
+      if (teams[0].name !== 'New Badgers') {
+        await page.getByRole('button', { name: 'Save team name', exact: true }).click();
+        await page.getByText('Team name saved.', { exact: true }).waitFor();
+        assert.equal(teams[0].name, 'New Badgers');
+      }
+      assert.ok(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        `Overflow: settings ${theme} ${width}`,
+      );
+      await page.screenshot({ path: path.join(output, `league-settings-${theme}-${width}.png`) });
+      await page.getByRole('tab', { name: 'roster', exact: true }).click();
+      await page.getByText(/Women's Volleyball · HT · VB_HT/).waitFor();
+      await page.screenshot({ path: path.join(output, `league-roster-${theme}-${width}.png`) });
+      commissioner = false;
+      await page.goto(origin + '/league/' + leagueId);
+      await page.getByRole('tab', { name: 'settings', exact: true }).click();
+      await page.getByText('Manager settings', { exact: true }).waitFor();
+      assert.equal(await page.getByText('Commissioner settings', { exact: true }).count(), 0);
+      assert.equal(
+        await page.getByRole('button', { name: 'Delete league', exact: true }).count(),
+        0,
+      );
+      await page.goto(origin + '/notifications');
+      await page.getByText('No notifications', { exact: true }).waitFor();
+      const filters = await page
+        .getByRole('button', { name: 'All updates', exact: true })
+        .boundingBox();
+      const empty = await page.getByText('No notifications', { exact: true }).boundingBox();
+      assert.ok(
+        empty.y > filters.y + filters.height + 20,
+        'Notification filters have space below them',
+      );
+      await page.screenshot({ path: path.join(output, `notifications-${theme}-${width}.png`) });
+      if (width === 1440) {
+        const privacy = await page.getByText('Privacy', { exact: true }).boundingBox();
+        const instagram = await page
+          .getByRole('link', { name: /Brock Fantasy Association on Instagram/ })
+          .boundingBox();
+        assert.ok(
+          Math.abs(privacy.y + privacy.height / 2 - (instagram.y + instagram.height / 2)) < 3,
+          'Footer links align',
+        );
+      }
+    }
+    scenario = 'adp-error';
+    await page.goto(origin + '/players');
+    await page.getByText(players[0].display_name, { exact: true }).waitFor();
+    await page
+      .getByText('Average draft positions are temporarily unavailable.', { exact: true })
+      .waitFor();
+    assert.equal(
+      await page.getByText('Unable to load the player list. Try again.', { exact: true }).count(),
+      0,
+    );
     await context.close();
+    results.push(
+      `settings/results/roster/notifications ${theme}: commissioner visibility, rename, completed-room redirect, ADP rollout tolerance`,
+    );
     results.push(`draft ${theme}: queue, details, acknowledged pick, expired clock, reconnect`);
   }
   // Real server forms: theme readback, local fonts, responsive layout and CSP.

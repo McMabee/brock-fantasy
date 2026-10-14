@@ -21,7 +21,7 @@ const outputPath = path.resolve(
   process.env.BROCK_IMPORT_OUTPUT ?? 'dev/tmp/brock-beta-import-preview.json',
 );
 const publish = process.argv.includes('--publish');
-const normalizerVersion = 'brock-import-2026.5';
+const normalizerVersion = 'brock-import-2026.6';
 const decisionsPath = path.resolve(
   root,
   process.env.BROCK_DATA_DECISIONS ?? 'dev/docs/evidence/2026-10-08-beta-decisions.json',
@@ -43,7 +43,7 @@ let officialEvidence = null;
 let officialEvidenceHash = null;
 const suppressionsPath = path.resolve(
   root,
-  process.env.BROCK_ROSTER_SUPPRESSIONS ?? 'dev/docs/evidence/2026-10-08-roster-suppressions.json',
+  process.env.BROCK_ROSTER_SUPPRESSIONS ?? 'dev/docs/evidence/2026-10-14-roster-suppressions.json',
 );
 let suppressions = null;
 let suppressionsHash = null;
@@ -122,6 +122,13 @@ function canonicalRow(file, kind, row, issues) {
       gamesPlayed: field('25-26 GP', 'Games Played last year'),
       suppliedSeasonProjection: field('26-27 Proj FP', '26-27 Proj'),
       suppliedProjectedGames: field('26-27 Proj GP'),
+      suppliedAdp: field('ADP'),
+      suppliedHeight: raw.Height?.trim() || null,
+      historicalStats: Object.fromEntries(
+        Object.entries(raw)
+          .filter(([key]) => /^25[-/]26\s/u.test(key))
+          .map(([key, value]) => [key, valueWithMeaning(value)]),
+      ),
       preseasonValue: field('Preseason (3 G)', 'Preseason PPG'),
       previousTeamGames: field('games played', 'Games played'),
       sourceTeam: raw.Team?.trim() || program,

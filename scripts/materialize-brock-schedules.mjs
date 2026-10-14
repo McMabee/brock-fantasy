@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { buildManifest } from './import-brock-beta-data.mjs';
+import { buildPublishedManifest as buildManifest } from './lib/published-rosters.mjs';
 import { schedulePlan, scheduleSql } from './lib/schedule-materialization.mjs';
 
 const apply = process.argv.includes('--apply');

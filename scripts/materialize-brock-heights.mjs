@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { buildManifest } from './import-brock-beta-data.mjs';
+import { buildPublishedManifest as buildManifest } from './lib/published-rosters.mjs';
 import { heightPlan, heightSql } from './lib/height-materialization.mjs';
 
 // Prepare a reviewable publication transaction. Applying it is a release operation.

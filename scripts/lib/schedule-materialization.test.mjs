@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildManifest } from '../import-brock-beta-data.mjs';
+import { buildPublishedManifest as buildManifest } from './published-rosters.mjs';
 import { schedulePlan, scheduleSql } from './schedule-materialization.mjs';
 test('confirmed schedules have stable identities, split program times, and exact provenance', async () => {
   const manifest = await buildManifest();

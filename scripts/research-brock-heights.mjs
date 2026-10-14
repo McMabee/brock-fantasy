@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
-import { buildManifest } from './import-brock-beta-data.mjs';
+import { buildPublishedManifest as buildManifest } from './lib/published-rosters.mjs';
 import { rosterPlan } from './lib/roster-materialization.mjs';
 import { officialHeights } from './lib/height-materialization.mjs';
 

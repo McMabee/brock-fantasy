@@ -56,7 +56,9 @@ export function AppShell({
       active:
         pathname === '/dashboard' ||
         pathname === '/' ||
-        /^\/(league|draft|lineup|lineup-beta|transactions|commissioner|leagues)\//u.test(pathname),
+        /^\/(league|draft|draft-results|lineup|lineup-beta|transactions|commissioner|leagues)\//u.test(
+          pathname,
+        ),
     },
     { label: 'Players', href: '/players', icon: '☷', active: pathname.startsWith('/players') },
     {
@@ -348,7 +350,15 @@ export function ActionButton({
         (disabled || loading) && styles.buttonDisabled,
       ]}
     >
-      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          gap: 8,
+          alignItems: 'center',
+          maxWidth: '100%',
+          flexShrink: 1,
+        }}
+      >
         {loading ? (
           <ActivityIndicator
             size="small"
@@ -580,9 +590,13 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       letterSpacing: 0.3,
     },
     button: {
+      maxWidth: '100%',
+      flexShrink: 1,
+      minWidth: 0,
       minHeight: 48,
       borderRadius: radii.sm,
       paddingHorizontal: 19,
+      paddingVertical: 10,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.red,
@@ -594,7 +608,14 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     buttonGhost: { backgroundColor: 'transparent', borderColor: 'transparent' },
     buttonPressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
     buttonDisabled: { opacity: 0.5 },
-    buttonText: { fontFamily: 'Inter', color: colors.white, fontWeight: '700', fontSize: 19 },
+    buttonText: {
+      fontFamily: 'Inter',
+      color: colors.white,
+      fontWeight: '700',
+      fontSize: 19,
+      flexShrink: 1,
+      textAlign: 'center',
+    },
     sectionTitleRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -634,8 +655,16 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       fontWeight: '900',
       letterSpacing: 1.8,
     },
-    footerLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: 18 },
+    footerLinks: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: 18,
+    },
     footerLink: {
+      minHeight: 44,
+      lineHeight: 44,
       fontFamily: 'Inter',
       color: colors.link,
       fontSize: 11,

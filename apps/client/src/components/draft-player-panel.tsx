@@ -7,6 +7,7 @@ import { ActionButton, Card, useUiStyles } from './ui';
 import type { DraftPlayer } from '@/lib/draft-state';
 
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
+import { adpLabel } from '@/lib/player-adp';
 
 export function playerHeadshot(player: Pick<DraftPlayer, 'bio'>): string | null {
   const item = player.bio.headshot;
@@ -186,11 +187,9 @@ export function DraftPlayerPanel({
                   <View style={styles.metric}>
                     <Text style={styles.metricLabel}>AVERAGE DRAFT POSITION</Text>
                     <Text style={styles.metricValue}>
-                      {metrics?.suppliedAdp?.toFixed(1) ?? '—'}
+                      {player.adp?.average?.toFixed(1) ?? metrics?.suppliedAdp?.toFixed(1) ?? '—'}
                     </Text>
-                    <Text style={uiStyles.body}>
-                      {metrics?.suppliedAdp == null ? 'Not supplied yet' : 'Supplied season ADP'}
-                    </Text>
+                    <Text style={uiStyles.body}>{adpLabel(player.adp)}</Text>
                   </View>
                 </View>
                 {(['eligibility', 'major', 'hometown'] as const).map((key) =>

@@ -13,6 +13,7 @@ import {
   useUiStyles,
 } from '@/components/ui';
 import { useCompetitions } from '@/hooks/use-competitions';
+import { useProgramGames } from '@/hooks/use-program-games';
 import { useMyLeagues } from '@/hooks/use-my-leagues';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { heading } from '@/theme';
@@ -25,6 +26,7 @@ export default function DashboardScreen() {
   const leagues = leagueQuery.data;
   const competitionQuery = useCompetitions();
   const competitions = competitionQuery.data;
+  const programGames = useProgramGames(competitions.map((competition) => competition.id));
 
   return (
     <AppShell
@@ -118,6 +120,14 @@ export default function DashboardScreen() {
               <View style={styles.leagueCopy}>
                 <Text style={styles.programName}>{competition.name}</Text>
                 <Text style={styles.leagueMeta}>{competition.seasonLabel}</Text>
+                <Text style={styles.gameTime}>
+                  {programGames.loading
+                    ? 'Loading game time…'
+                    : (programGames.error ??
+                      (programGames.games[competition.id]
+                        ? `Next game · ${new Date(programGames.games[competition.id]!.starts_at).toLocaleString('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}`
+                        : 'No upcoming game scheduled'))}
+                </Text>
               </View>
               <Pill label={competition.isActive ? 'ACTIVE' : 'PENDING'} tone="info" />
             </View>
@@ -158,4 +168,5 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
     programName: { fontFamily: 'Inter', color: colors.text, fontSize: 14, fontWeight: '800' },
+    gameTime: { fontFamily: 'Inter', color: colors.muted, fontSize: 12, lineHeight: 18 },
   });

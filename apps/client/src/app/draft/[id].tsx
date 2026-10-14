@@ -7,7 +7,7 @@ import {
   previewDraftQueue,
   playerMetrics,
 } from '@brock-fantasy/domain';
-import { useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ActionButton, AppShell, Card, LoadingState, Pill, useUiStyles } from '@/components/ui';
@@ -214,9 +214,9 @@ export default function DraftRoomScreen() {
                 </Text>
                 <Text style={styles.stats}>
                   Rank {a.rank} · Projected FP {metrics.projectedPoints ?? '—'} · ADP{' '}
-                  {metrics.suppliedAdp?.toFixed(1) ?? '—'}
+                  {a.adp?.average?.toFixed(1) ?? metrics.suppliedAdp?.toFixed(1) ?? '—'}
                 </Text>
-                {metrics.suppliedAdp === null ? (
+                {a.adp?.average == null && metrics.suppliedAdp === null ? (
                   <Text style={styles.meta}>ADP · Not supplied yet</Text>
                 ) : null}
               </View>
@@ -375,6 +375,7 @@ export default function DraftRoomScreen() {
       <DraftChat leagueId={data.draft?.leagueId} />
     </Card>
   );
+  if (data.draft?.status === 'complete') return <Redirect href={`/draft-results/${id}`} />;
   if (data.loading && !data.draft)
     return (
       <AppShell workspace title="Draft room" eyebrow="Your live draft">
@@ -387,13 +388,11 @@ export default function DraftRoomScreen() {
         <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
           <Pill
             label={
-              data.draft?.status === 'complete'
-                ? 'DRAFT COMPLETE'
-                : (wide ? 'SNAKE DRAFT · ROUND ' : 'ROUND ') +
-                  (Math.floor(
-                    Math.min(pickIndex, Math.max(0, order.length - 1)) / (data.teams.length || 1),
-                  ) +
-                    1)
+              (wide ? 'SNAKE DRAFT · ROUND ' : 'ROUND ') +
+              (Math.floor(
+                Math.min(pickIndex, Math.max(0, order.length - 1)) / (data.teams.length || 1),
+              ) +
+                1)
             }
             tone="info"
           />
@@ -418,11 +417,7 @@ export default function DraftRoomScreen() {
             offset={data.serverOffset}
           />
           <Text style={styles.clockTeam}>
-            {onClock
-              ? data.teams.find((t) => t.id === onClock)?.name
-              : data.draft?.status === 'complete'
-                ? 'All picks committed'
-                : 'Draft waiting'}
+            {onClock ? data.teams.find((t) => t.id === onClock)?.name : 'Draft waiting'}
           </Text>
         </View>
       </View>

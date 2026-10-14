@@ -21,10 +21,11 @@ import { heading, radii } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { supabase } from '@/lib/supabase';
 import { betaCommand } from '@/lib/web-api';
-import { useSession } from '@/providers/session-provider';
+import { LeagueSettings } from '@/components/league-settings';
+import { DraftPlayerPhoto } from '@/components/draft-player-panel';
 import type { FantasyTeam, League, MatchupResult, StandingsRow } from '@brock-fantasy/domain';
 
-type Tab = 'overview' | 'roster' | 'standings' | 'chat';
+type Tab = 'overview' | 'roster' | 'standings' | 'chat' | 'settings';
 
 export default function LeagueScreen() {
   const styles = useThemedStyles(createStyles);
@@ -32,7 +33,6 @@ export default function LeagueScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const leagueData = useLeague(id);
   const { league, teams, standings, error: loadError } = leagueData;
-  const { user } = useSession();
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>('overview');
   const [chatText, setChatText] = useState('');
@@ -120,7 +120,7 @@ export default function LeagueScreen() {
       </View>
 
       <View accessibilityRole="tablist" style={styles.tabs}>
-        {(['overview', 'roster', 'standings', 'chat'] as const).map((item) => (
+        {(['overview', 'roster', 'standings', 'chat', 'settings'] as const).map((item) => (
           <Pressable
             key={item}
             accessibilityRole="tab"
@@ -139,8 +139,8 @@ export default function LeagueScreen() {
           league={league}
           teams={teams}
           draftId={leagueData.draftId}
+          draftStatus={leagueData.draftStatus}
           matchups={leagueData.matchups}
-          isCommissioner={league?.commissionerId === user?.id}
         />
       ) : null}
       {tab === 'roster' ? (
@@ -152,6 +152,7 @@ export default function LeagueScreen() {
         />
       ) : null}
       {tab === 'standings' ? <Standings league={league} rows={standings} teams={teams} /> : null}
+      {tab === 'settings' ? <LeagueSettings data={leagueData} /> : null}
       {tab === 'chat' ? (
         <Chat
           chatText={chatText}
@@ -171,15 +172,15 @@ function Overview({
   league,
   teams,
   draftId,
+  draftStatus,
   matchups,
-  isCommissioner,
 }: {
   wide: boolean;
   league: League | null;
   teams: readonly FantasyTeam[];
   draftId: string | null;
+  draftStatus: ReturnType<typeof useLeague>['draftStatus'];
   matchups: readonly MatchupResult[];
-  isCommissioner: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
@@ -244,18 +245,18 @@ function Overview({
             .
           </Text>
           <View style={styles.controlActions}>
-            {draftId ? (
+            {draftId && draftStatus && ['active', 'paused', 'scheduled'].includes(draftStatus) ? (
               <ActionButton
                 label="Open draft room"
                 href={`/draft/${draftId}`}
                 variant="secondary"
               />
             ) : null}
-            {isCommissioner && league ? (
+            {draftId && draftStatus === 'complete' ? (
               <ActionButton
-                label="Commissioner controls"
-                href={`/commissioner/${league.id}`}
-                variant="ghost"
+                label="View draft results"
+                href={`/draft-results/${draftId}`}
+                variant="secondary"
               />
             ) : null}
           </View>
@@ -284,14 +285,16 @@ function Roster({
         <Card>
           {entries.map((entry) => (
             <View key={entry.id} style={styles.rosterRow}>
-              <View style={styles.position}>
-                <Text style={styles.positionText}>{entry.slotCode}</Text>
-              </View>
+              <DraftPlayerPhoto
+                player={{ displayName: entry.displayName, bio: entry.bio }}
+                size={44}
+              />
               <View style={styles.rosterCopy}>
                 <Text style={styles.rosterName}>{entry.displayName}</Text>
                 <Text style={styles.rosterMeta}>
-                  {entry.jerseyNumber ? `#${entry.jerseyNumber} · ` : ''}Brock {entry.position} ·{' '}
-                  {entry.status}
+                  {entry.jerseyNumber !== null ? `#${entry.jerseyNumber} · ` : ''}
+                  {entry.programName.replace(/^Brock /u, '')} · {entry.position} · {entry.slotCode}{' '}
+                  · {entry.status}
                 </Text>
               </View>
             </View>
@@ -456,6 +459,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     inviteMeta: { fontFamily: 'Inter', color: colors.muted, fontSize: 11 },
     tabs: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: 4,
       marginTop: 18,
       borderBottomColor: colors.border,

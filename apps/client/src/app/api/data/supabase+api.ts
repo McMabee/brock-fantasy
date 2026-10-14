@@ -32,7 +32,13 @@ const tables = new Set([
   'trades',
   'weekly_projections',
 ]);
-const readRpc = new Set(['get_athlete_adp', 'get_beta_lineup', 'get_league_standings']);
+const readRpc = new Set([
+  'get_athlete_adp',
+  'get_pool_adp',
+  'get_draft_results',
+  'get_beta_lineup',
+  'get_league_standings',
+]);
 
 function forwardedHeaders(request: Request, key: string, token: string): Headers {
   const headers = new Headers({ apikey: key, authorization: `Bearer ${token}` });

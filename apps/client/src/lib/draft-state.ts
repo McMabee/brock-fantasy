@@ -12,6 +12,7 @@ export interface DraftPlayer extends Athlete {
   program: string;
   rank: number;
   bio: Record<string, unknown>;
+  adp?: { average: number | null; base: number | null; samples: number };
   summaries: readonly {
     season_label: string;
     kind: string;
@@ -32,6 +33,7 @@ export interface DraftSnapshot {
   poolRevision: string;
   serverTime: string;
   unchanged: boolean;
+  closed?: boolean;
   draft?: {
     id: string;
     league_id: string;
@@ -79,6 +81,7 @@ export interface DraftSnapshot {
     program: string;
     rank: number;
     summaries: DraftPlayer['summaries'];
+    adp?: DraftPlayer['adp'];
   }[];
   legalAthleteIds?: string[];
 }

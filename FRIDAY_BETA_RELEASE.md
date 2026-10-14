@@ -1,5 +1,7 @@
 # Friday beta release candidate
 
+October 14 follow-up: [league settings, draft results, player metrics and screenshot fixes](BETA_FIXES.md) are implemented and validated locally. Their hosted migrations, data publication and deployment remain pending. The deployed receipt below describes the October 13 version.
+
 Updated October 13, 2026 (America/Toronto). Target acceptance: Friday, October 16.
 
 The candidate is deployed at https://beta.brockfantasy.ca. Deployment `dpl_B1p5i9i3j1sY8vRrR6qDqB6Zx6ca` contains the application changes. No commit, staging or push was performed. Existing leagues and picks were preserved. [Verification receipt](release-evidence/friday-beta-2026-10-13.json).

@@ -1,4 +1,10 @@
-import type { FantasyTeam, League, MatchupResult, StandingsRow } from '@brock-fantasy/domain';
+import type {
+  DraftState,
+  FantasyTeam,
+  League,
+  MatchupResult,
+  StandingsRow,
+} from '@brock-fantasy/domain';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Platform } from 'react-native';
@@ -47,6 +53,7 @@ interface LeagueData {
   teams: readonly FantasyTeam[];
   standings: readonly StandingsRow[];
   draftId: string | null;
+  draftStatus: DraftState['status'] | null;
   myTeamId: string | null;
   roster: readonly LeagueRosterEntry[];
   matchups: readonly MatchupResult[];
@@ -63,6 +70,8 @@ export interface LeagueRosterEntry {
   displayName: string;
   position: string;
   jerseyNumber: string | null;
+  bio: Record<string, unknown>;
+  programName: string;
   slotCode: string;
   status: 'starter' | 'bench' | 'injured_reserve';
 }
@@ -77,6 +86,7 @@ export interface LeagueChatMessage {
 
 interface DraftRow {
   id: string;
+  status: DraftState['status'];
 }
 
 interface RosterRow {
@@ -86,8 +96,20 @@ interface RosterRow {
   slot_code: string;
   status: LeagueRosterEntry['status'];
   athlete:
-    | { display_name: string; position: string; jersey_number: string | null }
-    | readonly { display_name: string; position: string; jersey_number: string | null }[];
+    | {
+        display_name: string;
+        position: string;
+        jersey_number: string | null;
+        bio: Record<string, unknown>;
+        competition: { name: string } | readonly { name: string }[];
+      }
+    | readonly {
+        display_name: string;
+        position: string;
+        jersey_number: string | null;
+        bio: Record<string, unknown>;
+        competition: { name: string } | readonly { name: string }[];
+      }[];
 }
 
 interface MatchupRow {
@@ -116,6 +138,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
     teams: [],
     standings: [],
     draftId: null,
+    draftStatus: null,
     myTeamId: null,
     roster: [],
     matchups: [],
@@ -136,6 +159,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       teams: [],
       standings: [],
       draftId: null,
+      draftStatus: null,
       myTeamId: null,
       roster: [],
       matchups: [],
@@ -166,7 +190,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
           .eq('league_id', leagueId)
           .order('draft_position'),
         client.rpc('get_league_standings', { p_league_id: leagueId }),
-        client.from('drafts').select('id').eq('league_id', leagueId).maybeSingle(),
+        client.from('drafts').select('id, status').eq('league_id', leagueId).maybeSingle(),
         client
           .from('matchups')
           .select(
@@ -228,7 +252,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       ? await client
           .from('roster_entries')
           .select(
-            'id, fantasy_team_id, athlete_id, slot_code, status, athlete:athletes!inner(display_name, position, jersey_number)',
+            'id, fantasy_team_id, athlete_id, slot_code, status, athlete:athletes!inner(display_name, position, jersey_number, bio, competition:competitions(name))',
           )
           .eq('fantasy_team_id', myTeamId)
           .is('released_at', null)
@@ -254,6 +278,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       teams,
       standings,
       draftId: draftRow?.id ?? null,
+      draftStatus: draftRow?.status ?? null,
       myTeamId,
       roster: (rosterResult.data as unknown as RosterRow[]).flatMap((entry) => {
         const athlete = firstRelated(entry.athlete);
@@ -266,6 +291,8 @@ export function useLeague(leagueId: string | undefined): LeagueData {
                 displayName: athlete.display_name,
                 position: athlete.position,
                 jerseyNumber: athlete.jersey_number,
+                bio: athlete.bio,
+                programName: firstRelated(athlete.competition)?.name ?? 'Brock athlete',
                 slotCode: entry.slot_code,
                 status: entry.status,
               },

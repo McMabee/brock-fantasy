@@ -1,5 +1,7 @@
 # Premium sports UI refresh
 
+The October 14 [beta fixes](BETA_FIXES.md) add league Settings/results, seed-plus-history ADP, updated supplied metrics, and spacing/phone layout corrections. Those changes are locally validated and await hosted publication/deployment.
+
 The fantasy client uses a dark-led Brock design with a complete light theme, locally bundled Inter and Barlow Condensed, a desktop sidebar, and persistent phone navigation. Shared themed style factories also update native screens when the theme changes. The association checkout is outside this change.
 
 The dashboard prioritizes leagues and their next action. Player browsing and the draft room share supplied season metrics. Desktop drafts use three columns at 1280px, two at 1024px, and a tabbed workspace below that. The clock stays visible on web; details open in a drawer or phone sheet. Loading skeletons, reserved portraits with initials, reduced motion, pending actions, and confirmed-pick feedback distinguish each state without changing gameplay rules.
@@ -7,7 +9,7 @@ The dashboard prioritizes leagues and their next action. Player browsing and the
 ## Player data
 
 - Projected fantasy points and games come from the existing approved `logic` roster imports. Zero, negative, and unavailable values retain their meanings.
-- `athlete_season_summaries.supplied_adp` defaults to SQL `NULL`. The draft and stats views show an em dash and "Not supplied yet". The calculated-ADP RPC remains available separately. Future supplied ADP changes invalidate affected pool snapshots through an invoker trigger in an unexposed schema.
+- `athlete_season_summaries.supplied_adp` stores the supplied starting ADP, with SQL `NULL` for missing values. The directory, draft and profile use the aggregate of that seed and persisted picks from completed, unvoided beta leagues. Changes to the seed and global aggregate invalidate draft player snapshots.
 - Current official roster research found 59 verified heights, 61 unavailable values, and no conflicts with supplied roster heights. The mapping retains official profile IDs, season, retrieval timestamps, URLs, source hashes, and canonical roster mappings. Earlier-season heights are excluded.
 - Height publication merges only the height metadata into existing athlete bio records. It preserves IDs, headshots, opt-outs, source mappings, and draft eligibility, updates relevant pool revisions, and records an idempotent audit event.
 

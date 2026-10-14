@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { buildManifest } from '../import-brock-beta-data.mjs';
+import { buildPublishedManifest as buildManifest } from './published-rosters.mjs';
 import { headshotPlan } from './headshot-materialization.mjs';
 test('headshots bind approved permanent athlete, program/season and official source identity', async () => {
   const manifest = await buildManifest(),

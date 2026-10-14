@@ -17,18 +17,12 @@ import {
 } from '@/components/ui';
 import { DraftPlayerPhoto } from '@/components/draft-player-panel';
 import { supabase } from '@/lib/supabase';
+import { loadPlayerAdps, type PlayerAdps } from '@/lib/player-adp';
+import { programNames as programs } from '@/lib/player-program';
 
 import { useRequireUser } from '@/hooks/use-route-access';
 import { useSession } from '@/providers/session-provider';
 
-const programs: Readonly<Record<string, string>> = {
-  mens_hockey: "Men's Hockey",
-  womens_hockey: "Women's Hockey",
-  mens_basketball: "Men's Basketball",
-  womens_basketball: "Women's Basketball",
-  mens_volleyball: "Men's Volleyball",
-  womens_volleyball: "Women's Volleyball",
-};
 interface PlayerRow {
   id: string;
   display_name: string;
@@ -57,25 +51,40 @@ export default function PlayerDirectoryScreen() {
   const [sort, setSort] = useState<'name' | 'projection'>('name');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adps, setAdps] = useState<PlayerAdps>({});
+  const [adpError, setAdpError] = useState<string | null>(null);
   const owner = useRef(user?.id);
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
     if (!access.allowed) {
       setPlayers([]);
+      setAdps({});
       return;
     }
     let cancelled = false;
-    if (owner.current !== user?.id) setPlayers([]);
+    if (owner.current !== user?.id) {
+      setPlayers([]);
+      setAdps({});
+    }
     owner.current = user?.id;
     setLoading(true);
     setError(null);
+    setAdpError(null);
+    void loadPlayerAdps().then(
+      (next) => {
+        if (!cancelled) setAdps(next);
+      },
+      () => {
+        if (!cancelled) setAdpError('Average draft positions are temporarily unavailable.');
+      },
+    );
     const load = async () => {
       if (!supabase) throw new Error('Player data is not configured.');
       const result = await supabase
         .from('athletes')
         .select(
-          'id, display_name, position, jersey_number, bio, membership:athlete_seasons!inner(directory_visible), summaries:athlete_season_summaries(season_label, kind, fantasy_points, games_played, supplied_adp)',
+          'id, display_name, position, jersey_number, bio, membership:athlete_seasons!inner(directory_visible), summaries:athlete_season_summaries(*)',
         )
         .eq('status', 'active')
         .eq('membership.directory_visible', true)
@@ -173,6 +182,11 @@ export default function PlayerDirectoryScreen() {
           onRetry={() => setReload((value) => value + 1)}
         />
       ) : null}
+      {adpError && players.length > 0 ? (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {adpError}
+        </Text>
+      ) : null}
       {!access.allowed || (loading && players.length === 0) ? (
         <LoadingState label="Loading the current Brock rosters" rows={5} />
       ) : error && players.length === 0 ? (
@@ -211,7 +225,8 @@ export default function PlayerDirectoryScreen() {
                     {player.jersey_number !== null ? ` · #${player.jersey_number}` : ''}
                   </Text>
                   <Text style={styles.meta}>
-                    Height {metrics.heightLabel} · ADP {metrics.suppliedAdp?.toFixed(1) ?? '—'}
+                    Height {metrics.heightLabel} · ADP{' '}
+                    {adps[player.id]?.average?.toFixed(1) ?? metrics.suppliedAdp?.toFixed(1) ?? '—'}
                   </Text>
                 </View>
                 <View style={styles.projection}>

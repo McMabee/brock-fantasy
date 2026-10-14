@@ -92,6 +92,24 @@ export function useDraft(draftId: string | undefined): DraftViewState {
         }
         const d = snapshot.draft;
         if (!d || !snapshot.league) throw new Error('Invalid draft response');
+        if (snapshot.closed) {
+          setState({
+            ...initial,
+            loading: false,
+            connected: true,
+            draft: {
+              id: d.id,
+              leagueId: d.league_id,
+              status: d.status,
+              rounds: d.rounds,
+              currentOverallPick: d.current_overall_pick,
+              stateVersion: d.state_version,
+              teamIdsInDraftOrder: d.team_order,
+              picks: [],
+            },
+          });
+          return true;
+        }
         failures.current = 0;
         revision.current = snapshot.revision;
         poolRevision.current = snapshot.poolRevision;
@@ -121,6 +139,7 @@ export function useDraft(draftId: string | undefined): DraftViewState {
                 rank: a.rank,
                 bio: a.bio,
                 summaries: a.summaries,
+                ...(a.adp ? { adp: a.adp } : {}),
               }))
             : s.athletes;
           return {

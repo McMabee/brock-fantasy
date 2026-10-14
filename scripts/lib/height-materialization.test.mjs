@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { buildManifest } from '../import-brock-beta-data.mjs';
+import { buildPublishedManifest as buildManifest } from './published-rosters.mjs';
 import { heightPlan, heightSql, officialHeights } from './height-materialization.mjs';
 
 const manifest = await buildManifest();

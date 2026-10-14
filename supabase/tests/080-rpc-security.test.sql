@@ -4,7 +4,7 @@ select no_plan();
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'rpc_private' and p.proname not in ('can_use_app','require_app_access','is_admin_account_email','issue_account_signup_handoff')
-), 45, 'existing commands plus eligibility, draft snapshot, schedule and service workers have private implementations');
+), 48, 'existing commands plus eligibility, draft snapshot, schedule, settings, results, ADP and service workers have private implementations');
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.prosecdef
@@ -115,6 +115,11 @@ values ('99000000-0000-4000-8000-000000000010', '99000000-0000-4000-8000-0000000
 insert into public.fantasy_teams (id, league_id, owner_id, name)
 values ('99000000-0000-4000-8000-000000000011', '99000000-0000-4000-8000-000000000006', '99000000-0000-4000-8000-000000000001', 'RPC first team'),
        ('99000000-0000-4000-8000-000000000012', '99000000-0000-4000-8000-000000000008', '99000000-0000-4000-8000-000000000002', 'RPC other team');
+insert into public.pool_competitions(pool_id,competition_id) values
+  ('99000000-0000-4000-8000-000000000007','99000000-0000-4000-8000-000000000005');
+insert into public.athlete_seasons(athlete_id,season_id,competition_id,team_id,positions,directory_visible) values
+  ('99000000-0000-4000-8000-000000000010','b0000000-0000-4000-8000-000000000002',
+   '99000000-0000-4000-8000-000000000005','99000000-0000-4000-8000-000000000009',array['F'],true);
 insert into public.drafts (id, league_id, status, rounds, pick_seconds, league_size, is_test)
 values ('99000000-0000-4000-8000-000000000013', '99000000-0000-4000-8000-000000000006', 'complete', 1, 90, 4, false),
        ('99000000-0000-4000-8000-000000000014', '99000000-0000-4000-8000-000000000008', 'complete', 1, 90, 6, false);
@@ -158,9 +163,9 @@ select is(public.current_user_is_admin(), false, 'editable metadata cannot bypas
 select is((select count(*)::integer from public.leagues where id = '99000000-0000-4000-8000-000000000006'),
   0, 'non-members still cannot read the private league');
 select is(public.get_athlete_adp('99000000-0000-4000-8000-000000000010', '99000000-0000-4000-8000-000000000007'),
-  '{"average":2,"samples":2,"autopicks":1}'::jsonb, 'ADP default argument retains global cross-league aggregate');
+  '{"average":2,"base":null,"samples":2,"autopicks":1}'::jsonb, 'ADP default argument retains global cross-league aggregate');
 select is(public.get_athlete_adp('99000000-0000-4000-8000-000000000010', '99000000-0000-4000-8000-000000000007', 4),
-  '{"average":1,"samples":1,"autopicks":0}'::jsonb, 'ADP explicit league size filter is preserved');
+  '{"average":1,"base":null,"samples":1,"autopicks":0}'::jsonb, 'ADP explicit league size filter is preserved');
 select throws_ok($$select public.get_league_standings('99000000-0000-4000-8000-000000000006')$$,
   'League membership required', 'standings wrapper retains cross-league denial');
 select throws_ok($$select public.admin_adjust_score(null, null, null, 1, 'Test denial reason', 'rpc-admin-denied')$$,

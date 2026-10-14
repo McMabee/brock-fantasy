@@ -86,6 +86,26 @@ async function migrate(db, paths) {
 try {
   const db = await scaffold('suite');
   await migrate(db, migrations);
+  if (process.env.BROCK_TEST_ADVISORS === '1') {
+    const result = await exec(
+      process.execPath,
+      [
+        'node_modules/supabase/dist/supabase.js',
+        'db',
+        'advisors',
+        '--db-url',
+        `postgresql://postgres:postgres@127.0.0.1:54322/${db}`,
+        '--type',
+        'security',
+        '--level',
+        'error',
+        '--fail-on',
+        'error',
+      ],
+      { encoding: 'utf8' },
+    );
+    console.log(result.stdout.trim());
+  }
   let assertions = 0;
   for (const file of (await readdir('supabase/tests'))
     .filter((p) => p.endsWith('.test.sql'))

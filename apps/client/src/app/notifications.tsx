@@ -104,7 +104,7 @@ export default function NotificationsScreen() {
 }
 const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
   StyleSheet.create({
-    filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
     filter: {
       minHeight: 44,
       padding: 12,
