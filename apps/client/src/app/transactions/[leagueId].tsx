@@ -1,3 +1,4 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -7,17 +8,20 @@ import {
   AppShell,
   Card,
   EmptyState,
+  LoadingState,
   Pill,
   SectionTitle,
-  uiStyles,
+  useUiStyles,
 } from '@/components/ui';
 import { useLeague } from '@/hooks/use-league';
 import { useTransactions } from '@/hooks/use-transactions';
 import { betaCommand } from '@/lib/web-api';
-import { colors } from '@/theme';
+
 import { useRequireUser } from '@/hooks/use-route-access';
 
 export default function TransactionsScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   useRequireUser();
   const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
   const leagueData = useLeague(leagueId);
@@ -118,6 +122,12 @@ export default function TransactionsScreen() {
   const teamName = (teamId: string) =>
     leagueData.teams.find((team) => team.id === teamId)?.name ?? 'Unknown team';
 
+  if ((leagueData.loading || transactions.loading) && transactions.freeAgents.length === 0)
+    return (
+      <AppShell eyebrow="League management" title="Transactions">
+        <LoadingState label="Loading league transactions" rows={4} />
+      </AppShell>
+    );
   return (
     <AppShell eyebrow="Roster moves" title="Transactions">
       {transactions.error || message ? (
@@ -318,6 +328,7 @@ function Choice({
   selected: boolean;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       accessibilityRole="radio"
@@ -330,43 +341,45 @@ function Choice({
   );
 }
 
-const styles = StyleSheet.create({
-  message: { color: colors.brand, fontSize: 12, marginBottom: 10 },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  choice: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    backgroundColor: colors.canvasSoft,
-  },
-  choiceSelected: { borderColor: colors.red, backgroundColor: colors.white },
-  choiceText: { color: colors.muted, fontSize: 10, fontWeight: '700' },
-  choiceTextSelected: { color: colors.brand },
-  assetRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 9,
-    paddingVertical: 11,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  assetCopy: { flex: 1, minWidth: 190 },
-  assetName: { color: colors.text, fontSize: 12, fontWeight: '800' },
-  assetMeta: { color: colors.muted, fontSize: 9, marginTop: 4 },
-  tradeBuilder: { gap: 12 },
-  tradeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  tradeHeading: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 9 },
-  rowActions: { flexDirection: 'row', gap: 7 },
-  footerActions: { marginTop: 14, alignItems: 'flex-end' },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    message: { fontFamily: 'Inter', color: colors.text, fontSize: 12, marginBottom: 10 },
+    choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+    choice: {
+      minHeight: 44,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 11,
+      paddingVertical: 8,
+      backgroundColor: colors.canvasSoft,
+    },
+    choiceSelected: { borderColor: colors.red, backgroundColor: colors.canvasSoft },
+    choiceText: { fontFamily: 'Inter', color: colors.muted, fontSize: 10, fontWeight: '700' },
+    choiceTextSelected: { color: colors.text },
+    assetRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 9,
+      paddingVertical: 11,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    assetCopy: { flex: 1, minWidth: 190 },
+    assetName: { fontFamily: 'Inter', color: colors.text, fontSize: 12, fontWeight: '800' },
+    assetMeta: { fontFamily: 'Inter', color: colors.muted, fontSize: 9, marginTop: 4 },
+    tradeBuilder: { gap: 12 },
+    tradeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 12,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    tradeHeading: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 9 },
+    rowActions: { flexDirection: 'row', gap: 7 },
+    footerActions: { marginTop: 14, alignItems: 'flex-end' },
+  });

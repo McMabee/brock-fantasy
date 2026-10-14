@@ -1,22 +1,16 @@
+import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import {
   BETA_SEASON,
   buildSnakeOrder,
   formatDraftClock,
   previewDraftQueue,
+  playerMetrics,
 } from '@brock-fantasy/domain';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Animated,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActionButton, AppShell, Card, LoadingState, Pill, useUiStyles } from '@/components/ui';
 import { DraftChat } from '@/components/draft-chat';
 import { DraftPlayerPanel, DraftPlayerPhoto } from '@/components/draft-player-panel';
 import { useDraft } from '@/hooks/use-draft';
@@ -25,15 +19,19 @@ import { useTurnAlert } from '@/hooks/use-turn-alert';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { betaCommand } from '@/lib/web-api';
 import type { DraftPlayer } from '@/lib/draft-state';
-import { colors, heading } from '@/theme';
+import { heading } from '@/theme';
 
-type Tab = 'available' | 'roster' | 'queue' | 'chat';
+type Tab = 'available' | 'roster' | 'queue' | 'chat' | 'history';
 export default function DraftRoomScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   useRequireUser();
   const { id } = useLocalSearchParams<{ id: string }>();
   const data = useDraft(id);
   const { width, height } = useWindowDimensions();
-  const wide = width >= 1000;
+  const wide = width >= 1024;
+  const threeColumns = width >= 1280;
   const [tab, setTab] = useState<Tab>('available');
   const [query, setQuery] = useState('');
   const [program, setProgram] = useState('');
@@ -42,6 +40,7 @@ export default function DraftRoomScreen() {
   const [selected, setSelected] = useState<DraftPlayer | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<string | null>(null);
   const pickIntent = useRef<{ athleteId: string; version: number; key: string } | null>(null);
   const pulse = useRef(new Animated.Value(1)).current;
   const athleteById = useMemo(() => new Map(data.athletes.map((a) => [a.id, a])), [data.athletes]);
@@ -126,9 +125,10 @@ export default function DraftRoomScreen() {
     }
     const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 0.6, duration: 700, useNativeDriver: false }),
-        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: false }),
+        Animated.timing(pulse, { toValue: 0.65, duration: 200, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 200, useNativeDriver: true }),
       ]),
+      { iterations: 2 },
     );
     animation.start();
     return () => {
@@ -141,6 +141,7 @@ export default function DraftRoomScreen() {
     if (!mayPick || !id || !data.legalAthleteIds.has(athleteId)) return;
     setSubmitting(true);
     setError(null);
+    setConfirmation(null);
     const version = data.draft?.stateVersion ?? 0;
     if (pickIntent.current?.athleteId !== athleteId || pickIntent.current.version !== version)
       pickIntent.current = { athleteId, version, key: crypto.randomUUID() };
@@ -152,7 +153,12 @@ export default function DraftRoomScreen() {
       p_expected_version: version,
     }).catch(() => ({ data: null, error: 'Pick confirmation interrupted. Reconnecting…' }));
     if (result.error) setError(result.error);
-    else pickIntent.current = null;
+    else {
+      setConfirmation(
+        `${athleteById.get(athleteId)?.displayName ?? 'Player'} drafted. Your pick is confirmed.`,
+      );
+      pickIntent.current = null;
+    }
     await data.reload();
     setSubmitting(false);
   };
@@ -190,9 +196,7 @@ export default function DraftRoomScreen() {
         contentContainerStyle={{ gap: 8 }}
       >
         {filtered.map((a) => {
-          const projected = a.summaries.find(
-            (s) => s.kind === 'supplied_projection' && s.season_label === BETA_SEASON,
-          );
+          const metrics = playerMetrics(a.bio, a.summaries, BETA_SEASON);
           return (
             <View key={a.id} style={styles.playerRow}>
               <DraftPlayerPhoto player={a} />
@@ -206,12 +210,15 @@ export default function DraftRoomScreen() {
                 </Pressable>
                 <Text style={styles.meta}>
                   {a.program.replace(/^Brock\s+/u, '')} · {a.positions.join('/')} · #
-                  {a.jerseyNumber ?? '—'}
+                  {a.jerseyNumber ?? '—'} · {metrics.heightLabel}
                 </Text>
                 <Text style={styles.stats}>
-                  Rank {a.rank} · Proj FP {projected?.fantasy_points ?? '—'} · Proj GP{' '}
-                  {projected?.games_played ?? '—'}
+                  Rank {a.rank} · Projected FP {metrics.projectedPoints ?? '—'} · ADP{' '}
+                  {metrics.suppliedAdp?.toFixed(1) ?? '—'}
                 </Text>
+                {metrics.suppliedAdp === null ? (
+                  <Text style={styles.meta}>ADP · Not supplied yet</Text>
+                ) : null}
               </View>
               <View style={styles.actions}>
                 <SmallButton
@@ -220,7 +227,14 @@ export default function DraftRoomScreen() {
                   onPress={() => queue.toggle(a.id)}
                 />
                 <SmallButton
-                  label={submitting ? 'Confirming…' : myTurn ? 'Draft' : 'Wait'}
+                  label={
+                    submitting && pickIntent.current?.athleteId === a.id
+                      ? 'Confirming…'
+                      : myTurn
+                        ? 'Draft'
+                        : 'Wait'
+                  }
+                  primary={mayPick}
                   disabled={!mayPick}
                   onPress={() => void commit(a.id)}
                 />
@@ -361,15 +375,21 @@ export default function DraftRoomScreen() {
       <DraftChat leagueId={data.draft?.leagueId} />
     </Card>
   );
+  if (data.loading && !data.draft)
+    return (
+      <AppShell workspace title="Draft room" eyebrow="Your live draft">
+        <LoadingState label="Connecting to your draft" rows={5} />
+      </AppShell>
+    );
   return (
-    <AppShell>
-      <View style={styles.header}>
-        <View style={{ gap: 8 }}>
+    <AppShell workspace>
+      <View dataSet={{ bfDraftHeader: 'true' }} style={styles.header}>
+        <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
           <Pill
             label={
               data.draft?.status === 'complete'
                 ? 'DRAFT COMPLETE'
-                : 'SNAKE DRAFT · ROUND ' +
+                : (wide ? 'SNAKE DRAFT · ROUND ' : 'ROUND ') +
                   (Math.floor(
                     Math.min(pickIndex, Math.max(0, order.length - 1)) / (data.teams.length || 1),
                   ) +
@@ -377,14 +397,20 @@ export default function DraftRoomScreen() {
             }
             tone="info"
           />
-          <Text accessibilityRole="header" style={styles.title}>
+          <Text accessibilityRole="header" style={[styles.title, !wide && { fontSize: 24 }]}>
             {data.leagueName ? data.leagueName + ' Draft' : 'Loading draft…'}
           </Text>
           <Text style={styles.meta}>
             Pick {Math.min(pickIndex + 1, order.length)} of {order.length}
           </Text>
+          <Pill
+            label={
+              data.connected ? 'CONNECTED' : wide ? 'RECONNECTING · PICKS DISABLED' : 'RECONNECTING'
+            }
+            tone={data.connected ? 'info' : 'warning'}
+          />
         </View>
-        <View style={styles.clock}>
+        <View style={[styles.clock, !wide && { minWidth: 110, maxWidth: 120, padding: 10 }]}>
           <Text style={styles.meta}>ON THE CLOCK</Text>
           <DraftClock
             status={data.draft?.status}
@@ -417,6 +443,11 @@ export default function DraftRoomScreen() {
           {error}
         </Text>
       ) : null}
+      {confirmation ? (
+        <Text accessibilityLiveRegion="polite" style={uiStyles.body}>
+          {confirmation}
+        </Text>
+      ) : null}
       {myTurn ? (
         <Animated.View
           style={[styles.turnBanner, { opacity: pulse }]}
@@ -429,12 +460,20 @@ export default function DraftRoomScreen() {
       ) : null}
       <View style={styles.toolbar}>
         <ActionButton
-          label={turn.enabled ? 'Mute turn sound' : 'Enable turn sound'}
+          label={
+            turn.enabled
+              ? wide
+                ? 'Mute turn sound'
+                : 'Mute sound'
+              : wide
+                ? 'Enable turn sound'
+                : 'Enable sound'
+          }
           onPress={turn.toggle}
           variant="secondary"
         />
         <ActionButton
-          label="Return to league"
+          label={wide ? 'Return to league' : 'League'}
           href={data.draft?.leagueId ? '/league/' + data.draft.leagueId : '/dashboard'}
           variant="secondary"
         />
@@ -450,8 +489,8 @@ export default function DraftRoomScreen() {
         ))}
       </ScrollView>
       {!wide ? (
-        <View style={styles.filters}>
-          {(['available', 'roster', 'queue', 'chat'] as Tab[]).map((item) => (
+        <ScrollView horizontal contentContainerStyle={styles.filters}>
+          {(['available', 'roster', 'queue', 'chat', 'history'] as Tab[]).map((item) => (
             <Filter
               key={item}
               label={
@@ -459,26 +498,34 @@ export default function DraftRoomScreen() {
                   ? 'Your roster'
                   : item === 'queue'
                     ? 'Your queue'
-                    : item === 'chat'
-                      ? 'Chat'
-                      : 'Players'
+                    : item === 'history'
+                      ? 'Picks'
+                      : item === 'chat'
+                        ? 'Chat'
+                        : 'Players'
               }
               active={tab === item}
               onPress={() => setTab(item)}
             />
           ))}
-        </View>
+        </ScrollView>
       ) : null}
       {wide ? (
         <View style={styles.layout}>
-          <View style={{ flex: 1.8, minWidth: 0, gap: 16 }}>
+          {threeColumns ? (
+            <View style={{ width: 200, gap: 16 }}>
+              {recent}
+              {chat}
+            </View>
+          ) : null}
+          <View style={{ flex: 1, minWidth: 0, gap: 16 }}>
             {players}
-            {recent}
+            {!threeColumns ? recent : null}
           </View>
-          <View style={{ flex: 1, minWidth: 280, gap: 16 }}>
+          <View style={{ width: threeColumns ? 240 : 260, gap: 16 }}>
             {roster}
             {queuePanel}
-            {chat}
+            {!threeColumns ? chat : null}
           </View>
         </View>
       ) : (
@@ -490,6 +537,8 @@ export default function DraftRoomScreen() {
             </>
           ) : tab === 'roster' ? (
             roster
+          ) : tab === 'history' ? (
+            recent
           ) : tab === 'queue' ? (
             queuePanel
           ) : (
@@ -515,6 +564,7 @@ function DraftClock({
   deadline: string | undefined;
   offset: number;
 }) {
+  const styles = useThemedStyles(createStyles);
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
     const update = () =>
@@ -548,6 +598,7 @@ function Filter({
   active: boolean;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       accessibilityRole="button"
@@ -563,99 +614,124 @@ function SmallButton({
   label,
   disabled,
   onPress,
+  primary = false,
 }: {
   label: string;
   disabled: boolean;
   onPress: () => void;
+  primary?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={[styles.smallButton, disabled ? { opacity: 0.45 } : null]}
+      style={[
+        styles.smallButton,
+        primary && styles.draftButton,
+        disabled ? { opacity: 0.45 } : null,
+      ]}
     >
-      <Text style={styles.buttonText}>{label}</Text>
+      <Text style={[styles.buttonText, primary && styles.draftButtonText]}>{label}</Text>
     </Pressable>
   );
 }
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  title: { ...heading, fontSize: 30 },
-  meta: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  clock: {
-    backgroundColor: colors.panel,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 18,
-    alignItems: 'center',
-    minWidth: 200,
-  },
-  clockValue: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: '900',
-    fontVariant: ['tabular-nums'],
-  },
-  clockTeam: { color: colors.text, fontSize: 15, fontWeight: '800', marginTop: 6 },
-  notice: { gap: 10, borderWidth: 1, borderColor: colors.danger, padding: 14, borderRadius: 12 },
-  error: { color: colors.danger, fontSize: 14 },
-  toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  turnBanner: {
-    backgroundColor: colors.navy,
-    borderColor: colors.gray,
-    borderWidth: 2,
-    padding: 16,
-    borderRadius: 12,
-  },
-  turnText: { color: colors.white, fontWeight: '900', fontSize: 22 },
-  filters: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', paddingVertical: 4 },
-  filter: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  filterActive: { borderColor: colors.link, borderWidth: 2 },
-  filterText: { color: colors.text, fontSize: 12, fontWeight: '700' },
-  layout: { flexDirection: 'row', gap: 16, alignItems: 'flex-start' },
-  players: { gap: 12 },
-  panel: { gap: 10 },
-  panelTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
-  playerRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-  },
-  identity: { flex: 1, minWidth: 180, gap: 3 },
-  playerName: { color: colors.text, fontWeight: '800', fontSize: 14 },
-  stats: { color: colors.text, fontSize: 12, lineHeight: 18 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  smallButton: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    padding: 9,
-    borderRadius: 8,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
-  buttonText: { color: colors.text, fontSize: 11, fontWeight: '800' },
-  rosterSlot: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 10, gap: 5 },
-  slotLabel: { color: colors.muted, fontSize: 11, fontWeight: '800' },
-  preview: { borderStyle: 'dashed', opacity: 0.7 },
-  historyRow: { gap: 4, borderBottomWidth: 1, borderColor: colors.border, paddingBottom: 10 },
-  orderItem: { padding: 10, borderColor: colors.border, borderWidth: 1, borderRadius: 8 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    header: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 16,
+    },
+    title: { ...heading, fontSize: 30, color: colors.text },
+    meta: { fontFamily: 'Inter', color: colors.muted, fontSize: 12, lineHeight: 18 },
+    clock: {
+      backgroundColor: colors.panel,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 14,
+      padding: 18,
+      alignItems: 'center',
+      minWidth: 150,
+    },
+    clockValue: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      fontSize: 30,
+      fontWeight: '900',
+      fontVariant: ['tabular-nums'],
+    },
+    clockTeam: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '800',
+      marginTop: 6,
+    },
+    notice: { gap: 10, borderWidth: 1, borderColor: colors.danger, padding: 14, borderRadius: 12 },
+    error: { fontFamily: 'Inter', color: colors.danger, fontSize: 14 },
+    toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    turnBanner: {
+      backgroundColor: colors.navy,
+      borderColor: colors.gray,
+      borderWidth: 2,
+      padding: 16,
+      borderRadius: 12,
+    },
+    turnText: { fontFamily: 'Inter', color: colors.white, fontWeight: '900', fontSize: 22 },
+    filters: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', paddingVertical: 4 },
+    filter: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 18,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      minHeight: 44,
+      justifyContent: 'center',
+    },
+    filterActive: { borderColor: colors.link, borderWidth: 2 },
+    filterText: { fontFamily: 'Inter', color: colors.text, fontSize: 12, fontWeight: '700' },
+    layout: { flexDirection: 'row', gap: 16, alignItems: 'flex-start' },
+    players: { gap: 12 },
+    panel: { gap: 10 },
+    panelTitle: { fontFamily: 'Inter', color: colors.text, fontSize: 18, fontWeight: '800' },
+    playerRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderColor: colors.border,
+    },
+    identity: { flex: 1, minWidth: 140, gap: 3 },
+    playerName: { fontFamily: 'Inter', color: colors.text, fontWeight: '800', fontSize: 14 },
+    stats: { fontFamily: 'Inter', color: colors.text, fontSize: 12, lineHeight: 18 },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    smallButton: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      padding: 9,
+      borderRadius: 8,
+      minHeight: 44,
+      justifyContent: 'center',
+    },
+    buttonText: { fontFamily: 'Inter', color: colors.text, fontSize: 11, fontWeight: '800' },
+    draftButton: { backgroundColor: colors.red, borderColor: colors.red, paddingHorizontal: 12 },
+    draftButtonText: { color: colors.white, fontSize: 19, fontWeight: '700' },
+    rosterSlot: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 10,
+      padding: 10,
+      gap: 5,
+    },
+    slotLabel: { fontFamily: 'Inter', color: colors.muted, fontSize: 11, fontWeight: '800' },
+    preview: { borderStyle: 'dashed', opacity: 0.7 },
+    historyRow: { gap: 4, borderBottomWidth: 1, borderColor: colors.border, paddingBottom: 10 },
+    orderItem: { padding: 10, borderColor: colors.border, borderWidth: 1, borderRadius: 8 },
+  });

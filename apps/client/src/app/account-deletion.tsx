@@ -1,9 +1,12 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, SectionTitle, useUiStyles } from '@/components/ui';
 import { supportEmail } from '@/lib/supabase';
 
 export default function AccountDeletionScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   return (
     <AppShell eyebrow="Account lifecycle" title="Delete a Brock Fantasy account">
       <Card style={{ maxWidth: 720 }}>
@@ -48,6 +51,7 @@ export default function AccountDeletionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  actions: { marginTop: 20, gap: 12 },
-});
+const createStyles = (_colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    actions: { marginTop: 20, gap: 12 },
+  });

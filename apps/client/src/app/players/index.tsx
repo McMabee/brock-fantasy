@@ -1,19 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { BETA_SEASON } from '@brock-fantasy/domain';
+import { BETA_SEASON, playerMetrics } from '@brock-fantasy/domain';
 import {
   ActionButton,
   AppShell,
   Card,
   EmptyState,
+  ErrorState,
+  LoadingState,
   Pill,
   SectionTitle,
-  uiStyles,
+  useUiStyles,
 } from '@/components/ui';
+import { DraftPlayerPhoto } from '@/components/draft-player-panel';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/theme';
+
 import { useRequireUser } from '@/hooks/use-route-access';
 import { useSession } from '@/providers/session-provider';
 
@@ -30,16 +34,20 @@ interface PlayerRow {
   display_name: string;
   position: string;
   jersey_number: string | null;
-  bio: { program?: string; sourcePosition?: string };
+  bio: Record<string, unknown> & { program?: string; sourcePosition?: string };
   summaries: readonly {
     season_label: string;
     kind: string;
     fantasy_points: number | null;
     games_played: number | null;
+    supplied_adp?: number | null;
   }[];
 }
 
 export default function PlayerDirectoryScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   const access = useRequireUser();
   const { user } = useSession();
   const router = useRouter();
@@ -49,6 +57,7 @@ export default function PlayerDirectoryScreen() {
   const [sort, setSort] = useState<'name' | 'projection'>('name');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const owner = useRef(user?.id);
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
@@ -57,7 +66,8 @@ export default function PlayerDirectoryScreen() {
       return;
     }
     let cancelled = false;
-    setPlayers([]);
+    if (owner.current !== user?.id) setPlayers([]);
+    owner.current = user?.id;
     setLoading(true);
     setError(null);
     const load = async () => {
@@ -65,7 +75,7 @@ export default function PlayerDirectoryScreen() {
       const result = await supabase
         .from('athletes')
         .select(
-          'id, display_name, position, jersey_number, bio, membership:athlete_seasons!inner(directory_visible), summaries:athlete_season_summaries(season_label, kind, fantasy_points, games_played)',
+          'id, display_name, position, jersey_number, bio, membership:athlete_seasons!inner(directory_visible), summaries:athlete_season_summaries(season_label, kind, fantasy_points, games_played, supplied_adp)',
         )
         .eq('status', 'active')
         .eq('membership.directory_visible', true)
@@ -99,10 +109,7 @@ export default function PlayerDirectoryScreen() {
     return filtered.sort((a, b) => {
       if (sort === 'projection') {
         const points = (player: PlayerRow) =>
-          player.summaries.find(
-            (summary) =>
-              summary.kind === 'supplied_projection' && summary.season_label === BETA_SEASON,
-          )?.fantasy_points ?? -Infinity;
+          playerMetrics(player.bio, player.summaries, BETA_SEASON).projectedPoints ?? -Infinity;
         if (points(a) !== points(b)) return points(a) > points(b) ? -1 : 1;
       }
       return a.display_name.localeCompare(b.display_name, 'en-CA');
@@ -127,7 +134,11 @@ export default function PlayerDirectoryScreen() {
         style={[uiStyles.input, styles.search]}
         value={query}
       />
-      <View style={styles.filters}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filters}
+      >
         {Object.entries({ all: 'All programs', ...programs }).map(([value, label]) => (
           <Pressable
             key={value}
@@ -141,7 +152,7 @@ export default function PlayerDirectoryScreen() {
             </Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
       <View style={styles.toolbar}>
         <Text style={uiStyles.body}>{visible.length} shown</Text>
         <ActionButton
@@ -156,9 +167,15 @@ export default function PlayerDirectoryScreen() {
           variant="ghost"
         />
       </View>
-      {!access.allowed || loading ? (
-        <EmptyState title="Loading players" body="Loading the current Brock rosters…" />
-      ) : error ? (
+      {error && players.length > 0 ? (
+        <ErrorState
+          message={`${error} Showing your last loaded roster.`}
+          onRetry={() => setReload((value) => value + 1)}
+        />
+      ) : null}
+      {!access.allowed || (loading && players.length === 0) ? (
+        <LoadingState label="Loading the current Brock rosters" rows={5} />
+      ) : error && players.length === 0 ? (
         <Text accessibilityRole="alert" style={styles.error}>
           {error}
         </Text>
@@ -174,10 +191,7 @@ export default function PlayerDirectoryScreen() {
       ) : (
         <Card style={styles.list}>
           {visible.map((player) => {
-            const projection = player.summaries.find(
-              (summary) =>
-                summary.kind === 'supplied_projection' && summary.season_label === BETA_SEASON,
-            );
+            const metrics = playerMetrics(player.bio, player.summaries, BETA_SEASON);
             return (
               <Pressable
                 accessibilityRole="link"
@@ -185,6 +199,10 @@ export default function PlayerDirectoryScreen() {
                 onPress={() => router.push(`/players/${player.id}`)}
                 style={styles.row}
               >
+                <DraftPlayerPhoto
+                  player={{ displayName: player.display_name, bio: player.bio }}
+                  size={44}
+                />
                 <View style={styles.copy}>
                   <Text style={styles.name}>{player.display_name}</Text>
                   <Text style={styles.meta}>
@@ -192,12 +210,14 @@ export default function PlayerDirectoryScreen() {
                     {player.bio.sourcePosition ?? player.position}
                     {player.jersey_number !== null ? ` · #${player.jersey_number}` : ''}
                   </Text>
+                  <Text style={styles.meta}>
+                    Height {metrics.heightLabel} · ADP {metrics.suppliedAdp?.toFixed(1) ?? '—'}
+                  </Text>
                 </View>
                 <View style={styles.projection}>
-                  <Text style={styles.points}>{projection?.fantasy_points ?? '—'}</Text>
+                  <Text style={styles.points}>{metrics.projectedPoints ?? '—'}</Text>
                   <Text style={styles.meta}>Projected FP</Text>
                 </View>
-                <Text style={styles.view}>VIEW</Text>
               </Pressable>
             );
           })}
@@ -207,40 +227,43 @@ export default function PlayerDirectoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  search: { marginBottom: 14 },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  filter: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  selected: { backgroundColor: colors.navy, borderColor: colors.navy },
-  filterText: { color: colors.text, fontSize: 11, fontWeight: '700' },
-  selectedText: { color: colors.white },
-  toolbar: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  error: { color: colors.brand, marginBottom: 10, fontSize: 12 },
-  list: { paddingVertical: 4 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    paddingVertical: 14,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  copy: { flex: 1 },
-  name: { color: colors.text, fontWeight: '800', fontSize: 14 },
-  meta: { color: colors.muted, fontSize: 10, marginTop: 4 },
-  projection: { alignItems: 'flex-end' },
-  points: { color: colors.text, fontWeight: '800', fontSize: 16 },
-  view: { color: colors.red, fontSize: 10, fontWeight: '900' },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    search: { marginBottom: 14 },
+    filters: { flexDirection: 'row', gap: 8, paddingBottom: 12 },
+    filter: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 18,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      minHeight: 44,
+      justifyContent: 'center',
+    },
+    selected: { backgroundColor: colors.navy, borderColor: colors.navy },
+    filterText: { fontFamily: 'Inter', color: colors.text, fontSize: 11, fontWeight: '700' },
+    selectedText: { color: colors.white },
+    toolbar: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 16,
+    },
+    error: { fontFamily: 'Inter', color: colors.text, marginBottom: 10, fontSize: 12 },
+    list: { paddingVertical: 4 },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 11,
+      paddingVertical: 14,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    copy: { flex: 1, minWidth: 100 },
+    name: { fontFamily: 'Inter', color: colors.text, fontWeight: '800', fontSize: 14 },
+    meta: { fontFamily: 'Inter', color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 4 },
+    projection: { alignItems: 'flex-end' },
+    points: { fontFamily: 'Inter', color: colors.text, fontWeight: '800', fontSize: 16 },
+    view: { fontFamily: 'Inter', color: colors.text, fontSize: 10, fontWeight: '900' },
+  });

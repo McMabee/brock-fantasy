@@ -1,3 +1,4 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -6,15 +7,16 @@ import {
   ActionButton,
   AppShell,
   Card,
-  EmptyState,
+  ErrorState,
+  LoadingState,
   Pill,
   SectionTitle,
-  uiStyles,
+  useUiStyles,
 } from '@/components/ui';
 import { useLeague } from '@/hooks/use-league';
 import { supabase } from '@/lib/supabase';
 import { betaCommand } from '@/lib/web-api';
-import { colors } from '@/theme';
+
 import { useRequireUser } from '@/hooks/use-route-access';
 
 interface SlotRule {
@@ -41,6 +43,8 @@ interface BetaLineup {
 }
 
 export default function BetaLineupScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   useRequireUser();
   const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
   const leagueData = useLeague(leagueId);
@@ -159,10 +163,11 @@ export default function BetaLineupScreen() {
         </Text>
       ) : null}
       {!lineup ? (
-        <EmptyState
-          title="Loading lineup"
-          body="Authorizing and loading the current fantasy period."
-        />
+        message ? (
+          <ErrorState message={message} onRetry={() => void load()} />
+        ) : (
+          <LoadingState label="Loading your lineup" rows={5} />
+        )
       ) : (
         <>
           <SectionTitle
@@ -235,35 +240,38 @@ export default function BetaLineupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  message: { color: colors.brand, fontSize: 12, marginTop: 12 },
-  entries: { gap: 10 },
-  entry: { gap: 10 },
-  locked: { borderColor: colors.red },
-  entryHeading: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    alignItems: 'flex-start',
-  },
-  name: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  meta: { color: colors.muted, fontSize: 10, marginTop: 4 },
-  slotChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  choice: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  choiceSelected: { borderColor: colors.red, backgroundColor: colors.white },
-  choiceDisabled: { opacity: 0.5 },
-  choiceText: { color: colors.text, fontSize: 10, fontWeight: '700' },
-  actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-    gap: 9,
-    marginTop: 16,
-  },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    message: { fontFamily: 'Inter', color: colors.text, fontSize: 12, marginTop: 12 },
+    entries: { gap: 10 },
+    entry: { gap: 10 },
+    locked: { borderColor: colors.red },
+    entryHeading: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 10,
+      alignItems: 'flex-start',
+    },
+    name: { fontFamily: 'Inter', color: colors.text, fontSize: 15, fontWeight: '800' },
+    meta: { fontFamily: 'Inter', color: colors.muted, fontSize: 10, marginTop: 4 },
+    slotChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+    choice: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      minHeight: 44,
+      justifyContent: 'center',
+    },
+    choiceSelected: { borderColor: colors.red, backgroundColor: colors.canvasSoft },
+    choiceDisabled: { opacity: 0.5 },
+    choiceText: { fontFamily: 'Inter', color: colors.text, fontSize: 10, fontWeight: '700' },
+    actions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'flex-end',
+      gap: 9,
+      marginTop: 16,
+    },
+  });

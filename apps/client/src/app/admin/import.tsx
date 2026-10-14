@@ -1,14 +1,18 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, SectionTitle, useUiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { webRequest } from '@/lib/web-request';
-import { colors } from '@/theme';
+
 import { useRequireAdmin } from '@/hooks/use-route-access';
 import { AdminAccess } from '@/components/admin-access';
 
 export default function AdminImportScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   const access = useRequireAdmin();
   const [payload, setPayload] = useState('');
   const [result, setResult] = useState<string | null>(null);
@@ -96,10 +100,11 @@ export default function AdminImportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { maxWidth: 850, gap: 14 },
-  editor: { minHeight: 280, textAlignVertical: 'top', fontFamily: 'monospace', fontSize: 11 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 9 },
-  result: { maxWidth: 850, marginTop: 12, backgroundColor: colors.canvasSoft },
-  resultText: { color: colors.brand, fontFamily: 'monospace', fontSize: 10, lineHeight: 16 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    card: { maxWidth: 850, gap: 14 },
+    editor: { minHeight: 280, textAlignVertical: 'top', fontFamily: 'monospace', fontSize: 11 },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 9 },
+    result: { maxWidth: 850, marginTop: 12, backgroundColor: colors.canvasSoft },
+    resultText: { color: colors.text, fontFamily: 'monospace', fontSize: 10, lineHeight: 16 },
+  });

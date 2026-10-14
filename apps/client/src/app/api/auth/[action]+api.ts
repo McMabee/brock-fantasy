@@ -535,5 +535,6 @@ export const POST: RequestHandler = async (request, params) => {
     cookies,
     cookie(request, CSRF_COOKIE) ?? '',
     returnTo ? authReturnPath(returnTo) : '',
+    cookie(request, 'bf_theme') === 'light' ? 'light' : 'dark',
   );
 };

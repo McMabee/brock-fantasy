@@ -50,7 +50,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['apps/client/public/beta-auth/*.js'],
+    files: ['apps/client/public/beta-auth/*.js', 'apps/client/public/ui/*.js'],
     languageOptions: { globals: globals.browser },
   },
 );

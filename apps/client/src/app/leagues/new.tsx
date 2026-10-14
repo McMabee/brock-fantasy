@@ -1,14 +1,18 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BETA_PLAYER_POOL_ID, LEAGUE_SIZES } from '@brock-fantasy/domain';
 
-import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
 import { betaCommand } from '@/lib/web-api';
-import { colors } from '@/theme';
+
 import { useRequireUser } from '@/hooks/use-route-access';
 
 export default function NewLeagueScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   const { allowed, loading: sessionLoading } = useRequireUser();
   const router = useRouter();
   const [name, setName] = useState('');
@@ -157,6 +161,7 @@ function Option({
   label: string;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       accessibilityRole="radio"
@@ -170,32 +175,42 @@ function Option({
   );
 }
 
-const styles = StyleSheet.create({
-  form: { maxWidth: 840, width: '100%', alignSelf: 'center', gap: 26, padding: 25 },
-  field: { gap: 10 },
-  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  option: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-    backgroundColor: colors.canvasSoft,
-  },
-  optionActive: { borderColor: colors.red, backgroundColor: colors.white },
-  optionText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  optionTextActive: { color: colors.brand },
-  poolSummary: { color: colors.muted, fontSize: 13, lineHeight: 20 },
-  ruleSummary: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.canvasSoft,
-    padding: 13,
-    borderRadius: 10,
-  },
-  ruleText: { color: colors.muted, fontSize: 11, lineHeight: 17, flex: 1, minWidth: 220 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10 },
-  error: { color: colors.danger, fontSize: 12 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    form: { maxWidth: 840, width: '100%', alignSelf: 'center', gap: 26, padding: 25 },
+    field: { gap: 10 },
+    options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    option: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 13,
+      paddingVertical: 9,
+      minHeight: 44,
+      justifyContent: 'center',
+      backgroundColor: colors.canvasSoft,
+    },
+    optionActive: { borderColor: colors.red, backgroundColor: colors.canvasSoft },
+    optionText: { fontFamily: 'Inter', color: colors.muted, fontSize: 12, fontWeight: '700' },
+    optionTextActive: { color: colors.text },
+    poolSummary: { fontFamily: 'Inter', color: colors.muted, fontSize: 13, lineHeight: 20 },
+    ruleSummary: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: colors.canvasSoft,
+      padding: 13,
+      borderRadius: 10,
+    },
+    ruleText: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 11,
+      lineHeight: 17,
+      flex: 1,
+      minWidth: 220,
+    },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10 },
+    error: { fontFamily: 'Inter', color: colors.danger, fontSize: 12 },
+  });

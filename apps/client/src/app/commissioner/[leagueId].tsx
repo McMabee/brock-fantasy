@@ -1,15 +1,16 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { torontoDateFields, torontoDateTime } from '@brock-fantasy/domain';
 
-import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, SectionTitle, useUiStyles } from '@/components/ui';
 import { useDraft } from '@/hooks/use-draft';
 import { useLeague } from '@/hooks/use-league';
 import { supabase } from '@/lib/supabase';
 import { betaCommand } from '@/lib/web-api';
 import { useSession } from '@/providers/session-provider';
-import { colors, heading } from '@/theme';
+import { heading } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 interface DraftConfig {
@@ -26,6 +27,9 @@ interface SlotCountRow {
 }
 
 export default function CommissionerScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   useRequireUser();
   const router = useRouter();
   const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
@@ -462,12 +466,13 @@ export default function CommissionerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  message: { color: colors.brand, fontSize: 12, marginBottom: 10 },
-  card: { maxWidth: 720, gap: 14 },
-  title: { ...heading, fontSize: 20 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  field: { gap: 7 },
-  note: { color: colors.muted, fontSize: 10 },
-  back: { alignItems: 'flex-end', marginTop: 16 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    message: { fontFamily: 'Inter', color: colors.text, fontSize: 12, marginBottom: 10 },
+    card: { maxWidth: 720, gap: 14 },
+    title: { ...heading, fontSize: 20, color: colors.text },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+    field: { gap: 7 },
+    note: { fontFamily: 'Inter', color: colors.muted, fontSize: 10 },
+    back: { alignItems: 'flex-end', marginTop: 16 },
+  });

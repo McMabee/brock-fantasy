@@ -1,13 +1,17 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
 import { betaCommand } from '@/lib/web-api';
-import { colors, heading } from '@/theme';
+import { heading } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 export default function JoinLeagueScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   const { allowed, loading: sessionLoading } = useRequireUser('/leagues/join');
   const router = useRouter();
   const [inviteCode, setInviteCode] = useState('');
@@ -113,12 +117,13 @@ export default function JoinLeagueScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { maxWidth: 540, width: '100%', alignSelf: 'center', gap: 18, padding: 26 },
-  title: { ...heading, fontSize: 25, marginTop: 4 },
-  body: { color: colors.muted, fontSize: 13, lineHeight: 21 },
-  field: { gap: 7 },
-  codeInput: { fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
-  error: { color: colors.danger, fontSize: 12 },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    card: { maxWidth: 540, width: '100%', alignSelf: 'center', gap: 18, padding: 26 },
+    title: { ...heading, fontSize: 25, marginTop: 4, color: colors.text },
+    body: { fontFamily: 'Inter', color: colors.muted, fontSize: 13, lineHeight: 21 },
+    field: { gap: 7 },
+    codeInput: { fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
+    error: { fontFamily: 'Inter', color: colors.danger, fontSize: 12 },
+    actions: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10 },
+  });

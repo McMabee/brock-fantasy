@@ -13,35 +13,55 @@ interface CompetitionRow {
   sports: { code: SportCode } | { code: SportCode }[];
 }
 
-export function useCompetitions(): readonly Competition[] {
+export function useCompetitions() {
   const [competitions, setCompetitions] = useState<readonly Competition[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!supabase) return;
-    void supabase
-      .from('competitions')
-      .select('id, division, name, season_label, is_active, ruleset_id, sports!inner(code)')
-      .eq('is_active', true)
-      .order('name')
-      .then(({ data }) => {
-        const rows = (data ?? []) as CompetitionRow[];
-        setCompetitions(
-          rows.map((row) => {
-            const sport = Array.isArray(row.sports) ? row.sports[0]?.code : row.sports.code;
-            if (!sport) throw new Error(`Competition ${row.id} has no sport.`);
-            return {
-              id: row.id,
-              division: row.division,
-              name: row.name,
-              seasonLabel: row.season_label,
-              isActive: row.is_active,
-              rulesetId: row.ruleset_id,
-              sport,
-            };
-          }),
-        );
-      });
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    let active = true;
+    const client = supabase;
+    const load = async () => {
+      const result = await client
+        .from('competitions')
+        .select('id, division, name, season_label, is_active, ruleset_id, sports!inner(code)')
+        .eq('is_active', true)
+        .order('name');
+      if (!active) return;
+      if (result.error) throw result.error;
+      const data = result.data;
+      const rows = (data ?? []) as CompetitionRow[];
+      setCompetitions(
+        rows.map((row) => {
+          const sport = Array.isArray(row.sports) ? row.sports[0]?.code : row.sports.code;
+          if (!sport) throw new Error(`Competition ${row.id} has no sport.`);
+          return {
+            id: row.id,
+            division: row.division,
+            name: row.name,
+            seasonLabel: row.season_label,
+            isActive: row.is_active,
+            rulesetId: row.ruleset_id,
+            sport,
+          };
+        }),
+      );
+      setLoading(false);
+    };
+    void load().catch(() => {
+      if (active) {
+        setLoading(false);
+        setError('Program information could not load.');
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
-  return competitions;
+  return { data: competitions, loading, error };
 }

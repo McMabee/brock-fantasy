@@ -1,14 +1,16 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import * as Linking from 'expo-linking';
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
-import { colors } from '@/theme';
 
 export default function ResetPasswordScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   const url = Linking.useURL();
   const { updatePassword: submitPasswordUpdate, user, loading: sessionLoading } = useSession();
   const [password, setPassword] = useState('');
@@ -117,6 +119,9 @@ function PasswordField({
   value: string;
   onChangeText: (value: string) => void;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   return (
     <View style={styles.field}>
       <Text style={uiStyles.label}>{label}</Text>
@@ -145,9 +150,10 @@ function recoveryTokens(url: string): { access_token: string; refresh_token: str
     : null;
 }
 
-const styles = StyleSheet.create({
-  card: { width: '100%', maxWidth: 520, alignSelf: 'center', gap: 16 },
-  field: { gap: 7 },
-  message: { color: colors.brand, fontSize: 12, lineHeight: 18 },
-  footer: { alignItems: 'flex-end' },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    card: { width: '100%', maxWidth: 520, alignSelf: 'center', gap: 16 },
+    field: { gap: 7 },
+    message: { fontFamily: 'Inter', color: colors.text, fontSize: 12, lineHeight: 18 },
+    footer: { alignItems: 'flex-end' },
+  });

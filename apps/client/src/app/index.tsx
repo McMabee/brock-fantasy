@@ -1,15 +1,27 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { Link } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, EmptyState, Pill, SectionTitle } from '@/components/ui';
+import {
+  ActionButton,
+  AppShell,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  Pill,
+  SectionTitle,
+} from '@/components/ui';
 import { useCompetitions } from '@/hooks/use-competitions';
 import { ASSOCIATION_INSTAGRAM_URL } from '@/lib/association';
 import { useSession } from '@/providers/session-provider';
-import { colors, heading } from '@/theme';
+import { heading } from '@/theme';
 
 export default function HomeScreen() {
+  const styles = useThemedStyles(createStyles);
   const { user, loading } = useSession();
-  const competitions = useCompetitions();
+  const competitionQuery = useCompetitions();
+  const competitions = competitionQuery.data;
 
   return (
     <AppShell>
@@ -47,7 +59,11 @@ export default function HomeScreen() {
       </View>
 
       <SectionTitle title="2026–27 programs" detail="Imported source data" />
-      {competitions.length === 0 ? (
+      {competitionQuery.loading ? (
+        <LoadingState label="Loading programs" rows={2} />
+      ) : competitionQuery.error ? (
+        <ErrorState message={competitionQuery.error} />
+      ) : competitions.length === 0 ? (
         <EmptyState
           title="Program information is being prepared"
           body="Official roster and schedule information will be provided shortly."
@@ -70,15 +86,35 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  hero: { paddingVertical: 48, maxWidth: 750 },
-  title: { ...heading, fontSize: 52, lineHeight: 56, marginTop: 18 },
-  body: { color: colors.muted, fontSize: 17, lineHeight: 26, marginTop: 18, maxWidth: 640 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 24 },
-  instagram: { color: colors.muted, fontSize: 14, lineHeight: 22, marginTop: 24, maxWidth: 640 },
-  instagramLink: { color: colors.link, textDecorationLine: 'underline' },
-  programGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  programCard: { flex: 1, minWidth: 250, gap: 9 },
-  programName: { ...heading, fontSize: 18 },
-  programMeta: { color: colors.muted, fontSize: 12, textTransform: 'capitalize' },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    hero: { paddingVertical: 48, maxWidth: 750 },
+    title: { ...heading, fontSize: 52, lineHeight: 56, marginTop: 18, color: colors.text },
+    body: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 17,
+      lineHeight: 26,
+      marginTop: 18,
+      maxWidth: 640,
+    },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 24 },
+    instagram: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 14,
+      lineHeight: 22,
+      marginTop: 24,
+      maxWidth: 640,
+    },
+    instagramLink: { color: colors.link, textDecorationLine: 'underline' },
+    programGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+    programCard: { flex: 1, minWidth: 250, gap: 9 },
+    programName: { ...heading, fontSize: 18, color: colors.text },
+    programMeta: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 12,
+      textTransform: 'capitalize',
+    },
+  });

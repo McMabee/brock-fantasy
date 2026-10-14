@@ -1,13 +1,17 @@
+import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import { ActionButton, AppShell, Card, Pill, uiStyles } from '@/components/ui';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
 import { useSession } from '@/providers/session-provider';
-import { colors, heading } from '@/theme';
+import { heading } from '@/theme';
 import { authReturnPath } from '@/lib/admin-navigation';
 
 export default function AuthScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   const router = useRouter();
   const { next } = useLocalSearchParams<{ next?: string }>();
   const { width } = useWindowDimensions();
@@ -102,6 +106,9 @@ export default function AuthScreen() {
   );
 }
 function Field({ label, ...props }: { label: string } & React.ComponentProps<typeof TextInput>) {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   return (
     <View style={styles.field}>
       <Text style={uiStyles.label}>{label}</Text>
@@ -115,19 +122,26 @@ function Field({ label, ...props }: { label: string } & React.ComponentProps<typ
     </View>
   );
 }
-const styles = StyleSheet.create({
-  layout: { paddingTop: 38, gap: 36 },
-  layoutWide: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 70,
-  },
-  copy: { flex: 1, maxWidth: 520 },
-  title: { ...heading, fontSize: 42, lineHeight: 46, marginTop: 18 },
-  body: { color: colors.muted, fontSize: 17, lineHeight: 27, marginTop: 18 },
-  formCard: { flex: 0.8, width: '100%', maxWidth: 440, gap: 17, padding: 24 },
-  field: { gap: 7 },
-  error: { color: colors.danger, fontSize: 12, lineHeight: 18 },
-  terms: { color: colors.muted, textAlign: 'center', fontSize: 10, lineHeight: 15 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    layout: { paddingTop: 38, gap: 36 },
+    layoutWide: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingTop: 70,
+    },
+    copy: { flex: 1, maxWidth: 520 },
+    title: { ...heading, fontSize: 42, lineHeight: 46, marginTop: 18, color: colors.text },
+    body: { fontFamily: 'Inter', color: colors.muted, fontSize: 17, lineHeight: 27, marginTop: 18 },
+    formCard: { flex: 0.8, width: '100%', maxWidth: 440, gap: 17, padding: 24 },
+    field: { gap: 7 },
+    error: { fontFamily: 'Inter', color: colors.danger, fontSize: 12, lineHeight: 18 },
+    terms: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      textAlign: 'center',
+      fontSize: 10,
+      lineHeight: 15,
+    },
+  });

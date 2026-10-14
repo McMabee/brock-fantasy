@@ -1,15 +1,19 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, SectionTitle, useUiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { webRequest } from '@/lib/web-request';
 import { useSession } from '@/providers/session-provider';
-import { colors, heading } from '@/theme';
+import { heading } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 export default function AccountScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   useRequireUser();
   const router = useRouter();
   const { user, signOut } = useSession();
@@ -97,24 +101,25 @@ export default function AccountScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, alignItems: 'center' },
-  profileCard: { flex: 1, minWidth: 290, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: colors.canvas, fontWeight: '900', fontSize: 20 },
-  profileCopy: { flex: 1 },
-  profileName: { ...heading, fontSize: 18 },
-  profileEmail: { color: colors.muted, fontSize: 12, marginTop: 4 },
-  deleteCard: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, alignItems: 'center' },
-  deleteCopy: { flex: 1, minWidth: 260, gap: 8 },
-  deleteTitle: { color: colors.danger, fontSize: 17, fontWeight: '800' },
-  deleteAction: { width: 280, maxWidth: '100%', gap: 8 },
-  message: { color: colors.brand, marginTop: 14, fontWeight: '700' },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, alignItems: 'center' },
+    profileCard: { flex: 1, minWidth: 290, flexDirection: 'row', alignItems: 'center', gap: 14 },
+    avatar: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: colors.brand,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: { fontFamily: 'Inter', color: colors.canvas, fontWeight: '900', fontSize: 20 },
+    profileCopy: { flex: 1 },
+    profileName: { ...heading, fontSize: 18, color: colors.text },
+    profileEmail: { fontFamily: 'Inter', color: colors.muted, fontSize: 12, marginTop: 4 },
+    deleteCard: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, alignItems: 'center' },
+    deleteCopy: { flex: 1, minWidth: 260, gap: 8 },
+    deleteTitle: { fontFamily: 'Inter', color: colors.danger, fontSize: 17, fontWeight: '800' },
+    deleteAction: { width: 280, maxWidth: '100%', gap: 8 },
+    message: { color: colors.text, marginTop: 14, fontWeight: '700' },
+  });

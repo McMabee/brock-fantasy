@@ -34,7 +34,7 @@ async function scaffold(suffix) {
   await docker(['createdb', '-U', 'postgres', db]);
   created.add(db);
   // Only platform schemas, never user data, are read from the existing local database.
-  const platform = await docker([
+  const platformDump = await docker([
     'pg_dump',
     '-U',
     'postgres',
@@ -46,6 +46,8 @@ async function scaffold(suffix) {
     '--no-owner',
     '--no-privileges',
   ]);
+  // Application-owned Auth triggers are recreated by the migrations below.
+  const platform = platformDump.replace(/^CREATE TRIGGER confirm_account_news[^;]+;\s*$/gmu, '');
   await sql(
     db,
     `create function public.handle_new_user() returns trigger language plpgsql as $$begin return new; end$$;`,
@@ -61,13 +63,24 @@ async function scaffold(suffix) {
     create extension if not exists pgtap with schema extensions;
     alter default privileges for role postgres in schema public grant all on tables to anon,authenticated,service_role;
     alter default privileges for role postgres in schema public grant all on sequences to anon,authenticated,service_role;
+    -- pg_cron can only install in its configured database. This isolated test
+    -- records schedules without launching background jobs or changing the host.
+    create schema cron;
+    create table cron.job(jobid bigint generated always as identity primary key, jobname text unique, schedule text, command text);
+    create function cron.schedule(text,text,text) returns bigint language sql as $$
+      insert into cron.job(jobname,schedule,command) values($1,$2,$3)
+      on conflict(jobname) do update set schedule=excluded.schedule,command=excluded.command returning jobid;
+    $$;
   `,
   );
   return db;
 }
 async function migrate(db, paths) {
   for (const path of paths)
-    await sql(db, `begin;\n${await readFile(`supabase/migrations/${path}`, 'utf8')}\ncommit;`);
+    await sql(
+      db,
+      `begin;\n${(await readFile(`supabase/migrations/${path}`, 'utf8')).replace(/^create extension if not exists pg_cron with schema pg_catalog;$/gmu, '')}\ncommit;`,
+    );
 }
 
 try {
@@ -86,7 +99,13 @@ try {
     assert.ok(plan, `Missing test plan: ${file}`);
     assertions += Number(plan[1]);
   }
-  console.log(`${assertions} pgTAP assertions passed on all migrations.`);
+  console.log(
+    `${assertions} pgTAP assertions passed on all migrations (cron schedules recorded, background execution excluded).`,
+  );
+  if (process.env.BROCK_TEST_EXTRA_SQL) {
+    const output = await sql(db, await readFile(process.env.BROCK_TEST_EXTRA_SQL, 'utf8'));
+    console.log(output.trim());
+  }
 
   const concurrentEmail = 'concurrent-enrollment@example.test';
   await Promise.all(

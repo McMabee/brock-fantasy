@@ -1,3 +1,4 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -8,12 +9,12 @@ import {
   EmptyState,
   Pill,
   SectionTitle,
-  uiStyles,
+  useUiStyles,
 } from '@/components/ui';
 import { useRequireAdmin } from '@/hooks/use-route-access';
 import { betaCommand } from '@/lib/web-api';
 import { webRequest } from '@/lib/web-request';
-import { colors } from '@/theme';
+
 import { AdminAccess } from '@/components/admin-access';
 
 interface AdminGame {
@@ -108,6 +109,9 @@ function statisticKeys(
 }
 
 export default function AdminGamesScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   const access = useRequireAdmin();
   const [games, setGames] = useState<readonly AdminGame[]>([]);
   const [selected, setSelected] = useState<GameDetail | null>(null);
@@ -586,6 +590,9 @@ function Choice({
   options: readonly { value: string; label: string }[];
   disabled?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   return (
     <View style={styles.field}>
       <Text style={uiStyles.label}>{label}</Text>
@@ -641,6 +648,9 @@ function Field({
   numeric?: boolean;
   disabled?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   return (
     <View style={styles.field}>
       <Text style={uiStyles.label}>{label}</Text>
@@ -657,41 +667,49 @@ function Field({
   );
 }
 
-const styles = StyleSheet.create({
-  message: { color: colors.brand, fontSize: 13, marginTop: 12 },
-  layout: { gap: 16, marginTop: 16 },
-  searchPane: { gap: 12 },
-  editor: { gap: 11 },
-  gameList: { gap: 6 },
-  gameRow: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 11 },
-  gameRowActive: { borderColor: colors.red },
-  gameName: { color: colors.text, fontWeight: '800', fontSize: 13 },
-  gameMeta: { color: colors.muted, fontSize: 10, marginTop: 4 },
-  assetName: { color: colors.text, fontSize: 12, fontWeight: '800' },
-  assetMeta: { color: colors.muted, fontSize: 10, marginTop: 3 },
-  scores: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  field: { flex: 1, minWidth: 150, gap: 6 },
-  hint: { color: colors.muted, fontSize: 11, lineHeight: 16 },
-  statLines: { gap: 8 },
-  statLine: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 10, gap: 10 },
-  statHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  statInputs: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  include: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-  },
-  includeActive: { borderColor: colors.red, backgroundColor: colors.white },
-  includeText: { color: colors.muted, fontSize: 9, fontWeight: '900' },
-  includeTextActive: { color: colors.red },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 9 },
-  preview: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 10, gap: 5 },
-  previewLine: { color: colors.text, fontSize: 11 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    message: { fontFamily: 'Inter', color: colors.text, fontSize: 13, marginTop: 12 },
+    layout: { gap: 16, marginTop: 16 },
+    searchPane: { gap: 12 },
+    editor: { gap: 11 },
+    gameList: { gap: 6 },
+    gameRow: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 11 },
+    gameRowActive: { borderColor: colors.red },
+    gameName: { fontFamily: 'Inter', color: colors.text, fontWeight: '800', fontSize: 13 },
+    gameMeta: { fontFamily: 'Inter', color: colors.muted, fontSize: 10, marginTop: 4 },
+    assetName: { fontFamily: 'Inter', color: colors.text, fontSize: 12, fontWeight: '800' },
+    assetMeta: { fontFamily: 'Inter', color: colors.muted, fontSize: 10, marginTop: 3 },
+    scores: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    field: { flex: 1, minWidth: 150, gap: 6 },
+    hint: { fontFamily: 'Inter', color: colors.muted, fontSize: 11, lineHeight: 16 },
+    statLines: { gap: 8 },
+    statLine: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 10,
+      padding: 10,
+      gap: 10,
+    },
+    statHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    statInputs: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+    include: {
+      minHeight: 44,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 9,
+      paddingVertical: 7,
+    },
+    includeActive: { borderColor: colors.red, backgroundColor: colors.canvasSoft },
+    includeText: { fontFamily: 'Inter', color: colors.muted, fontSize: 9, fontWeight: '900' },
+    includeTextActive: { color: colors.text },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 9 },
+    preview: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 10, gap: 5 },
+    previewLine: { fontFamily: 'Inter', color: colors.text, fontSize: 11 },
+  });

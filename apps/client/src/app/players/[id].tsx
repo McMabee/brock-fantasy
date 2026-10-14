@@ -1,21 +1,24 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { formatFantasyPoints } from '@brock-fantasy/domain';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { BETA_PLAYER_POOL_ID, BETA_SEASON } from '@brock-fantasy/domain';
+import { BETA_SEASON, playerMetrics } from '@brock-fantasy/domain';
 import {
   ActionButton,
   AppShell,
   Card,
   EmptyState,
+  LoadingState,
   Pill,
   SectionTitle,
-  uiStyles,
+  useUiStyles,
 } from '@/components/ui';
+import { DraftPlayerPhoto } from '@/components/draft-player-panel';
 import { firstRelated } from '@/lib/relations';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/theme';
+
 import { useRequireUser } from '@/hooks/use-route-access';
 import { useSession } from '@/providers/session-provider';
 
@@ -25,7 +28,12 @@ interface AthleteRow {
   position: string;
   jersey_number: string | null;
   status: string;
-  bio: { sourcePosition?: string; eligibility?: string; major?: string; hometown?: string };
+  bio: Record<string, unknown> & {
+    sourcePosition?: string;
+    eligibility?: string;
+    major?: string;
+    hometown?: string;
+  };
 }
 interface MembershipRow {
   competition_id: string;
@@ -57,6 +65,7 @@ interface HistoryRow {
   kind: string;
   fantasy_points: number | null;
   games_played: number | null;
+  supplied_adp?: number | null;
   stats: Record<string, number | null>;
 }
 interface ProjectionRow {
@@ -67,17 +76,9 @@ interface ProjectionRow {
   input_cutoff: string;
 }
 
-function parseAdp(value: unknown): { average_pick: number | null; sample_size: number } | null {
-  const candidate: unknown = Array.isArray(value) ? (value as readonly unknown[])[0] : value;
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null;
-  const row = candidate as Record<string, unknown>;
-  return (row.average_pick === null || typeof row.average_pick === 'number') &&
-    typeof row.sample_size === 'number'
-    ? { average_pick: row.average_pick, sample_size: row.sample_size }
-    : null;
-}
-
 export default function PlayerScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   const access = useRequireUser();
   const { user } = useSession();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -87,7 +88,6 @@ export default function PlayerScreen() {
   const [events, setEvents] = useState<readonly EventRow[]>([]);
   const [history, setHistory] = useState<readonly HistoryRow[]>([]);
   const [projection, setProjection] = useState<ProjectionRow | null>(null);
-  const [adp, setAdp] = useState<{ average_pick: number | null; sample_size: number } | null>(null);
   const [upcomingGames, setUpcomingGames] = useState<readonly GameRow[]>([]);
   const [season, setSeason] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +102,6 @@ export default function PlayerScreen() {
     setStats([]);
     setEvents([]);
     setProjection(null);
-    setAdp(null);
     setUpcomingGames([]);
     setSeason(null);
     setError(null);
@@ -115,7 +114,6 @@ export default function PlayerScreen() {
         eventResult,
         historyResult,
         projectionResult,
-        adpResult,
       ] = await Promise.all([
         client
           .from('athletes')
@@ -143,7 +141,7 @@ export default function PlayerScreen() {
           .limit(500),
         client
           .from('athlete_season_summaries')
-          .select('season_label, kind, fantasy_points, games_played, stats')
+          .select('season_label, kind, fantasy_points, games_played, stats, supplied_adp')
           .eq('athlete_id', id)
           .order('season_label', { ascending: false }),
         client
@@ -153,11 +151,6 @@ export default function PlayerScreen() {
           .order('generated_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
-        client.rpc('get_athlete_adp', {
-          p_athlete_id: id,
-          p_pool_id: BETA_PLAYER_POOL_ID,
-          p_league_size: null,
-        }),
       ]);
       if (cancelled) return;
       setLoading(false);
@@ -167,8 +160,7 @@ export default function PlayerScreen() {
         statResult.error ??
         eventResult.error ??
         historyResult.error ??
-        projectionResult.error ??
-        adpResult.error;
+        projectionResult.error;
       if (firstError) {
         setError('This player record is unavailable. Return to the roster list and try again.');
         return;
@@ -180,7 +172,6 @@ export default function PlayerScreen() {
       setEvents(eventResult.data ?? []);
       setHistory(historyResult.data ?? []);
       setProjection(projectionResult.data ?? null);
-      setAdp(parseAdp(adpResult.data as unknown));
       const teams = [...new Set(nextMemberships.map((membership) => membership.team_id))];
       if (teams.length) {
         const games = await client
@@ -229,9 +220,7 @@ export default function PlayerScreen() {
       )[0]?.game;
   const total = events.reduce((sum, event) => sum + event.points, 0);
   const lastUpdated = stats[0]?.updated_at;
-  const seasonProjection = history.find(
-    (item) => item.kind === 'supplied_projection' && item.season_label === BETA_SEASON,
-  );
+  const metrics = playerMetrics(athlete?.bio ?? {}, history, BETA_SEASON);
 
   return (
     <AppShell
@@ -248,7 +237,9 @@ export default function PlayerScreen() {
           {error}
         </Text>
       ) : null}
-      {!access.allowed || loading || !athlete ? (
+      {!access.allowed || loading ? (
+        <LoadingState label="Loading player statistics" rows={4} />
+      ) : !athlete ? (
         <EmptyState
           title={loading ? 'Loading player' : 'Player unavailable'}
           body={
@@ -259,22 +250,32 @@ export default function PlayerScreen() {
         />
       ) : (
         <>
-          <Text style={uiStyles.body}>
-            {athlete.bio.sourcePosition ?? athlete.position}
-            {athlete.jersey_number !== null ? ` · #${athlete.jersey_number}` : ''}
-            {athlete.bio.eligibility ? ` · ${athlete.bio.eligibility}` : ''}
-          </Text>
-          {athlete.bio.major || athlete.bio.hometown ? (
-            <Text style={uiStyles.body}>
-              {[athlete.bio.major, athlete.bio.hometown].filter(Boolean).join(' · ')}
-            </Text>
-          ) : null}
+          <Card style={styles.playerHero}>
+            <DraftPlayerPhoto
+              player={{ displayName: athlete.display_name, bio: athlete.bio }}
+              size={112}
+              eager
+            />
+            <View style={{ flex: 1, minWidth: 150, gap: 8 }}>
+              <Text style={uiStyles.body}>
+                {athlete.bio.sourcePosition ?? athlete.position}
+                {athlete.jersey_number !== null ? ` · #${athlete.jersey_number}` : ''}
+                {athlete.bio.eligibility ? ` · ${athlete.bio.eligibility}` : ''}
+              </Text>
+              {athlete.bio.major || athlete.bio.hometown ? (
+                <Text style={uiStyles.body}>
+                  {[athlete.bio.major, athlete.bio.hometown].filter(Boolean).join(' · ')}
+                </Text>
+              ) : null}
+              <Text style={uiStyles.body}>Height · {metrics.heightLabel}</Text>
+            </View>
+          </Card>
           <View style={styles.summary}>
             <Card style={styles.metric}>
               <Text style={styles.metricLabel}>{BETA_SEASON} PROJECTED FP</Text>
-              <Text style={styles.metricValue}>{seasonProjection?.fantasy_points ?? '—'}</Text>
+              <Text style={styles.metricValue}>{metrics.projectedPoints ?? '—'}</Text>
               <Text style={styles.note}>
-                {seasonProjection?.games_played ?? '—'} projected games · supplied season projection
+                {metrics.projectedGames ?? '—'} projected games · supplied season projection
               </Text>
             </Card>
             <Card style={styles.metric}>
@@ -283,13 +284,9 @@ export default function PlayerScreen() {
             </Card>
             <Card style={styles.metric}>
               <Text style={styles.metricLabel}>ADP</Text>
-              <Text style={styles.metricValue}>
-                {adp?.sample_size ? (adp.average_pick?.toFixed(1) ?? '—') : '—'}
-              </Text>
+              <Text style={styles.metricValue}>{metrics.suppliedAdp?.toFixed(1) ?? '—'}</Text>
               <Text style={styles.note}>
-                {adp?.sample_size
-                  ? `${adp.sample_size} completed production drafts`
-                  : 'No completed production drafts'}
+                {metrics.suppliedAdp === null ? 'Not supplied yet' : 'Supplied season ADP'}
               </Text>
             </Card>
             <Card style={styles.metric}>
@@ -332,7 +329,7 @@ export default function PlayerScreen() {
           )}
           <SectionTitle
             title="Scoring breakdown"
-            detail="Additive per-game events; corrections remain auditable"
+            detail="How each game contributes to your score"
           />
           <Card>
             {events.slice(0, 50).map((event, index) => (
@@ -387,12 +384,12 @@ export default function PlayerScreen() {
               </Text>
             ) : null}
           </Card>
-          <SectionTitle title="Weekly forecast" detail="Versioned projection-provider interface" />
+          <SectionTitle title="Weekly forecast" />
           <Card>
             <Text style={uiStyles.body}>
               {projection?.status === 'ready'
-                ? `${formatFantasyPoints(projection.points)} points · ${projection.model_version}`
-                : 'Weekly projections are unavailable until the approved model is provided. Historical inputs are retained with an input cutoff for backtesting.'}
+                ? `${formatFantasyPoints(projection.points)} projected points`
+                : 'Weekly projections are not available yet.'}
             </Text>
           </Card>
         </>
@@ -402,54 +399,80 @@ export default function PlayerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  error: { color: colors.brand, fontSize: 12, marginBottom: 12 },
-  summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 22 },
-  metric: { flex: 1, minWidth: 190, gap: 5 },
-  metricLabel: { color: colors.red, fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  metricValue: { color: colors.text, fontWeight: '900', fontSize: 28 },
-  next: { color: colors.text, fontWeight: '700', fontSize: 13 },
-  note: { color: colors.muted, fontSize: 10, lineHeight: 15 },
-  log: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    paddingVertical: 11,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  logCopy: { flex: 1 },
-  logDate: { color: colors.text, fontSize: 12, fontWeight: '800' },
-  points: { color: colors.red, fontSize: 12, fontWeight: '900' },
-  event: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    paddingVertical: 8,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  eventKey: { color: colors.text, fontSize: 11, textTransform: 'capitalize' },
-  history: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    paddingVertical: 10,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  seasons: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 8 },
-  season: {
-    color: colors.text,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  seasonSelected: { borderColor: colors.red },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    playerHero: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 24,
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    error: { fontFamily: 'Inter', color: colors.text, fontSize: 12, marginBottom: 12 },
+    summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 22 },
+    metric: { flex: 1, minWidth: 190, gap: 5 },
+    metricLabel: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 1,
+    },
+    metricValue: { fontFamily: 'Inter', color: colors.text, fontWeight: '900', fontSize: 28 },
+    next: { fontFamily: 'Inter', color: colors.text, fontWeight: '700', fontSize: 13 },
+    note: { fontFamily: 'Inter', color: colors.muted, fontSize: 10, lineHeight: 15 },
+    log: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+      paddingVertical: 11,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    logCopy: { flex: 1 },
+    logDate: { fontFamily: 'Inter', color: colors.text, fontSize: 12, fontWeight: '800' },
+    points: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '700',
+      fontVariant: ['tabular-nums'],
+    },
+    event: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 10,
+      paddingVertical: 8,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    eventKey: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      fontSize: 11,
+      textTransform: 'capitalize',
+    },
+    history: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+      paddingVertical: 10,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    seasons: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 8 },
+    season: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    seasonSelected: { borderColor: colors.red },
+  });

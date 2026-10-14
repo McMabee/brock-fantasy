@@ -1,10 +1,10 @@
+import { useThemeColors } from '@/providers/theme-provider';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { ActionButton, uiStyles } from './ui';
+import { ActionButton, useUiStyles } from './ui';
 import { supabase } from '@/lib/supabase';
 import { firstRelated } from '@/lib/relations';
 import { betaCommand } from '@/lib/web-api';
-import { colors } from '@/theme';
 
 interface ChatRow {
   id: string;
@@ -14,6 +14,8 @@ interface ChatRow {
   author: { display_name: string } | readonly { display_name: string }[] | null;
 }
 export function DraftChat({ leagueId }: { leagueId: string | undefined }) {
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   const [rows, setRows] = useState<ChatRow[]>([]);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);

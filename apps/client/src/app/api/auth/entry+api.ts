@@ -17,5 +17,6 @@ export const GET: RequestHandler = (request) => {
     [`bf_csrf=${encodeURIComponent(token)}; Path=/; SameSite=Lax; Max-Age=86400${secure}`],
     token,
     returnTo ? authReturnPath(returnTo) : '',
+    requestCookie(request, 'bf_theme') === 'light' ? 'light' : 'dark',
   );
 };

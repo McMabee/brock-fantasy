@@ -1,0 +1,11 @@
+begin;
+select plan(7);
+select has_column('public','athlete_season_summaries','supplied_adp','Supplied ADP has its own nullable field');
+select col_is_null('public','athlete_season_summaries','supplied_adp','ADP remains nullable until supplied');
+select ok((select relrowsecurity from pg_class where oid='public.athlete_season_summaries'::regclass),'Metric extension retains RLS');
+select ok((select pg_get_constraintdef(oid) like '%supplied_projection%' from pg_constraint where conname='supplied_adp_valid'),'ADP is reserved for supplied projections');
+select ok(not has_table_privilege('anon','public.athlete_season_summaries','SELECT'),'Anonymous metric reads remain denied');
+select ok(not has_function_privilege('anon','beta_private.refresh_supplied_adp_pool()','EXECUTE'),'Cache trigger is not a public API');
+select ok(not (select prosecdef from pg_proc where oid='beta_private.refresh_supplied_adp_pool()'::regprocedure),'Cache trigger preserves invoker authorization');
+select * from finish();
+rollback;

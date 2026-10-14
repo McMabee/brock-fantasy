@@ -1,10 +1,17 @@
 import { Text, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, LoadingState, useUiStyles } from '@/components/ui';
 import { useSession } from '@/providers/session-provider';
 
 export function AdminAccess({ loading, error }: { loading: boolean; error: string | null }) {
+  const uiStyles = useUiStyles();
   const { user } = useSession();
+  if (loading)
+    return (
+      <AppShell title="Checking administrator access">
+        <LoadingState label="Checking your account and authenticator" rows={2} />
+      </AppShell>
+    );
   return (
     <AppShell
       eyebrow="Administrator access"

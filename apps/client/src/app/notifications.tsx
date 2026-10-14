@@ -1,14 +1,16 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { AppShell, Card, EmptyState, Pill } from '@/components/ui';
-import { colors } from '@/theme';
+import { AppShell, Card, EmptyState, LoadingState, Pill } from '@/components/ui';
+
 import { useNotifications } from '@/hooks/use-notifications';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { notificationTarget } from '@/lib/notification-target';
 
 type Category = 'all' | 'trade' | 'game' | 'draft';
 export default function NotificationsScreen() {
+  const styles = useThemedStyles(createStyles);
   useRequireUser();
   const router = useRouter();
   const { notifications, unreadCount, loading, error, markRead } = useNotifications();
@@ -46,7 +48,9 @@ export default function NotificationsScreen() {
           {error}
         </Text>
       ) : null}
-      {!loading && !filtered.length ? (
+      {loading && !notifications.length ? (
+        <LoadingState label="Loading notifications" />
+      ) : !loading && !filtered.length ? (
         <EmptyState
           title="No notifications"
           body="Trade requests, roster game reminders, and draft updates will appear here."
@@ -98,23 +102,30 @@ export default function NotificationsScreen() {
     </AppShell>
   );
 }
-const styles = StyleSheet.create({
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  filter: { padding: 12, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
-  active: { borderColor: colors.link, borderWidth: 2 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-  },
-  dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.red },
-  read: { backgroundColor: colors.border },
-  title: { color: colors.text, fontWeight: '800', fontSize: 14 },
-  body: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  time: { color: colors.muted, fontSize: 11 },
-  mark: { color: colors.link, fontWeight: '700' },
-  error: { color: colors.danger },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    filter: {
+      minHeight: 44,
+      padding: 12,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    active: { borderColor: colors.link, borderWidth: 2 },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderColor: colors.border,
+    },
+    dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.red },
+    read: { backgroundColor: colors.border },
+    title: { fontFamily: 'Inter', color: colors.text, fontWeight: '800', fontSize: 14 },
+    body: { fontFamily: 'Inter', color: colors.muted, fontSize: 12, lineHeight: 18 },
+    time: { fontFamily: 'Inter', color: colors.muted, fontSize: 11 },
+    mark: { color: colors.link, fontWeight: '700' },
+    error: { color: colors.danger },
+  });

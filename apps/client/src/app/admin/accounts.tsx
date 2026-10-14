@@ -1,10 +1,11 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput } from 'react-native';
-import { AppShell, ActionButton, Card, Pill, uiStyles } from '@/components/ui';
+import { AppShell, ActionButton, Card, Pill, useUiStyles } from '@/components/ui';
 import { useRequireAdmin } from '@/hooks/use-route-access';
 import { betaCommand } from '@/lib/web-api';
 import { webRequest } from '@/lib/web-request';
-import { colors } from '@/theme';
+
 import { AdminAccess } from '@/components/admin-access';
 import { inviteAdministrator } from '@/lib/admin-invitations';
 import { useAdminAccountManager } from '@/hooks/use-admin-account-manager';
@@ -23,6 +24,8 @@ interface Account {
 }
 
 export default function AdminAccountsScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   const access = useRequireAdmin();
   const authorized = access.allowed;
   const canManage = useAdminAccountManager(authorized);
@@ -187,7 +190,8 @@ export default function AdminAccountsScreen() {
     </AppShell>
   );
 }
-const styles = StyleSheet.create({
-  card: { gap: 12, marginBottom: 20 },
-  message: { color: colors.text, marginBottom: 20, fontSize: 14 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    card: { gap: 12, marginBottom: 20 },
+    message: { fontFamily: 'Inter', color: colors.text, marginBottom: 20, fontSize: 14 },
+  });

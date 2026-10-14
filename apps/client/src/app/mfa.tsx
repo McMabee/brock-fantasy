@@ -1,14 +1,15 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, Pill, SectionTitle, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, Pill, SectionTitle, useUiStyles } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { authReturnPath } from '@/lib/admin-navigation';
 import { webRequest } from '@/lib/web-request';
 import { betaCommand } from '@/lib/web-api';
 import { useSession } from '@/providers/session-provider';
-import { colors } from '@/theme';
+
 import { useRequireUser } from '@/hooks/use-route-access';
 
 interface FactorSetup {
@@ -26,6 +27,9 @@ interface WebMfaStatus {
 }
 
 export default function MfaScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   const router = useRouter();
   const { next, invitation } = useLocalSearchParams<{ next?: string; invitation?: string }>();
   const invitationId =
@@ -332,17 +336,18 @@ export default function MfaScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { width: '100%', maxWidth: 560, alignSelf: 'center', gap: 15 },
-  qr: { width: 220, height: 220, alignSelf: 'center', backgroundColor: '#FFFFFF' },
-  secret: {
-    color: colors.text,
-    backgroundColor: colors.canvasSoft,
-    padding: 12,
-    borderRadius: 8,
-    fontFamily: 'monospace',
-    textAlign: 'center',
-  },
-  field: { gap: 7 },
-  message: { color: colors.brand, fontSize: 12, lineHeight: 18 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    card: { width: '100%', maxWidth: 560, alignSelf: 'center', gap: 15 },
+    qr: { width: 220, height: 220, alignSelf: 'center', backgroundColor: '#FFFFFF' },
+    secret: {
+      color: colors.text,
+      backgroundColor: colors.canvasSoft,
+      padding: 12,
+      borderRadius: 8,
+      fontFamily: 'monospace',
+      textAlign: 'center',
+    },
+    field: { gap: 7 },
+    message: { fontFamily: 'Inter', color: colors.text, fontSize: 12, lineHeight: 18 },
+  });

@@ -17,6 +17,7 @@ export interface DraftPlayer extends Athlete {
     kind: string;
     fantasy_points: number | null;
     games_played: number | null;
+    supplied_adp?: number | null;
     stats: Record<string, number | null>;
   }[];
 }

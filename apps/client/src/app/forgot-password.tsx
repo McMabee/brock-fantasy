@@ -1,11 +1,14 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, uiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, useUiStyles } from '@/components/ui';
 import { useSession } from '@/providers/session-provider';
-import { colors } from '@/theme';
 
 export default function ForgotPasswordScreen() {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   const { requestPasswordReset } = useSession();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -93,8 +96,9 @@ export default function ForgotPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { width: '100%', maxWidth: 520, alignSelf: 'center', gap: 16 },
-  field: { gap: 7 },
-  error: { color: colors.danger, fontSize: 12, lineHeight: 18 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    card: { width: '100%', maxWidth: 520, alignSelf: 'center', gap: 16 },
+    field: { gap: 7 },
+    error: { fontFamily: 'Inter', color: colors.danger, fontSize: 12, lineHeight: 18 },
+  });
