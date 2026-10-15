@@ -74,7 +74,10 @@ export default function proxy(request: Request): Response {
     return new Response(null, { status: 303, headers: { ...headers, location: '/signup' } });
   if (entries[path] && ['GET', 'HEAD'].includes(request.method)) {
     url.pathname = '/api/auth/entry';
-    url.searchParams.set('view', entries[path]);
+    url.searchParams.set(
+      'view',
+      path === '/auth' && url.searchParams.get('mode') === 'sign-up' ? 'activate' : entries[path],
+    );
     return rewrite(url);
   }
   if (

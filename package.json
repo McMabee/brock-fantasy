@@ -45,7 +45,8 @@
     "import:schedules": "node scripts/materialize-brock-schedules.mjs",
     "import:headshots": "node scripts/materialize-brock-headshots.mjs",
     "research:official-data": "node scripts/research-brock-official-data.mjs",
-    "check": "pnpm format:check && pnpm lint && pnpm lint:sql && pnpm typecheck && pnpm test && pnpm test:beta-boundary && pnpm build:web && pnpm verify:web-env-boundary && pnpm test:web-auth:local && pnpm test:admin:local && pnpm smoke:mobile"
+    "check": "pnpm format:check && pnpm lint && pnpm lint:sql && pnpm typecheck && pnpm test && pnpm test:beta-boundary && pnpm build:web && pnpm verify:web-env-boundary && pnpm test:web-auth:local && pnpm test:admin:local && pnpm smoke:mobile",
+    "test:launch:browser": "node --experimental-strip-types scripts/test-launch-browser.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

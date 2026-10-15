@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import darkLogo from '../../assets/brock-fantasy-logo.png';
 import lightLogo from '../../assets/brock-fantasy-logo-light.png';
 import { ASSOCIATION_INSTAGRAM_URL } from '@/lib/association';
+import { openPublicAuthEntry } from '@/lib/public-auth-navigation';
 import { useSession } from '@/providers/session-provider';
 import { useTheme, useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { colors, fonts, heading, radii, shadow } from '@/theme';
@@ -39,6 +40,9 @@ export function AppShell({
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
   const router = useRouter();
+  const navigate = (href: Href) => {
+    if (!openPublicAuthEntry(href)) router.push(href);
+  };
   const pathname = usePathname();
   const { user, error: sessionError } = useSession();
   const { unreadCount } = useNotifications();
@@ -56,7 +60,7 @@ export function AppShell({
       active:
         pathname === '/dashboard' ||
         pathname === '/' ||
-        /^\/(league|draft|draft-results|lineup|lineup-beta|transactions|commissioner|leagues)\//u.test(
+        /^\/(league|draft|draft-results|lineup|lineup-multisport|transactions|commissioner|leagues)\//u.test(
           pathname,
         ),
     },
@@ -82,7 +86,7 @@ export function AppShell({
         item.label +
         (item.label === 'Notifications' && unreadCount ? `, ${unreadCount} unread` : '')
       }
-      onPress={() => router.push(item.href)}
+      onPress={() => navigate(item.href)}
       style={({ pressed }) => [
         styles.navItem,
         wide ? styles.navItemWide : styles.navItemMobile,
@@ -166,7 +170,7 @@ export function AppShell({
                 <Pressable
                   accessibilityRole="link"
                   style={{ minHeight: 44, justifyContent: 'center' }}
-                  onPress={() => router.push(user ? '/account' : '/auth')}
+                  onPress={() => navigate(user ? '/account' : '/auth')}
                 >
                   <Text style={styles.navLink}>{user ? 'Account' : 'Sign in'}</Text>
                 </Pressable>
@@ -227,6 +231,9 @@ export function AppShell({
                   >
                     <Text style={styles.footerLink}>Delete account</Text>
                   </Pressable>
+                  <Link href="/feedback" accessibilityRole="link" style={styles.footerLink}>
+                    Report Bugs/Suggestions
+                  </Link>
                   <Link
                     href={ASSOCIATION_INSTAGRAM_URL}
                     target="_blank"
@@ -338,8 +345,11 @@ export function ActionButton({
   const colors = useThemeColors();
   const router = useRouter();
   const handlePress = () => {
-    if (href) router.push(href);
-    else onPress?.();
+    if (href) {
+      if (!openPublicAuthEntry(href)) router.push(href);
+      return;
+    }
+    onPress?.();
   };
 
   return (

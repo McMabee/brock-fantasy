@@ -38,10 +38,10 @@ export default function HomeScreen() {
         <View style={styles.actions}>
           <ActionButton
             label={user ? 'Open dashboard' : 'Sign in'}
-            href={user ? '/dashboard' : '/auth'}
+            href={user ? '/dashboard' : '/auth?mode=sign-in'}
           />
           {!loading && !user ? (
-            <ActionButton label="Create an account" href="/signup" variant="secondary" />
+            <ActionButton label="Create an account" href="/auth?mode=sign-up" variant="secondary" />
           ) : null}
         </View>
         <Text style={styles.instagram}>

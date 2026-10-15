@@ -19,7 +19,7 @@ export function authReturnPath(value: unknown): string {
   )
     return value;
   if (
-    /^\/(?:draft|league|commissioner|lineup-beta|lineup|transactions|players)\/[0-9a-f-]{36}$/iu.test(
+    /^\/(?:draft|league|commissioner|lineup-beta|lineup-multisport|lineup|transactions|players)\/[0-9a-f-]{36}$/iu.test(
       value,
     )
   )

@@ -1047,7 +1047,7 @@ try {
     scenario = 'populated';
     for (const width of [320, 390, 1440]) {
       await page.setViewportSize({ width, height: width <= 390 ? 844 : 1000 });
-      await page.goto(origin + '/lineup-beta/' + leagueId);
+      await page.goto(origin + '/lineup-multisport/' + leagueId);
       await page
         .getByRole('button', { name: `Insights for ${players[0].display_name}`, exact: true })
         .waitFor();
@@ -1145,7 +1145,7 @@ try {
     }
     scenario = 'full-lineup';
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto(origin + '/lineup-beta/' + leagueId);
+    await page.goto(origin + '/lineup-multisport/' + leagueId);
     await page.getByText('Starting lineup', { exact: true }).waitFor();
     await page.getByText('Bench', { exact: true }).first().waitFor();
     await page.screenshot({ path: path.join(output, `lineup-full-${theme}.png`) });

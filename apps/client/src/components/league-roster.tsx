@@ -144,7 +144,7 @@ export function LeagueRoster({
         <View style={styles.inlineActions}>
           <ActionButton
             label="Set lineup"
-            href={betaLeague ? `/lineup-beta/${leagueId}` : `/lineup/${leagueId}`}
+            href={betaLeague ? `/lineup-multisport/${leagueId}` : `/lineup/${leagueId}`}
           />
           <ActionButton
             label="Free agents, waivers & trades"

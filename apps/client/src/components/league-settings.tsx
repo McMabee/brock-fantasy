@@ -67,7 +67,7 @@ export function LeagueSettings({ data }: { data: ReturnType<typeof useLeague> })
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           <ActionButton
             label="Manage lineup"
-            href={`/${data.league.playerPoolId ? 'lineup-beta' : 'lineup'}/${data.league.id}`}
+            href={`/${data.league.playerPoolId ? 'lineup-multisport' : 'lineup'}/${data.league.id}`}
             variant="secondary"
           />
           <ActionButton

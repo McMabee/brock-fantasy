@@ -249,3 +249,25 @@ body > main {
     transition: none;
   }
 }
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0 0 28px;
+}
+.auth-tabs a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 10px;
+  border: 1px solid var(--bf-border);
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
+}
+.auth-tabs a[aria-current='page'] {
+  background: var(--bf-red);
+  border-color: var(--bf-red);
+  color: #fff;
+}

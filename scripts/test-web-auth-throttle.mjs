@@ -50,12 +50,20 @@ try {
   for (const [route, heading] of [
     ['/signup', 'Create Your Account'],
     ['/auth', 'Sign In'],
+    ['/auth?mode=sign-up', 'Create Your Account'],
+    ['/auth?mode=sign-in', 'Sign In'],
     ['/forgot-password', 'Reset Your Password'],
     ['/reset-password', 'Choose a New Password'],
   ]) {
     const entry = await fetch(`${url}${route}`, { headers });
     assert.equal(entry.status, 200, route);
-    assert.ok((await entry.text()).includes(`<h1>${heading}</h1>`), route);
+    const html = await entry.text();
+    assert.ok(html.includes(`<h1>${heading}</h1>`), route);
+    if (route === '/signup' || route.startsWith('/auth')) {
+      const selected = heading === 'Create Your Account' ? 'Create an account' : 'Sign in';
+      assert.ok(html.includes(`aria-current="page">${selected}</a>`), route);
+      assert.ok(!html.includes('WEB BETA'), route);
+    }
     assert.equal(entry.headers.get('cache-control'), 'no-store, private', route);
   }
   results.push({

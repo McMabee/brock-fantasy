@@ -62,8 +62,8 @@ export default function RulesScreen() {
         <Card style={styles.article}>
           <RulesHeading title="Your first season" />
           <Paragraph title="1. Join or create a league">
-            Private beta leagues have 4, 6, 8 or 10 managers. Each manager owns one fantasy team.
-            Join with an invite code, or create a league and invite your friends.
+            Private leagues have 4, 6, 8 or 10 managers. Each manager owns one fantasy team. Join
+            with an invite code, or create a league and invite your friends.
           </Paragraph>
           <Paragraph title="2. Draft ten athletes">
             Take turns choosing athletes. An athlete can belong to only one team in your league, but
@@ -82,7 +82,7 @@ export default function RulesScreen() {
             and preseason order.
           </Paragraph>
           <Paragraph title="Season calendar">
-            The beta calendar has eight regular-season periods, followed by semifinal and final
+            The season calendar has eight regular-season periods, followed by semifinal and final
             periods. Period lengths vary and there is a winter break. Your league overview shows the
             matchups actually scheduled by your commissioner; a fantasy period is not always a
             calendar week.
@@ -130,7 +130,7 @@ export default function RulesScreen() {
             If an athlete has more than one eligible position, they can fill either matching slot,
             but only one slot at a time. Any athlete, including a goalie, can fill FLEX or sit on
             your bench. Bench points do not count toward your matchup, and there is no separate
-            injured-reserve spot in the beta.
+            injured-reserve spot.
           </Paragraph>
           <Text style={styles.body}>
             Example: a women’s hockey goalie can fill Hockey defence or goalie, FLEX, or Bench. A
@@ -208,8 +208,8 @@ export default function RulesScreen() {
             <Text style={styles.body}>
               Each recorded statistic is multiplied by the value below. Bonuses apply once per game
               when their condition is met. Penalties can make a score negative. Only eligible
-              starter games count toward your team; historical totals and projections do not. During
-              beta testing, scoring may be paused while game data is being prepared.
+              starter games count toward your team; historical totals and projections do not.
+              Scoring may be paused while game data is being prepared.
             </Text>
           </Card>
           {SCORING.map((category) => (
@@ -294,8 +294,8 @@ export default function RulesScreen() {
           <Paragraph title="ADP: average draft position">
             Lower ADP means an athlete is usually picked earlier. The supplied ADP counts as one
             starting observation. Every recorded pick from a completed, unvoided draft in the same
-            season pool contributes its overall pick number across all leagues, including beta test
-            drafts and automatic picks.
+            season pool contributes its overall pick number across all leagues, including completed
+            test drafts and automatic picks.
           </Paragraph>
           <Text style={styles.body}>
             Example: a supplied ADP of 20 and completed-draft picks at 10 and 15 give an ADP of (20

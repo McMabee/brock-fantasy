@@ -138,7 +138,7 @@ export default function AdminGamesScreen() {
     const result =
       Platform.OS === 'web'
         ? await webRequest<{ games: AdminGame[] }>('/api/admin/games')
-        : { data: null, error: 'Scorekeeping is available through the web beta.' };
+        : { data: null, error: 'Scorekeeping is available through the web app.' };
     if (result.error) setMessage(result.error);
     else setGames(result.data?.games ?? []);
     setLoadingGames(false);

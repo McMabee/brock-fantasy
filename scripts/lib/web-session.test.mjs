@@ -7,7 +7,7 @@ test('notification links remain actionable and reject injected locations', () =>
   const id = '00000000-0000-4000-8000-000000000001';
   assert.equal(notificationTarget('trade_accepted', { league_id: id }), '/transactions/' + id);
   assert.equal(notificationTarget('draft_reminder', { league_id: id }), '/league/' + id);
-  assert.equal(notificationTarget('game_reminder', { league_id: id }), '/lineup-beta/' + id);
+  assert.equal(notificationTarget('game_reminder', { league_id: id }), '/lineup-multisport/' + id);
   assert.equal(notificationTarget('draft_turn', { draft_id: id }), '/draft/' + id);
   assert.equal(
     notificationTarget('trade_accepted', { league_id: 'https://evil.example' }),

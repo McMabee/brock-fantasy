@@ -69,7 +69,7 @@ export default function DashboardScreen() {
             const primaryHref = drafting
               ? `/draft/${league.draft!.id}`
               : playing
-                ? `/${league.playerPoolId ? 'lineup-beta' : 'lineup'}/${league.id}`
+                ? `/${league.playerPoolId ? 'lineup-multisport' : 'lineup'}/${league.id}`
                 : `/league/${league.id}`;
             return (
               <Card key={league.id} style={styles.leagueCard}>

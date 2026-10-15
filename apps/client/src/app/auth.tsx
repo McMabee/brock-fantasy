@@ -1,15 +1,22 @@
 import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
-import * as Linking from 'expo-linking';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
+import { PublicAuthEntry } from '@/components/public-auth-entry';
 import { useSession } from '@/providers/session-provider';
 import { heading } from '@/theme';
 import { authReturnPath } from '@/lib/admin-navigation';
 
 export default function AuthScreen() {
+  const { mode, next } = useLocalSearchParams<{ mode?: string; next?: string }>();
+  if (Platform.OS === 'web' || mode === 'sign-up')
+    return <PublicAuthEntry mode={mode === 'sign-up' ? 'sign-up' : 'sign-in'} next={next} />;
+  return <NativeSignInScreen />;
+}
+
+function NativeSignInScreen() {
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
   const router = useRouter();
@@ -40,7 +47,7 @@ export default function AuthScreen() {
     <AppShell>
       <View style={[styles.layout, width >= 820 && styles.layoutWide]}>
         <View style={styles.copy}>
-          <Pill label="WEB BETA" tone="positive" />
+          <Pill label="2026–27 SEASON" tone="positive" />
           <Text accessibilityRole="header" style={styles.title}>
             Sign In
           </Text>
@@ -84,11 +91,7 @@ export default function AuthScreen() {
           <Link href="/forgot-password" style={uiStyles.link}>
             Forgot password?
           </Link>
-          <ActionButton
-            label="Create an account"
-            variant="secondary"
-            onPress={() => void Linking.openURL('https://beta.brockfantasy.ca/signup')}
-          />
+          <ActionButton label="Create an account" variant="secondary" href="/signup" />
           <Text style={styles.terms}>
             Read our{' '}
             <Link href="/terms" style={uiStyles.link}>

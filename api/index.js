@@ -22,7 +22,12 @@ module.exports = (request, response) => {
   if (request.method === 'GET' || request.method === 'HEAD') {
     const url = new URL(request.url, 'http://adapter.local');
     if (publicEntries[url.pathname]) {
-      url.searchParams.set('view', publicEntries[url.pathname]);
+      url.searchParams.set(
+        'view',
+        url.pathname === '/auth' && url.searchParams.get('mode') === 'sign-up'
+          ? 'activate'
+          : publicEntries[url.pathname],
+      );
       request.url = `/api/auth/entry${url.search}`;
     } else if (
       url.pathname === '/staff-activate' ||

@@ -61,7 +61,7 @@ export function useTurnAlert(draftId: string | undefined, pick: number, myTurn: 
         setEnabled(false);
       } else {
         if (Platform.OS !== 'web') {
-          setMessage('Turn sound is available in the web beta.');
+          setMessage('Turn sound is available in the web app.');
           return;
         }
         audio.current ??= new Audio('/draft-audio/On_The_Clock.mp3');
