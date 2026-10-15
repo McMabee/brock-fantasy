@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm build:web",
+  "outputDirectory": "apps/client/dist/client",
+  "proxy": { "entrypoint": "proxy.ts" },
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "apps/client/dist/server/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ]
+}

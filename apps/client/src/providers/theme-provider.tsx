@@ -3,13 +3,15 @@ import {
   use,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { palettes, type ThemeMode } from '@/theme';
+import { colors, palettes, type ThemeMode } from '@/theme';
 
 interface ThemeContextValue {
   mode: ThemeMode;
@@ -36,14 +38,45 @@ function applyWebTheme(mode: ThemeMode): void {
 }
 
 function initialMode(): ThemeMode {
-  if (Platform.OS !== 'web' || typeof document === 'undefined') return 'light';
-  return document.cookie.split('; ').includes('bf_theme=dark') ? 'dark' : 'light';
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return 'dark';
+  return document.cookie.split('; ').includes('bf_theme=light') ? 'light' : 'dark';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<ThemeMode>(initialMode);
+  const [mode, setMode] = useState<ThemeMode>('dark');
+  const [webReady, setWebReady] = useState(false);
+  useLayoutEffect(() => {
+    if (Platform.OS === 'web') {
+      setMode(initialMode());
+      setWebReady(true);
+    }
+  }, []);
+  const [nativeReady, setNativeReady] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let active = true;
+    void AsyncStorage.getItem('bf_theme')
+      .then((saved) => {
+        if (active) {
+          if (saved === 'light' || saved === 'dark') setMode(saved);
+          setNativeReady(true);
+        }
+      })
+      .catch(() => {
+        if (active) setNativeReady(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (Platform.OS !== 'web' && nativeReady)
+      void AsyncStorage.setItem('bf_theme', mode).catch(() => {});
+  }, [mode, nativeReady]);
 
-  useEffect(() => applyWebTheme(mode), [mode]);
+  useEffect(() => {
+    if (webReady) applyWebTheme(mode);
+  }, [mode, webReady]);
 
   const toggleMode = useCallback(
     () => setMode((current) => (current === 'light' ? 'dark' : 'light')),
@@ -61,4 +94,14 @@ export function useTheme(): ThemeContextValue {
   const value = use(ThemeContext);
   if (!value) throw new Error('useTheme must be used inside ThemeProvider.');
   return value;
+}
+
+export function useThemeColors() {
+  const { palette } = useTheme();
+  return Platform.OS === 'web' ? colors : palette;
+}
+
+export function useThemedStyles<T>(factory: (palette: ReturnType<typeof useThemeColors>) => T): T {
+  const palette = useThemeColors();
+  return useMemo(() => factory(palette), [factory, palette]);
 }

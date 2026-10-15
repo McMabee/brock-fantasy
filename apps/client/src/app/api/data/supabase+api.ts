@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'expo-router/server';
 
 import { actor, apiConfig, json } from '@/server/session';
+import { AppAccessUnavailable, withAvailability } from '@/server/app-access';
 
 const tables = new Set([
   'athlete_rankings',
@@ -31,7 +32,14 @@ const tables = new Set([
   'trades',
   'weekly_projections',
 ]);
-const readRpc = new Set(['get_athlete_adp', 'get_beta_lineup', 'get_league_standings']);
+const readRpc = new Set([
+  'get_athlete_adp',
+  'get_pool_adp',
+  'get_draft_results',
+  'get_beta_lineup',
+  'get_player_insights',
+  'get_league_standings',
+]);
 
 function forwardedHeaders(request: Request, key: string, token: string): Headers {
   const headers = new Headers({ apikey: key, authorization: `Bearer ${token}` });
@@ -69,7 +77,11 @@ const handle: RequestHandler = async (request) => {
     method,
     headers: forwardedHeaders(request, config.key, current.accessToken),
     ...(method === 'POST' ? { body: await request.text() } : {}),
+    signal: AbortSignal.timeout(8000),
+  }).catch(() => {
+    throw new AppAccessUnavailable('Data service unavailable.');
   });
+  if (upstream.status >= 500) throw new AppAccessUnavailable('Data service unavailable.');
   const headers = new Headers({
     'cache-control': 'no-store, private',
     pragma: 'no-cache',
@@ -84,6 +96,6 @@ const handle: RequestHandler = async (request) => {
   });
 };
 
-export const GET = handle;
-export const HEAD = handle;
-export const POST = handle;
+export const GET = withAvailability(handle);
+export const HEAD = GET;
+export const POST = GET;

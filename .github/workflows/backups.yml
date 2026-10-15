@@ -1,0 +1,46 @@
+name: Encrypted database backups
+
+on:
+  schedule:
+    - cron: '17 1,13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: brock-hosted-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    if: >-
+      github.repository == 'McMabee/brock-fantasy' &&
+      github.ref == 'refs/heads/main' &&
+      vars.BROCK_BACKUPS_ENABLED == 'true' &&
+      vars.BROCK_BACKUP_OAUTH_STATUS == 'production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.13.1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install verified backup tools
+        run: bash scripts/install-backup-tools.sh "$RUNNER_TEMP/brock-backup-tools"
+      - name: Encrypt, upload and verify database exports
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.BROCK_BACKUP_SUPABASE_TOKEN }}
+          BROCK_BACKUP_RCLONE_CONFIG_BASE64: ${{ secrets.BROCK_BACKUP_RCLONE_CONFIG_BASE64 }}
+          RESTIC_PASSWORD: ${{ secrets.BROCK_BACKUP_RESTIC_PASSWORD }}
+          BROCK_BACKUP_HEARTBEAT_URL: ${{ secrets.BROCK_BACKUP_HEARTBEAT_URL }}
+        run: |
+          export PATH="$RUNNER_TEMP/brock-backup-tools:$PATH"
+          node scripts/run-hosted-backup.mjs
+      # No SQL, OAuth configuration, caches or decrypted files are uploaded as artifacts.

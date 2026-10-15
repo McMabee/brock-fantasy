@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { recordSessionExpiry, refreshWebSession } from './web-session';
 
 export interface WebSessionUser {
   id: string;
@@ -23,7 +24,7 @@ function csrfToken(): string | null {
 export async function webAuth<T>(
   action: string,
   options: { method?: 'GET' | 'POST'; body?: Record<string, unknown>; csrf?: boolean } = {},
-): Promise<{ data: T | null; error: string | null }> {
+): Promise<{ data: T | null; error: string | null; status?: number }> {
   const method = options.method ?? 'POST';
   const headers: Record<string, string> = { accept: 'application/json' };
   if (options.body) headers['content-type'] = 'application/json';
@@ -39,12 +40,22 @@ export async function webAuth<T>(
       cache: 'no-store',
       ...(options.body ? { body: JSON.stringify(options.body) } : {}),
     });
-    const payload = (await response.json().catch(() => ({}))) as T & ApiError;
+    const payload = (await response.json().catch(() => ({}))) as T &
+      ApiError & { expiresAt?: number; canRefresh?: boolean };
+    recordSessionExpiry(payload.expiresAt);
+    if (action === 'session' && (response.status === 401 || payload.canRefresh)) {
+      const renewed = await refreshWebSession();
+      return { data: renewed.data as T | null, error: renewed.error, status: renewed.status };
+    }
     return response.ok
-      ? { data: payload, error: null }
-      : { data: null, error: payload.error ?? 'The request could not be completed.' };
+      ? { data: payload, error: null, status: response.status }
+      : {
+          data: null,
+          error: payload.error ?? 'The request could not be completed.',
+          status: response.status,
+        };
   } catch {
-    return { data: null, error: 'Unable to reach the Brock Fantasy server.' };
+    return { data: null, error: 'Unable to reach the Brock Fantasy server.', status: 503 };
   }
 }
 

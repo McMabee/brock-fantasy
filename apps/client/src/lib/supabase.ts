@@ -3,25 +3,28 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
+import { validatePublicAuthConfig } from './public-auth-config';
+import { refreshWebSession, sessionNeedsRenewal } from './web-session';
+
+// Expo inlines these public values at build time. No server secrets belong here.
+validatePublicAuthConfig({
+  EXPO_PUBLIC_APP_ENV: process.env.EXPO_PUBLIC_APP_ENV,
+  EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  EXPO_PUBLIC_APP_ORIGIN: process.env.EXPO_PUBLIC_APP_ORIGIN,
+  EXPO_PUBLIC_SUPPORT_EMAIL: process.env.EXPO_PUBLIC_SUPPORT_EMAIL,
+});
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const publishableKey =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 const isExpoWebServer = Platform.OS === 'web' && typeof document === 'undefined';
 export const appEnvironment = process.env.EXPO_PUBLIC_APP_ENV ?? 'local';
-export const supportEmail = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
+const requiredSupportRecipients = ['tymabee@proton.me', 'gt22me@brocku.ca'] as const;
+export const supportEmail =
+  process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? requiredSupportRecipients.join(',');
 export const hasSupabaseConfig = Boolean(url && publishableKey);
-
-function isHttpsOrigin(value: string | undefined): boolean {
-  if (!value) return false;
-  try {
-    return (
-      new URL(value).protocol === 'https:' && new URL(value).origin === value.replace(/\/$/u, '')
-    );
-  } catch {
-    return false;
-  }
-}
 
 async function cookieAuthenticatedRead(
   input: RequestInfo | URL,
@@ -31,7 +34,8 @@ async function cookieAuthenticatedRead(
   const target = new URL(request.url);
   const path = `${target.pathname}${target.search}`;
   if (!path.startsWith('/rest/v1/')) return fetch(request);
-  return fetch(`/api/data/supabase?path=${encodeURIComponent(path)}`, {
+  if (sessionNeedsRenewal()) await refreshWebSession();
+  const options: RequestInit = {
     method: request.method,
     headers: request.headers,
     credentials: 'include',
@@ -39,23 +43,14 @@ async function cookieAuthenticatedRead(
     ...(request.method === 'GET' || request.method === 'HEAD'
       ? {}
       : { body: await request.text() }),
-  });
-}
-
-if (appEnvironment === 'production' || appEnvironment === 'staging') {
-  if (!hasSupabaseConfig) {
-    throw new Error(
-      'Staging and production require EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY.',
-    );
+  };
+  let response = await fetch(`/api/data/supabase?path=${encodeURIComponent(path)}`, options);
+  if (response.status === 401) {
+    const renewal = await refreshWebSession();
+    if (!renewal.error)
+      response = await fetch(`/api/data/supabase?path=${encodeURIComponent(path)}`, options);
   }
-  if (!supportEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(supportEmail)) {
-    throw new Error('Staging and production require a valid EXPO_PUBLIC_SUPPORT_EMAIL.');
-  }
-  if (!isHttpsOrigin(process.env.EXPO_PUBLIC_APP_ORIGIN)) {
-    throw new Error(
-      'Staging and production require an HTTPS EXPO_PUBLIC_APP_ORIGIN without a path.',
-    );
-  }
+  return response;
 }
 
 export const supabase: SupabaseClient | null =

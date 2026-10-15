@@ -1,0 +1,1560 @@
+{
+  "version": 1,
+  "season": "2026-27",
+  "permission": "User explicitly approved Brock Athletics headshots on October 13, 2026",
+  "headshots": [
+    {
+      "id": "01aa7733-d428-8a8c-a583-4ec87f908eaa",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 20,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Tatiana_Drozd.jpg?width=320&quality=90",
+        "sourcePlayerId": "13532",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/tatiana-drozd/13532",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "1179a1a9-7537-839f-a890-c0243244863e",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 30,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Kaiya_Greydanus.jpg?width=320&quality=90",
+        "sourcePlayerId": "13536",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/kaiya-greydanus/13536",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "c9729a85-6ff4-85f3-a4a0-49828b3165dd",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 40,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Sera_Leung.jpg?width=320&quality=90",
+        "sourcePlayerId": "13539",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/sera-leung/13539",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "808b3e51-2c84-86cd-a57f-5300ebcfa901",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 50,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Anna_Minyaylo.jpg?width=320&quality=90",
+        "sourcePlayerId": "13540",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/anna-minyaylo/13540",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "5325b814-fa8e-81af-ac6b-e5a2916d0ccb",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 60,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Campbell_Phaneuf2.jpg?width=320&quality=90",
+        "sourcePlayerId": "13541",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/campbell-phaneuf/13541",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "4cc873eb-8c91-8831-ad6d-928b79887045",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 70,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Abbey_Whittington.jpg?width=320&quality=90",
+        "sourcePlayerId": "13545",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/abbey-whittington/13545",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "50627c44-9c1b-8798-adf4-5cc49c522a59",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 80,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Isabella_Zylbering.jpg?width=320&quality=90",
+        "sourcePlayerId": "13547",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/isabella-zylbering/13547",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "f3aebaae-17fb-8fd4-a408-06b16643b214",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 90,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Jasmine_DelCarmen-Ellison.jpg?width=320&quality=90",
+        "sourcePlayerId": "13546",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/jasmine-delcarmen-ellison/13546",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "0cb88333-44a4-8606-a9b1-fe3663c334dd",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 100,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Eve_Entwistle.jpg?width=320&quality=90",
+        "sourcePlayerId": "13534",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/eve-entwistle/13534",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "cb8760a3-c734-8e1b-a74d-afde3256b9f3",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 110,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Alaina_Larochelle.jpg?width=320&quality=90",
+        "sourcePlayerId": "13538",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/alaina-larochelle/13538",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "3e7c6fe2-ca81-8e8f-af44-cfe32a3a7f9f",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 120,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_MacKenna_Knox.jpg?width=320&quality=90",
+        "sourcePlayerId": "13537",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/mackenna-knox/13537",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "07b547e2-5429-8f26-aca2-6cab4a44eda8",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 130,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Madison_Tuck.jpg?width=320&quality=90",
+        "sourcePlayerId": "13544",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/madison-tuck/13544",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "0763eb9a-9917-8def-a032-50b2ec626c42",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 140,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Daryan_Chadwick.jpg?width=320&quality=90",
+        "sourcePlayerId": "13531",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/daryan-chadwick/13531",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "c200d5dd-7087-8414-ad47-11877d7b5fa2",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 150,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Emma_Baruchelli.jpg?width=320&quality=90",
+        "sourcePlayerId": "13530",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/emma-baruchelli/13530",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "67bf67fe-4693-8080-ae35-be0a98014c27",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 160,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Avery_Duncan.jpg?width=320&quality=90",
+        "sourcePlayerId": "13533",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/avery-duncan/13533",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "e3fc9e19-3d30-86dd-a88e-fb00a7f3d395",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 170,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Charlotte_Ross.jpg?width=320&quality=90",
+        "sourcePlayerId": "13543",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/charlotte-ross/13543",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "7601e6d0-ae11-876b-ab2f-edbcef23187a",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 180,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Kara_Rakamnuaykit2.jpg?width=320&quality=90",
+        "sourcePlayerId": "13542",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/kara-rakamnuaykit/13542",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "612c8eec-6f79-865c-a5d3-5685470531ac",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 190,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WVB_2026_Victoria_George.jpg?width=320&quality=90",
+        "sourcePlayerId": "13535",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/victoria-george/13535",
+        "rosterSourceHash": "cabb7fc41c1b63c7a3622e58a1031fa10623065e04cc970dac39f26f0f986ff8",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "a96ec9da-323b-8a40-a974-86b882343c9a",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 20,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Josh_Laflevhe.jpg?width=320&quality=90",
+        "sourcePlayerId": "13520",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/joshua-lafleche/13520",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "8c974b1f-934d-82dc-a40f-746d9d32406c",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 30,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Liam_Strong.jpg?width=320&quality=90",
+        "sourcePlayerId": "13523",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/liam-strong/13523",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "027776be-f300-819f-ae78-a4f741df6faf",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 40,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Jacob_Langman.jpg?width=320&quality=90",
+        "sourcePlayerId": "13526",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/jacob-langman/13526",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "996369ac-084b-834f-a19f-21bce6a91dab",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 50,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Jonah_Ragaisis.jpg?width=320&quality=90",
+        "sourcePlayerId": "13521",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/jonah-ragaisis/13521",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "9a19a66e-a229-8598-a0c9-6dd07aac4f1d",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 70,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Lucas_Bouwers.jpg?width=320&quality=90",
+        "sourcePlayerId": "13513",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/lucas-bouwers/13513",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "d9fc6d95-9236-863f-a450-99a37f53aa91",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 80,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Devin_Cooney.jpg?width=320&quality=90",
+        "sourcePlayerId": "13515",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/devin-cooney/13515",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "d2bee944-ee0d-89e2-ae9c-1eb541b1885d",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 90,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Kyle_Stodola.jpg?width=320&quality=90",
+        "sourcePlayerId": "13527",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/kyle-stodola/13527",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "e8874f40-b511-8f37-a907-ae0d43339e4a",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 100,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Cole_Wiersma.jpg?width=320&quality=90",
+        "sourcePlayerId": "13524",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/cole-wiersma/13524",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "7f1aee41-daa2-8d4e-a565-86c6ed132a55",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 120,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Toby_Snider.jpg?width=320&quality=90",
+        "sourcePlayerId": "13522",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/toby-snider/13522",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "c660869c-5d66-8fc0-ac28-1b0730a2549c",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 130,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Oliver_Westhaver.jpg?width=320&quality=90",
+        "sourcePlayerId": "13528",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/oliver-westhaver/13528",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "544af08c-a380-8d48-a2ba-62f32cd36e9c",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 140,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Caleb_Huot.jpg?width=320&quality=90",
+        "sourcePlayerId": "13517",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/caleb-huot/13517",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "6620a8a1-0b52-808d-a37f-e7f7c0490410",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 150,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Zayd_Bazin.jpg?width=320&quality=90",
+        "sourcePlayerId": "13525",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/zayd-bazin/13525",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "af95fe07-34d4-8873-a01b-c31605df7795",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 160,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Gavin_Everett.jpg?width=320&quality=90",
+        "sourcePlayerId": "13516",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/gavin-everett/13516",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "d1ab1a7a-20c6-8daa-a824-570ad927dd08",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 170,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MVB_2026_Matheiu_Holi-Coeur.jpg?width=320&quality=90",
+        "sourcePlayerId": "13518",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/mathieu-joli-coeur/13518",
+        "rosterSourceHash": "ed0062547bc3c8ebe31ae28861de74c4c9889af7def81031ad5ff66fa56b521a",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "8070fdf3-ddca-8e5b-af6f-b7da89edb729",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 20,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Avery_Miles.jpg?width=320&quality=90",
+        "sourcePlayerId": "13576",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/avery-miles/13576",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "fdb120b8-f167-85a4-a02a-4a530d6f73d7",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 30,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Sofia_Curcio.jpg?width=320&quality=90",
+        "sourcePlayerId": "13568",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/sofia-curcio/13568",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "c076cea6-3072-8149-a90d-5b253244db90",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 40,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Ava_Stranges2.jpg?width=320&quality=90",
+        "sourcePlayerId": "13570",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/ava-stranges/13570",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "10fa8224-5c97-8ec8-a398-aacb30c81fda",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 50,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Liz_Shapero.jpg?width=320&quality=90",
+        "sourcePlayerId": "13577",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/liz-shapero/13577",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "fb502262-bb97-877a-a769-461cb0d1809f",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 60,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Brooke_Keltos.jpg?width=320&quality=90",
+        "sourcePlayerId": "13569",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/brookelyn-keltos/13569",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "dd05e826-3548-82b7-a263-905b5280fb60",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 70,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Hailey_Fennema.jpg?width=320&quality=90",
+        "sourcePlayerId": "13572",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/hailey-fennema/13572",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "689ae10c-822b-8561-ae6f-2baba57fcc15",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 80,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Kaleah_Gosse2.jpg?width=320&quality=90",
+        "sourcePlayerId": "13574",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/kaleah-gosse/13574",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "e40de435-4a93-8264-a757-8b62a97c37de",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 90,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Katie_Firth.jpg?width=320&quality=90",
+        "sourcePlayerId": "13573",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/katie-firth/13573",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "f950301a-1356-876f-ad21-61494fd9550d",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 100,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Shailah_Adams.jpg?width=320&quality=90",
+        "sourcePlayerId": "13566",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/shailah-adams/13566",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "19cac959-56e6-8831-adc2-b9b29f4885cf",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 110,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Jamie_Addy2.jpg?width=320&quality=90",
+        "sourcePlayerId": "13567",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/jamie-addy/13567",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "9f70c731-56dd-8c5d-a6d6-d4906f59cbc0",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 120,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Lucy_Machida-Gleadall.jpg?width=320&quality=90",
+        "sourcePlayerId": "13575",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/lucy-machida-gleadall/13575",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "12922f87-8643-81e9-adcb-70f5968613f5",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 130,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/WBB_2026_Vienna_Vercesi.jpg?width=320&quality=90",
+        "sourcePlayerId": "13571",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/vienna-vercesi/13571",
+        "rosterSourceHash": "0c0a03110393819c3b0b72f4031f1893d3fe4a0116c7eafd97558df398a9124f",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "e2b6ad6f-498c-84a7-a6de-ee0a6d25cbaa",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 20,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Anthony_Heyes.jpg?width=320&quality=90",
+        "sourcePlayerId": "13553",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/anthony-heyes/13553",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "303328de-23fd-8e09-a223-74a1eba4061d",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 30,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Magnus_Carlos.jpg?width=320&quality=90",
+        "sourcePlayerId": "13550",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/magnus-carlos/13550",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "e07d90c8-d613-8386-ac05-484f47b1ebb7",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 40,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Carter_Ethier.jpg?width=320&quality=90",
+        "sourcePlayerId": "13560",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/carter-ethier/13560",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "6689d443-364a-83b8-a0a7-cae3e9d229c4",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 50,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Zac_Hawley.jpg?width=320&quality=90",
+        "sourcePlayerId": "13563",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/zach-hawley/13563",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "5f3636a8-39d8-8c34-a415-0effb5da9336",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 60,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Quinten_Ethier.png?width=320&quality=90",
+        "sourcePlayerId": "13561",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/quinten-ethier/13561",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "dfc11514-634b-89fa-a95e-1a0a3d23a438",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 70,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Eric_Wouters.jpg?width=320&quality=90",
+        "sourcePlayerId": "13559",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/evan-wouters/13559",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "d948df0a-6347-805b-a5b5-2ae5dc32c05d",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 80,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Andrew_McKennz.jpg?width=320&quality=90",
+        "sourcePlayerId": "13555",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/andrew-mckenna/13555",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "648c64c3-3679-86f3-a283-cbc7f300f130",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 90,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Ben_Kyle2.jpg?width=320&quality=90",
+        "sourcePlayerId": "13564",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/ben-kyle/13564",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "96da119c-2e1a-87c2-a6f5-f35f08567a39",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 100,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Xavier_Fearon.jpg?width=320&quality=90",
+        "sourcePlayerId": "13551",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/xavier-fearon/13551",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "e21b73db-2086-89b4-abe4-910b71339fce",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 110,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Birch_Pockar.jpg?width=320&quality=90",
+        "sourcePlayerId": "13558",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/birch-pockar/13558",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "055c915d-50a0-8254-a5aa-e4ac9e316f94",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 120,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Mars_Tataryn.jpg?width=320&quality=90",
+        "sourcePlayerId": "13565",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/mars-tataryn/13565",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "08784d49-d531-88b4-a490-576dde81d761",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 130,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Aby_Biniam.jpg?width=320&quality=90",
+        "sourcePlayerId": "13562",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/aby-habtemariam/13562",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "a3ec6a33-05d1-82df-a404-d94f11b3bca1",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 140,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Emmanuel_Oleo-Oboh.jpg?width=320&quality=90",
+        "sourcePlayerId": "13556",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/emmanuel-oko-oboh/13556",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "57f5fecc-7090-8e03-a337-9cac8777b9c9",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 150,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Ben_Herbet.jpg?width=320&quality=90",
+        "sourcePlayerId": "13552",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/ben-herbert/13552",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "26fa17df-13a6-8fcf-a579-98b1119b78c5",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 160,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Cairo_Perry.jpg?width=320&quality=90",
+        "sourcePlayerId": "13557",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/cairo-perry/13557",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "286b2001-873d-8c8f-a4e2-0009794b98a1",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 170,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_Afam_Agbatekwe.jpg?width=320&quality=90",
+        "sourcePlayerId": "13549",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/afam-agbatekwe/13549",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "27654a1d-1369-84a2-a810-a999fa864e41",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 180,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/27/MBB_2026_James_Lawton.jpg?width=320&quality=90",
+        "sourcePlayerId": "13554",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/james-lawton/13554",
+        "rosterSourceHash": "0a7e3b4651478e5f73cfdb9017e662066176202d8dc0589cf7e110f3602e0c49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "c75b67dc-56f4-8429-a643-ac79cedf63c0",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 20,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Will_Hambley.jpg?width=320&quality=90",
+        "sourcePlayerId": "13425",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/will-hambley/13425",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "a9f2b9ef-60c6-8e6a-a6bc-ac2dc190a041",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 30,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Jaryd_Sych.jpg?width=320&quality=90",
+        "sourcePlayerId": "13418",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/jaryd-sych/13418",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "64afcdf6-46f8-8de9-a744-6d9577a2dbd2",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 40,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Brodic_McConnell-Barker.jpg?width=320&quality=90",
+        "sourcePlayerId": "13434",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/brodie-mcconnell-barker/13434",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "c52dd6ec-0ceb-8263-a08a-6432755559f4",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 50,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Tyler_Rowland.jpg?width=320&quality=90",
+        "sourcePlayerId": "13436",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/tyler-rowland/13436",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "77d27017-a5b0-8769-a7ea-f78284221aff",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 60,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Sawyer_Prokopetz.jpg?width=320&quality=90",
+        "sourcePlayerId": "13435",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/sawyer-prokopetz/13435",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "4e6d4157-6aa8-8a16-a39e-58447b94fdd4",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 70,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Dylan_Lariviere.jpg?width=320&quality=90",
+        "sourcePlayerId": "13433",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/dylan-lariviere/13433",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "d35c6e04-d084-8bec-a123-33ace0c667fb",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 80,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Jacob_Hoffrogge.jpg?width=320&quality=90",
+        "sourcePlayerId": "13443",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/jacob-hoffrogge/13443",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "f2284616-e008-88b3-af36-59a7ded1e18e",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 90,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Parker_Forlin.jpg?width=320&quality=90",
+        "sourcePlayerId": "13431",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/parker-forlin/13431",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "236ae0c7-f886-8a6b-a835-b66cefcbf1b0",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 100,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Zander_Stewart.jpg?width=320&quality=90",
+        "sourcePlayerId": "13419",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/zander-stewart/13419",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "efa65600-d143-8c5c-ab03-42753c6c1673",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 110,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Patrick_Raftery.jpg?width=320&quality=90",
+        "sourcePlayerId": "13420",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/patrick-raftery/13420",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "d4782a9f-1d7f-8283-aa54-ecc560050c1d",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 120,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Nathan_Ethier.jpg?width=320&quality=90",
+        "sourcePlayerId": "13442",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/natan-ethier/13442",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "b6d866d7-87e7-8f2e-aadd-6ada2926bd45",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 130,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Logan_Belton.jpg?width=320&quality=90",
+        "sourcePlayerId": "13421",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/logan-belton/13421",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "16e39da7-947f-8c81-a947-bb87a6284e29",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 140,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Andrew_Amousse.jpg?width=320&quality=90",
+        "sourcePlayerId": "13440",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/andrew-amousse/13440",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "be061f00-8e10-8552-a938-20e990aecdcf",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 150,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Scott_Miner.jpg?width=320&quality=90",
+        "sourcePlayerId": "13424",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/scott-miner/13424",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "73952828-3eb9-8e97-a769-91cf6bc10b17",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 160,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Nathan_Fox.jpg?width=320&quality=90",
+        "sourcePlayerId": "13413",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/nathan-fox/13413",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "994e817b-4dea-8685-a19b-52ec196435a7",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 170,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Keefe_Grvener.jpg?width=320&quality=90",
+        "sourcePlayerId": "13422",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/keefe-gruener/13422",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "30243306-b93d-8e03-a7b5-6fe9572237e7",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 180,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Zach_Stringer.jpg?width=320&quality=90",
+        "sourcePlayerId": "13417",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/zack-stringer/13417",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "8b489e19-0094-8f5a-a35c-48e6dad34967",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 190,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Eric_Barnard.jpg?width=320&quality=90",
+        "sourcePlayerId": "13426",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/eric-barnard/13426",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "143ccdc3-d822-88e7-a179-4adccecd017f",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 200,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Ryan_Henderson.jpg?width=320&quality=90",
+        "sourcePlayerId": "13414",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/ryan-henderson/13414",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "df8505b0-5fcd-8fab-a104-27472b340051",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 210,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Carter_Oakenfold.jpg?width=320&quality=90",
+        "sourcePlayerId": "13416",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/carter-oakenfold/13416",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "e1ebd748-61e2-8be9-a252-db44b0922ebf",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 220,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Colby_Saganiuk.jpg?width=320&quality=90",
+        "sourcePlayerId": "13439",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/colby-saganiuk/13439",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "f084b76f-2385-827f-a37f-87c8a7080948",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 230,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Tai_York.jpg?width=320&quality=90",
+        "sourcePlayerId": "13438",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/tai-york/13438",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "5465b9e5-8a71-8559-a040-54e1ae72c21e",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 240,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Spencer_Smith.jpg?width=320&quality=90",
+        "sourcePlayerId": "13437",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/spencer-smith/13437",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "d7938b04-61d6-8835-aea9-983c56826666",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 250,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2022/10/19/Headshot-generic_w7zRw.png?width=320&quality=90",
+        "sourcePlayerId": "13415",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/keifer-miller/13415",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "b9d69319-5739-8a63-a04e-41ffe78d620a",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 260,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Alexis_Cournoyer.jpg?width=320&quality=90",
+        "sourcePlayerId": "13441",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/alexis-cournoyer/13441",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "a975d29c-2a08-8ec2-ab49-f00139eb9fc8",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 270,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Braeden_Lewis.jpg?width=320&quality=90",
+        "sourcePlayerId": "13423",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/braeden-lewis/13423",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "d670ba85-dce8-80fd-af51-6e43e6fbda8e",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 280,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Ben_Boinsteel.jpg?width=320&quality=90",
+        "sourcePlayerId": "13428",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/benjamin-bonisteel/13428",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "5c17965f-eb90-84e2-afea-0fd986966996",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 290,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Alexandre_Blachard.jpg?width=320&quality=90",
+        "sourcePlayerId": "13427",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/alexandre-blanchard/13427",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "f38a2a44-5ad5-8770-aa9a-4be3c3ade567",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 300,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Cole_Cooksey.jpg?width=320&quality=90",
+        "sourcePlayerId": "13430",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/cole-cooksey/13430",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "aed85450-9526-864a-ac25-cdb42640fcc7",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 310,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Ryan_Johnstone.jpg?width=320&quality=90",
+        "sourcePlayerId": "13432",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/ryan-johnstone/13432",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "345da3ca-0bf7-86d7-a265-438710a60911",
+      "revisionHash": "cc9e81250e09ea1b0bb2f3faaf422a38f8183920960a23ce0f98c7b8cc61b68a",
+      "rowNumber": 320,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/MHKY_2026_27_Josh_Brady.jpg?width=320&quality=90",
+        "sourcePlayerId": "13429",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-ice-hockey/roster/joshua-brady/13429",
+        "rosterSourceHash": "2129e9b3d36e5a4e9e79a400f5963f037deaa0a1329f60061ae34d4e5939cad9",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "69cc612c-6ea9-8284-a3b5-c6a98eb706c1",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 20,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Megan_Theissen.jpg?width=320&quality=90",
+        "sourcePlayerId": "13276",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/megan-thiessen/13276",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "6064cab4-4fe9-8605-afc4-11f516fd811b",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 30,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Chloe_Flanagan.jpg?width=320&quality=90",
+        "sourcePlayerId": "13271",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/chloe-flanagan/13271",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "e5c5d472-34bd-80f0-af32-792799d3122c",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 40,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Cayleigh_Bowes.jpg?width=320&quality=90",
+        "sourcePlayerId": "13285",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/cayleigh-bowes/13285",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "067d7f51-af03-8519-a67d-c142a2dc8e82",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 50,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Taylor_Wolsey.jpg?width=320&quality=90",
+        "sourcePlayerId": "13277",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/taylor-wolsey/13277",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "2f2a0e3c-7a77-88fb-a17b-258408c3d330",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 60,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Randyll_Strongman.jpg?width=320&quality=90",
+        "sourcePlayerId": "13268",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/randyll-strongman/13268",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "37ec4f4b-1f9d-8a9d-a372-95fb56378f99",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 70,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Moi_Moi_Luu.jpg?width=320&quality=90",
+        "sourcePlayerId": "13282",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/moi-moi-luu/13282",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "c489410a-f230-8e2e-a033-a2b8188b20ae",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 80,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Ireland_Duffy.jpg?width=320&quality=90",
+        "sourcePlayerId": "13279",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/irelynn-duffy/13279",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "3eab62fb-ac9e-8932-a4ff-3e6efc1c2e94",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 90,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Ellie_French.jpg?width=320&quality=90",
+        "sourcePlayerId": "13272",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/ellie-french/13272",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "5a8cde8e-ff50-8d28-a5ea-bf126ab5211b",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 100,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Sydeny_Hood.jpg?width=320&quality=90",
+        "sourcePlayerId": "13273",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/sydney-hood/13273",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "5ac037cb-df8e-8a00-a601-06c686084dc1",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 110,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Carly_Sardine.jpg?width=320&quality=90",
+        "sourcePlayerId": "13275",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/carly-sardine/13275",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "fb96a0d4-d732-8a06-af4c-cac46d5cfa56",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 120,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Parker_Talbot.jpg?width=320&quality=90",
+        "sourcePlayerId": "13288",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/parker-talbot/13288",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "96407462-65a0-8dcd-aca4-e431d1e31fc7",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 130,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Aubrey_Biase.jpg?width=320&quality=90",
+        "sourcePlayerId": "13284",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/aubrey-biase/13284",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "608ee79e-90bd-8ac3-af0d-8f73527008e0",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 140,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Quinn_McFarlane.jpg?width=320&quality=90",
+        "sourcePlayerId": "13287",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/quinn-mcfarlane/13287",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "13312140-93f1-8bef-aa70-bfbe1834558d",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 150,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Avery_Olenik.jpg?width=320&quality=90",
+        "sourcePlayerId": "13274",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/avery-olenik/13274",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "f658219e-95a1-8fee-a41c-212329b22d58",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 160,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Neve_Wamboldt.jpg?width=320&quality=90",
+        "sourcePlayerId": "13289",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/neve-wamboldt/13289",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "15793b8b-ec00-8ee9-a43e-7c6824f5e8c2",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 170,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Rayna_Franklin.jpg?width=320&quality=90",
+        "sourcePlayerId": "13266",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/rayna-franklin/13266",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "670d5610-a3bb-8c2a-a06f-e44e0adbcd62",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 180,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Riley_Gillies.jpg?width=320&quality=90",
+        "sourcePlayerId": "13281",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/riley-gillies/13281",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "ccc053cd-31d8-8379-a2ca-9f68d0c0090b",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 190,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Ava_Fisher.jpg?width=320&quality=90",
+        "sourcePlayerId": "13280",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/ava-fisher/13280",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "e66bf678-3704-8ded-a896-d4b041ff1a10",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 200,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Kylee_Strano.jpg?width=320&quality=90",
+        "sourcePlayerId": "13283",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/kylee-strano/13283",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "9b29e3dc-a4eb-85bb-ae47-375a3b29205f",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 210,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2022/10/19/Headshot-generic_w7zRw.png?width=320&quality=90",
+        "sourcePlayerId": "13278",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/chelsea-clark/13278",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "97595023-60da-8a92-a9fc-44b35908b5be",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 220,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Hali_Lawrence.jpg?width=320&quality=90",
+        "sourcePlayerId": "13412",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/hali-lawrence/13412",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "5987ed64-5d9e-8fdf-ab0f-bda243c9384d",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 230,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Kathryn_Raitano.jpg?width=320&quality=90",
+        "sourcePlayerId": "13264",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/kathryn-raitano/13264",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "4a46c9b0-aabb-8d33-a3a7-c9cd3a9cd0f1",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 240,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Ava_Cruikshank.jpg?width=320&quality=90",
+        "sourcePlayerId": "13265",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/ava-cruikshank/13265",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "f1369673-c5d5-8062-ad8e-45c168b12172",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 250,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Avery_Diljee.jpg?width=320&quality=90",
+        "sourcePlayerId": "13270",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/avery-diljee/13270",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "8e7caa42-ca04-8845-adee-3b4f165beaa0",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 260,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Kaedyn_Gomes.jpg?width=320&quality=90",
+        "sourcePlayerId": "13267",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/kaedyn-gomes/13267",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "959d13c8-d9cb-8965-a093-24eccb88e73d",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 270,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Rachel_Burt.jpg?width=320&quality=90",
+        "sourcePlayerId": "13286",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/rachael-burt/13286",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    },
+    {
+      "id": "10371d8e-283e-8bc4-a3eb-9d771f6f70c0",
+      "revisionHash": "bc76b8d4b2c9c852fa1673962175f40274ea16ae8e1417c174543e9763702ea5",
+      "rowNumber": 280,
+      "headshot": {
+        "url": "https://gobadgers.ca/images/2026/9/15/WHKY_2026_27_Grace_Campbell.jpg?width=320&quality=90",
+        "sourcePlayerId": "13269",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-ice-hockey/roster/grace-campbell/13269",
+        "rosterSourceHash": "efe837f270b35f492c86ca9352f3288c266613036a7595a88613dacb34283d49",
+        "season": "2026-27",
+        "permissionReference": "operator-headshots-approved-2026-10-13"
+      }
+    }
+  ],
+  "missing": [
+    {
+      "id": "71c158fa-6680-86a7-a146-e90e64f42ba7",
+      "reason": "Official identity is unavailable or ambiguous"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
   ActionButton,
@@ -8,12 +9,14 @@ import {
   EmptyState,
   Pill,
   SectionTitle,
-  uiStyles,
+  useUiStyles,
 } from '@/components/ui';
 import { useRequireAdmin } from '@/hooks/use-route-access';
 import { betaCommand } from '@/lib/web-api';
 import { webRequest } from '@/lib/web-request';
-import { colors } from '@/theme';
+import { programNames } from '@/lib/player-program';
+
+import { AdminAccess } from '@/components/admin-access';
 
 interface AdminGame {
   id: string;
@@ -26,6 +29,8 @@ interface AdminGame {
   manual_override: boolean;
   home: { name: string } | null;
   away: { name: string } | null;
+  program?: string | null;
+  source_url?: string | null;
 }
 
 interface GameDetail {
@@ -79,9 +84,21 @@ const STAT_KEYS: Readonly<Record<'hockey' | 'basketball' | 'volleyball', readonl
   ],
 };
 
-const GOALIE_STAT_KEYS = ['wins', 'goals_allowed', 'saves', 'shutouts'] as const;
+const GOALIE_STAT_KEYS = [
+  'wins',
+  'losses',
+  'goals_allowed',
+  'saves',
+  'full_game_solo',
+  'shootout',
+] as const;
 
 function displayStat(key: string): string {
+  if (key === 'wins') return 'individual win (0 or 1)';
+  if (key === 'losses') return 'individual loss (0 or 1)';
+  if (key === 'full_game_solo') return 'only goalie used, allowing empty-net time (0 or 1)';
+  if (key === 'shootout') return 'game went to shootout (0 or 1)';
+  if (key === 'foul_out') return 'scorekeeper-declared foul out (0 or 1)';
   return key.replace(/_/gu, ' ');
 }
 
@@ -93,51 +110,72 @@ function statisticKeys(
 }
 
 export default function AdminGamesScreen() {
-  useRequireAdmin();
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
+  const access = useRequireAdmin();
   const [games, setGames] = useState<readonly AdminGame[]>([]);
   const [selected, setSelected] = useState<GameDetail | null>(null);
   const [query, setQuery] = useState('');
+  const [gameDate, setGameDate] = useState('');
+  const [programFilter, setProgramFilter] = useState('');
   const [status, setStatus] = useState<AdminGame['status']>('final');
   const [homeScore, setHomeScore] = useState('0');
   const [awayScore, setAwayScore] = useState('0');
   const [statLines, setStatLines] = useState<readonly EditableStatLine[]>([]);
   const [includedAthleteIds, setIncludedAthleteIds] = useState<ReadonlySet<string>>(new Set());
   const [reason, setReason] = useState('');
-  const [source, setSource] = useState('manual-review');
+  const [source, setSource] = useState('');
   const [preview, setPreview] = useState<ScorePreview | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+  const [loadingGames, setLoadingGames] = useState(true);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const selectionRequest = useRef(0);
 
   const loadGames = async () => {
+    setLoadingGames(true);
     const result =
       Platform.OS === 'web'
         ? await webRequest<{ games: AdminGame[] }>('/api/admin/games')
         : { data: null, error: 'Scorekeeping is available through the web beta.' };
     if (result.error) setMessage(result.error);
     else setGames(result.data?.games ?? []);
+    setLoadingGames(false);
   };
 
   useEffect(() => {
-    void loadGames();
-  }, []);
+    if (access.allowed) void loadGames();
+  }, [access.allowed]);
 
   const filteredGames = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return games;
-    return games.filter((game) =>
-      [game.home?.name, game.away?.name, game.status, game.id]
-        .join(' ')
-        .toLowerCase()
-        .includes(needle),
+    return games.filter(
+      (game) =>
+        (!gameDate ||
+          new Date(game.starts_at).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) ===
+            gameDate) &&
+        (!programFilter || game.program === programFilter) &&
+        [game.home?.name, game.away?.name, game.program, game.status]
+          .join(' ')
+          .toLowerCase()
+          .includes(needle),
     );
-  }, [games, query]);
+  }, [gameDate, games, programFilter, query]);
 
   const selectGame = async (game: AdminGame) => {
+    const requestId = ++selectionRequest.current;
+    setLoadingDetail(true);
+    setSelected(null);
     setMessage(null);
     setPreview(null);
+    setReason('');
+    setSource('');
     const result = await webRequest<GameDetail>(
       `/api/admin/games?gameId=${encodeURIComponent(game.id)}`,
     );
+    if (selectionRequest.current !== requestId) return;
+    setLoadingDetail(false);
     if (result.error || !result.data) {
       setMessage(result.error ?? 'Unable to load game details.');
       return;
@@ -146,9 +184,10 @@ export default function AdminGamesScreen() {
       result.data.stats.map((line) => [line.athlete_id, line.stats]),
     );
     setSelected(result.data);
-    setStatus(game.status);
-    setHomeScore(String(game.home_score ?? 0));
-    setAwayScore(String(game.away_score ?? 0));
+    setSource(result.data.game.source_url ?? '');
+    setStatus(result.data.game.status);
+    setHomeScore(String(result.data.game.home_score ?? 0));
+    setAwayScore(String(result.data.game.away_score ?? 0));
     setIncludedAthleteIds(new Set(currentByAthlete.keys()));
     setStatLines(
       result.data.athletes.map((athlete) => ({
@@ -169,6 +208,7 @@ export default function AdminGamesScreen() {
   };
 
   const updateStat = (athleteId: string, key: string, rawValue: string) => {
+    setPreview(null);
     setStatLines((current) =>
       current.map((line) => {
         if (line.athleteId !== athleteId) return line;
@@ -185,6 +225,7 @@ export default function AdminGamesScreen() {
   };
 
   const toggleAthlete = (athleteId: string) => {
+    setPreview(null);
     setIncludedAthleteIds((current) => {
       const next = new Set(current);
       if (next.has(athleteId)) next.delete(athleteId);
@@ -214,6 +255,10 @@ export default function AdminGamesScreen() {
 
   const publishRevision = async () => {
     if (!selected) return;
+    if (!preview) {
+      setMessage('Preview the current stat lines before publishing.');
+      return;
+    }
     const stats = buildStats();
     const home = Number(homeScore);
     const away = Number(awayScore);
@@ -259,15 +304,16 @@ export default function AdminGamesScreen() {
     [statLines],
   );
 
+  if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
     <AppShell
       eyebrow="Administrator scorekeeping"
-      title="Games, mappings, and score revisions"
+      title="Update game scores and stats"
       action={<Pill label="AAL2 VERIFIED" tone="warning" />}
     >
       <Text style={uiStyles.body}>
-        Search an official or manual game record, inspect the current normalized player lines,
-        preview point changes, then publish one audited revision.
+        Choose a game, add the players credited in it, and enter their individual statistics.
+        Preview fantasy points before saving.
       </Text>
       {message ? (
         <Text accessibilityRole="alert" style={styles.message}>
@@ -276,18 +322,74 @@ export default function AdminGamesScreen() {
       ) : null}
       <View style={styles.layout}>
         <Card style={styles.searchPane}>
+          {Platform.OS === 'web' ? (
+            <label
+              style={{
+                color: colors.text,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                fontFamily: 'Inter',
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              Game date (Toronto)
+              <input
+                aria-label="Filter game date"
+                type="date"
+                style={{
+                  width: '100%',
+                  maxWidth: 320,
+                  minWidth: 0,
+                  minHeight: 44,
+                  padding: '10px 12px',
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 10,
+                  background: colors.canvasSoft,
+                  color: colors.text,
+                  font: 'inherit',
+                }}
+                value={gameDate}
+                onChange={(e) => setGameDate(e.currentTarget.value)}
+              />
+            </label>
+          ) : (
+            <Field label="Game date YYYY-MM-DD" value={gameDate} onChange={setGameDate} />
+          )}
+          <Choice
+            label="Sport / program"
+            value={programFilter}
+            onChange={setProgramFilter}
+            disabled={working}
+            options={[
+              { value: '', label: 'All programs' },
+              ...[...new Set(games.flatMap((g) => (g.program ? [g.program] : [])))]
+                .sort()
+                .map((p) => ({ value: p, label: programNames[p] ?? p })),
+            ]}
+          />
           <TextInput
             accessibilityLabel="Search games"
             onChangeText={setQuery}
-            placeholder="Search team, status, or game ID"
+            placeholder="Search team or game status"
             placeholderTextColor={colors.muted}
             style={uiStyles.input}
             value={query}
           />
-          <View style={styles.gameList}>
+          <ActionButton
+            label="Refresh games"
+            onPress={() => void loadGames()}
+            loading={loadingGames}
+            disabled={working}
+            variant="secondary"
+          />
+          <ScrollView style={{ maxHeight: 440 }} contentContainerStyle={styles.gameList}>
             {filteredGames.map((game) => (
               <Pressable
                 key={game.id}
+                accessibilityRole="button"
+                disabled={working}
                 onPress={() => void selectGame(game)}
                 style={[styles.gameRow, selected?.game.id === game.id && styles.gameRowActive]}
               >
@@ -295,24 +397,30 @@ export default function AdminGamesScreen() {
                   {game.home?.name ?? 'Unknown'} vs {game.away?.name ?? 'Unknown'}
                 </Text>
                 <Text style={styles.gameMeta}>
-                  {new Date(game.starts_at).toLocaleString()} · {game.status} · v
-                  {game.state_version}
+                  {new Date(game.starts_at).toLocaleString('en-CA', {
+                    timeZone: 'America/Toronto',
+                  })}{' '}
+                  Toronto · {game.status} · v{game.state_version}
                 </Text>
               </Pressable>
             ))}
-            {!filteredGames.length ? (
+            {!loadingGames && !filteredGames.length ? (
               <EmptyState
                 title="No games found"
                 body="Import or reconcile schedules before scorekeeping."
               />
             ) : null}
-          </View>
+          </ScrollView>
         </Card>
         <Card style={styles.editor}>
           {!selected ? (
             <EmptyState
-              title="Select a game"
-              body="The editor shows the game’s normalized player lines and revision controls."
+              title={loadingDetail ? 'Loading game' : 'Select a game'}
+              body={
+                loadingDetail
+                  ? 'Loading the latest game revision and player lines…'
+                  : 'The editor shows the game’s normalized player lines and revision controls.'
+              }
             />
           ) : (
             <>
@@ -321,9 +429,16 @@ export default function AdminGamesScreen() {
                 detail={`Revision ${selected.game.state_version}`}
               />
               <View style={styles.scores}>
-                <Field
+                <Choice
                   label="Status"
                   value={status}
+                  disabled={working}
+                  options={['scheduled', 'in_progress', 'final', 'postponed', 'cancelled'].map(
+                    (v) => ({
+                      value: v,
+                      label: v === 'in_progress' ? 'In progress' : v[0]!.toUpperCase() + v.slice(1),
+                    }),
+                  )}
                   onChange={(value) => {
                     if (
                       ['scheduled', 'in_progress', 'final', 'postponed', 'cancelled'].includes(
@@ -334,8 +449,20 @@ export default function AdminGamesScreen() {
                     }
                   }}
                 />
-                <Field label="Home score" value={homeScore} onChange={setHomeScore} />
-                <Field label="Away score" value={awayScore} onChange={setAwayScore} />
+                <Field
+                  label="Home score"
+                  value={homeScore}
+                  onChange={setHomeScore}
+                  numeric
+                  disabled={working}
+                />
+                <Field
+                  label="Away score"
+                  value={awayScore}
+                  onChange={setAwayScore}
+                  numeric
+                  disabled={working}
+                />
               </View>
               {selected.sport ? (
                 <>
@@ -344,22 +471,29 @@ export default function AdminGamesScreen() {
                   </Text>
                   <Text style={styles.hint}>
                     Include only athletes credited in this game. Leave a field blank only when the
-                    official source does not provide it; enter 0 for a recorded zero.
+                    official source does not provide it; enter 0 for a recorded zero. Existing
+                    credited lines are retained; correct their values in place.
                   </Text>
                   <View style={styles.statLines}>
                     {selected.athletes.map((athlete) => {
                       const included = includedAthleteIds.has(athlete.id);
+                      const previouslyCredited = selected.stats.some(
+                        (line) => line.athlete_id === athlete.id,
+                      );
                       const values = statsByAthlete.get(athlete.id) ?? {};
                       return (
                         <View key={athlete.id} style={styles.statLine}>
                           <View style={styles.statHeader}>
-                            <View>
+                            <View style={{ flex: 1, minWidth: 0 }}>
                               <Text style={styles.assetName}>{athlete.display_name}</Text>
                               <Text style={styles.assetMeta}>{athlete.position}</Text>
                             </View>
                             <Pressable
                               accessibilityRole="switch"
+                              aria-checked={included}
+                              accessibilityLabel={`Include ${athlete.display_name}`}
                               accessibilityState={{ checked: included }}
+                              disabled={working || previouslyCredited}
                               onPress={() => toggleAthlete(athlete.id)}
                               style={[styles.include, included && styles.includeActive]}
                             >
@@ -373,15 +507,36 @@ export default function AdminGamesScreen() {
                           {included ? (
                             <View style={styles.statInputs}>
                               {statisticKeys(selected.sport ?? 'hockey', athlete.position).map(
-                                (key) => (
-                                  <Field
-                                    key={key}
-                                    label={displayStat(key)}
-                                    value={values[key] === undefined ? '' : String(values[key])}
-                                    onChange={(value) => updateStat(athlete.id, key, value)}
-                                    numeric
-                                  />
-                                ),
+                                (key) =>
+                                  [
+                                    'wins',
+                                    'losses',
+                                    'full_game_solo',
+                                    'shootout',
+                                    'foul_out',
+                                  ].includes(key) ? (
+                                    <Choice
+                                      key={key}
+                                      label={displayStat(key).replace(' (0 or 1)', '')}
+                                      value={values[key] === undefined ? '' : String(values[key])}
+                                      onChange={(value) => updateStat(athlete.id, key, value)}
+                                      disabled={working}
+                                      options={[
+                                        { value: '', label: 'Not recorded' },
+                                        { value: '0', label: 'No' },
+                                        { value: '1', label: 'Yes' },
+                                      ]}
+                                    />
+                                  ) : (
+                                    <Field
+                                      key={key}
+                                      label={displayStat(key)}
+                                      value={values[key] === undefined ? '' : String(values[key])}
+                                      onChange={(value) => updateStat(athlete.id, key, value)}
+                                      numeric
+                                      disabled={working}
+                                    />
+                                  ),
                               )}
                             </View>
                           ) : null}
@@ -396,11 +551,17 @@ export default function AdminGamesScreen() {
                   body="Resolve the competition-to-sport mapping before entering player statistics."
                 />
               )}
-              <Field label="Reason for revision" value={reason} onChange={setReason} />
+              <Field
+                label="Reason for revision"
+                value={reason}
+                onChange={setReason}
+                disabled={working}
+              />
               <Field
                 label="Official source or manual reference"
                 value={source}
                 onChange={setSource}
+                disabled={working}
               />
               <View style={styles.actions}>
                 <ActionButton
@@ -408,18 +569,22 @@ export default function AdminGamesScreen() {
                   onPress={() => void previewRevision()}
                   loading={working}
                   variant="secondary"
+                  disabled={loadingDetail || !selected.sport}
                 />
                 <ActionButton
                   label="Publish audited revision"
                   onPress={() => void publishRevision()}
                   loading={working}
+                  disabled={!preview || !selected.sport}
                 />
               </View>
               {preview ? (
                 <View style={styles.preview}>
                   {preview.players.map((player) => (
                     <Text key={player.athlete_id} style={styles.previewLine}>
-                      {player.athlete_id.slice(0, 8)} ·{' '}
+                      {selected.athletes.find((athlete) => athlete.id === player.athlete_id)
+                        ?.display_name ?? player.athlete_id}{' '}
+                      ·{' '}
                       {player.missing_stats.length
                         ? `incomplete: ${player.missing_stats.join(', ')}`
                         : `${player.previous_points} → ${player.projected_points} (${player.point_difference! >= 0 ? '+' : ''}${player.point_difference})`}
@@ -431,7 +596,69 @@ export default function AdminGamesScreen() {
           )}
         </Card>
       </View>
+      <View style={{ paddingTop: 24, paddingBottom: 12 }}>
+        <ActionButton label="Back to operations" href="/admin" variant="secondary" />
+      </View>
     </AppShell>
+  );
+}
+
+function Choice({
+  label,
+  value,
+  onChange,
+  options,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: readonly { value: string; label: string }[];
+  disabled?: boolean;
+}) {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
+  return (
+    <View style={styles.field}>
+      <Text style={uiStyles.label}>{label}</Text>
+      {Platform.OS === 'web' ? (
+        <select
+          aria-label={label}
+          value={value}
+          onChange={(e) => onChange(e.currentTarget.value)}
+          disabled={disabled}
+          style={{
+            minHeight: 44,
+            padding: 12,
+            borderRadius: 8,
+            color: colors.text,
+            background: colors.panel,
+            border: '1px solid ' + colors.border,
+          }}
+        >
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {options.map((o) => (
+            <Pressable
+              key={o.value}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: value === o.value }}
+              onPress={() => onChange(o.value)}
+              disabled={disabled}
+            >
+              <Text style={uiStyles.body}>{o.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -440,12 +667,17 @@ function Field({
   value,
   onChange,
   numeric = false,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   numeric?: boolean;
+  disabled?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   return (
     <View style={styles.field}>
       <Text style={uiStyles.label}>{label}</Text>
@@ -456,46 +688,65 @@ function Field({
         placeholderTextColor={colors.muted}
         style={uiStyles.input}
         value={value}
+        editable={!disabled}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  message: { color: colors.brand, fontSize: 13, marginTop: 12 },
-  layout: { gap: 16, marginTop: 16 },
-  searchPane: { gap: 12 },
-  editor: { gap: 11 },
-  gameList: { gap: 6, maxHeight: 440 },
-  gameRow: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 11 },
-  gameRowActive: { borderColor: colors.red },
-  gameName: { color: colors.text, fontWeight: '800', fontSize: 13 },
-  gameMeta: { color: colors.muted, fontSize: 10, marginTop: 4 },
-  assetName: { color: colors.text, fontSize: 12, fontWeight: '800' },
-  assetMeta: { color: colors.muted, fontSize: 10, marginTop: 3 },
-  scores: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  field: { flex: 1, minWidth: 150, gap: 6 },
-  hint: { color: colors.muted, fontSize: 11, lineHeight: 16 },
-  statLines: { gap: 8 },
-  statLine: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 10, gap: 10 },
-  statHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  statInputs: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  include: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-  },
-  includeActive: { borderColor: colors.red, backgroundColor: colors.white },
-  includeText: { color: colors.muted, fontSize: 9, fontWeight: '900' },
-  includeTextActive: { color: colors.red },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 9 },
-  preview: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 10, gap: 5 },
-  previewLine: { color: colors.text, fontSize: 11 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    message: { fontFamily: 'Inter', color: colors.text, fontSize: 13, marginTop: 12 },
+    layout: { gap: 16, marginTop: 16 },
+    searchPane: { gap: 16, padding: 24 },
+    editor: { gap: 16, padding: 24 },
+    gameList: { gap: 6 },
+    gameRow: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 11 },
+    gameRowActive: { borderColor: colors.red },
+    gameName: { fontFamily: 'Inter', color: colors.text, fontWeight: '800', fontSize: 13 },
+    gameMeta: { fontFamily: 'Inter', color: colors.muted, fontSize: 10, marginTop: 4 },
+    assetName: { fontFamily: 'Inter', color: colors.text, fontSize: 12, fontWeight: '800' },
+    assetMeta: { fontFamily: 'Inter', color: colors.muted, fontSize: 10, marginTop: 3 },
+    scores: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    field: { flexGrow: 1, minWidth: 150, gap: 6 },
+    hint: { fontFamily: 'Inter', color: colors.muted, fontSize: 11, lineHeight: 16 },
+    statLines: { gap: 8 },
+    statLine: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 10,
+      padding: 10,
+      gap: 10,
+    },
+    statHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    statInputs: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+    include: {
+      minHeight: 44,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      minWidth: 100,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    includeActive: { borderColor: colors.red, backgroundColor: colors.canvasSoft },
+    includeText: { fontFamily: 'Inter', color: colors.muted, fontSize: 11, fontWeight: '700' },
+    includeTextActive: { color: colors.text },
+    actions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'flex-end',
+      gap: 12,
+      paddingTop: 18,
+    },
+    preview: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 10, gap: 5 },
+    previewLine: { fontFamily: 'Inter', color: colors.text, fontSize: 11 },
+  });

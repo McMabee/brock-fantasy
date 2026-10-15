@@ -1,3 +1,5 @@
+import { AppAccessUnavailable, canUseApp } from './app-access';
+
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const REFRESH_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-refresh' : 'bf_refresh';
 const CSRF_COOKIE = 'bf_csrf';
@@ -75,16 +77,27 @@ export function mutationError(request: Request): string | null {
   return !csrf || csrf !== request.headers.get('x-csrf-token') ? 'Invalid CSRF token.' : null;
 }
 
-export async function actor(request: Request): Promise<WebActor | null> {
-  const accessToken = requestCookie(request, ACCESS_COOKIE);
+export async function actor(request: Request, allowBearer = false): Promise<WebActor | null> {
+  const bearer = allowBearer
+    ? request.headers.get('authorization')?.match(/^Bearer (\S+)$/u)?.[1]
+    : null;
+  const accessToken = bearer ?? requestCookie(request, ACCESS_COOKIE);
   const config = apiConfig();
   if (!accessToken || !config) return null;
   const result = await fetch(`${config.url}/auth/v1/user`, {
     headers: { apikey: config.key, authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => {
+    throw new AppAccessUnavailable('Application access is unavailable.');
   });
-  if (!result.ok) return null;
-  const user = (await result.json()) as { id?: unknown };
-  if (typeof user.id !== 'string') return null;
+  if (result.status === 401 || result.status === 403) return null;
+  if (!result.ok) throw new AppAccessUnavailable('Application access is unavailable.');
+  const user = (await result.json().catch(() => {
+    throw new AppAccessUnavailable('Application access is unavailable.');
+  })) as { id?: unknown } | null;
+  if (!user || typeof user.id !== 'string')
+    throw new AppAccessUnavailable('Application access is unavailable.');
+  if (!(await canUseApp(accessToken))) return null;
   return {
     accessToken,
     userId: user.id,

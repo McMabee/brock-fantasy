@@ -1,13 +1,28 @@
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
+import { Link } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, EmptyState, Pill, SectionTitle } from '@/components/ui';
+import {
+  ActionButton,
+  AppShell,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  Pill,
+  SectionTitle,
+} from '@/components/ui';
 import { useCompetitions } from '@/hooks/use-competitions';
+import { ASSOCIATION_INSTAGRAM_URL } from '@/lib/association';
 import { useSession } from '@/providers/session-provider';
-import { colors, heading } from '@/theme';
+import { heading } from '@/theme';
+import { programNames } from '@/lib/player-program';
 
 export default function HomeScreen() {
+  const styles = useThemedStyles(createStyles);
   const { user, loading } = useSession();
-  const competitions = useCompetitions();
+  const competitionQuery = useCompetitions(Boolean(user));
+  const competitions = competitionQuery.data;
 
   return (
     <AppShell>
@@ -26,13 +41,42 @@ export default function HomeScreen() {
             href={user ? '/dashboard' : '/auth'}
           />
           {!loading && !user ? (
-            <ActionButton label="Create an account" href="/auth" variant="secondary" />
+            <ActionButton label="Create an account" href="/signup" variant="secondary" />
           ) : null}
         </View>
+        <Text style={styles.instagram}>
+          Follow{' '}
+          <Link
+            href={ASSOCIATION_INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            accessibilityRole="link"
+            style={styles.instagramLink}
+          >
+            @therealbrockfantasy on Instagram
+          </Link>{' '}
+          for association news, announcements and fantasy updates.
+        </Text>
       </View>
 
-      <SectionTitle title="2026–27 programs" detail="Imported source data" />
-      {competitions.length === 0 ? (
+      <SectionTitle
+        title="2026–27 programs"
+        detail="Men’s and women’s hockey, basketball and volleyball"
+      />
+      {!user ? (
+        <View style={styles.programGrid}>
+          {Object.entries(programNames).map(([key, name]) => (
+            <Card key={key} style={styles.programCard}>
+              <Text style={styles.programName}>{name}</Text>
+              <Text style={styles.programMeta}>Brock Badgers · 2026–27</Text>
+            </Card>
+          ))}
+        </View>
+      ) : competitionQuery.loading ? (
+        <LoadingState label="Loading programs" rows={2} />
+      ) : competitionQuery.error ? (
+        <ErrorState message={competitionQuery.error} />
+      ) : competitions.length === 0 ? (
         <EmptyState
           title="Program information is being prepared"
           body="Official roster and schedule information will be provided shortly."
@@ -55,13 +99,35 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  hero: { paddingVertical: 48, maxWidth: 750 },
-  title: { ...heading, fontSize: 52, lineHeight: 56, marginTop: 18 },
-  body: { color: colors.muted, fontSize: 17, lineHeight: 26, marginTop: 18, maxWidth: 640 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 24 },
-  programGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  programCard: { flex: 1, minWidth: 250, gap: 9 },
-  programName: { ...heading, fontSize: 18 },
-  programMeta: { color: colors.muted, fontSize: 12, textTransform: 'capitalize' },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    hero: { paddingVertical: 48, maxWidth: 750 },
+    title: { ...heading, fontSize: 52, lineHeight: 56, marginTop: 18, color: colors.text },
+    body: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 17,
+      lineHeight: 26,
+      marginTop: 18,
+      maxWidth: 640,
+    },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 24 },
+    instagram: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 14,
+      lineHeight: 22,
+      marginTop: 24,
+      maxWidth: 640,
+    },
+    instagramLink: { color: colors.link, textDecorationLine: 'underline' },
+    programGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+    programCard: { flex: 1, minWidth: 250, gap: 9 },
+    programName: { ...heading, fontSize: 18, color: colors.text },
+    programMeta: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 12,
+      textTransform: 'capitalize',
+    },
+  });

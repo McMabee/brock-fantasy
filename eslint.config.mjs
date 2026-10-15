@@ -9,7 +9,9 @@ export default tseslint.config(
       '**/dist/**',
       '**/coverage/**',
       '**/.expo/**',
+      '**/.vercel/**',
       'tmp/**',
+      'dev/**',
       'supabase/functions/**',
     ],
   },
@@ -42,9 +44,13 @@ export default tseslint.config(
     },
   },
   {
-    files: ['scripts/**/*.mjs'],
+    files: ['api/**/*.js', 'scripts/**/*.mjs'],
     languageOptions: {
       globals: globals.node,
     },
+  },
+  {
+    files: ['apps/client/public/beta-auth/*.js', 'apps/client/public/ui/*.js'],
+    languageOptions: { globals: globals.browser },
   },
 );

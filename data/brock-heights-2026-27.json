@@ -1,0 +1,1199 @@
+{
+  "version": 1,
+  "season": "2026-27",
+  "heights": [
+    {
+      "id": "e2b6ad6f-498c-84a7-a6de-ee0a6d25cbaa",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 20,
+      "height": {
+        "inches": 73,
+        "centimetres": 185.42,
+        "raw": "6'1\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/anthony-heyes/13553",
+        "sourcePlayerId": "13553"
+      }
+    },
+    {
+      "id": "303328de-23fd-8e09-a223-74a1eba4061d",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 30,
+      "height": {
+        "inches": 75,
+        "centimetres": 190.5,
+        "raw": "6'3\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/magnus-carlos/13550",
+        "sourcePlayerId": "13550"
+      }
+    },
+    {
+      "id": "e07d90c8-d613-8386-ac05-484f47b1ebb7",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 40,
+      "height": {
+        "inches": 76,
+        "centimetres": 193.04,
+        "raw": "6'4\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/carter-ethier/13560",
+        "sourcePlayerId": "13560"
+      }
+    },
+    {
+      "id": "6689d443-364a-83b8-a0a7-cae3e9d229c4",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 50,
+      "height": {
+        "inches": 72,
+        "centimetres": 182.88,
+        "raw": "6'0\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/zach-hawley/13563",
+        "sourcePlayerId": "13563"
+      }
+    },
+    {
+      "id": "5f3636a8-39d8-8c34-a415-0effb5da9336",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 60,
+      "height": {
+        "inches": 76,
+        "centimetres": 193.04,
+        "raw": "6'4\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/quinten-ethier/13561",
+        "sourcePlayerId": "13561"
+      }
+    },
+    {
+      "id": "dfc11514-634b-89fa-a95e-1a0a3d23a438",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 70,
+      "height": {
+        "inches": 72,
+        "centimetres": 182.88,
+        "raw": "6'0\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/evan-wouters/13559",
+        "sourcePlayerId": "13559"
+      }
+    },
+    {
+      "id": "d948df0a-6347-805b-a5b5-2ae5dc32c05d",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 80,
+      "height": {
+        "inches": 78,
+        "centimetres": 198.12,
+        "raw": "6'6\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/andrew-mckenna/13555",
+        "sourcePlayerId": "13555"
+      }
+    },
+    {
+      "id": "648c64c3-3679-86f3-a283-cbc7f300f130",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 90,
+      "height": {
+        "inches": 74,
+        "centimetres": 187.96,
+        "raw": "6'2\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/ben-kyle/13564",
+        "sourcePlayerId": "13564"
+      }
+    },
+    {
+      "id": "96da119c-2e1a-87c2-a6f5-f35f08567a39",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 100,
+      "height": {
+        "inches": 75,
+        "centimetres": 190.5,
+        "raw": "6'3\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/xavier-fearon/13551",
+        "sourcePlayerId": "13551"
+      }
+    },
+    {
+      "id": "e21b73db-2086-89b4-abe4-910b71339fce",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 110,
+      "height": {
+        "inches": 76,
+        "centimetres": 193.04,
+        "raw": "6'4\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/birch-pockar/13558",
+        "sourcePlayerId": "13558"
+      }
+    },
+    {
+      "id": "055c915d-50a0-8254-a5aa-e4ac9e316f94",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 120,
+      "height": {
+        "inches": 77,
+        "centimetres": 195.58,
+        "raw": "6'5\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/mars-tataryn/13565",
+        "sourcePlayerId": "13565"
+      }
+    },
+    {
+      "id": "08784d49-d531-88b4-a490-576dde81d761",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 130,
+      "height": {
+        "inches": 79,
+        "centimetres": 200.66,
+        "raw": "6'7\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/aby-habtemariam/13562",
+        "sourcePlayerId": "13562"
+      }
+    },
+    {
+      "id": "a3ec6a33-05d1-82df-a404-d94f11b3bca1",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 140,
+      "height": {
+        "inches": 81,
+        "centimetres": 205.74,
+        "raw": "6'9\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/emmanuel-oko-oboh/13556",
+        "sourcePlayerId": "13556"
+      }
+    },
+    {
+      "id": "57f5fecc-7090-8e03-a337-9cac8777b9c9",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 150,
+      "height": {
+        "inches": 76,
+        "centimetres": 193.04,
+        "raw": "6'4\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/ben-herbert/13552",
+        "sourcePlayerId": "13552"
+      }
+    },
+    {
+      "id": "26fa17df-13a6-8fcf-a579-98b1119b78c5",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 160,
+      "height": {
+        "inches": 78,
+        "centimetres": 198.12,
+        "raw": "6'6\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/cairo-perry/13557",
+        "sourcePlayerId": "13557"
+      }
+    },
+    {
+      "id": "286b2001-873d-8c8f-a4e2-0009794b98a1",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 170,
+      "height": {
+        "inches": 77,
+        "centimetres": 195.58,
+        "raw": "6'5\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/afam-agbatekwe/13549",
+        "sourcePlayerId": "13549"
+      }
+    },
+    {
+      "id": "27654a1d-1369-84a2-a810-a999fa864e41",
+      "revisionHash": "f302deb42980d3cf390c40cdac0b6060db1ceb403074eaae130194d35456bfe9",
+      "rowNumber": 180,
+      "height": {
+        "inches": 79,
+        "centimetres": 200.66,
+        "raw": "6'7\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.733Z",
+        "sourceHash": "66ca347e28929680c345b78aca2c2559e4666ce24a3a66c68734f2bb3c95ff75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-basketball/roster/james-lawton/13554",
+        "sourcePlayerId": "13554"
+      }
+    },
+    {
+      "id": "8070fdf3-ddca-8e5b-af6f-b7da89edb729",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 20,
+      "height": {
+        "inches": 69,
+        "centimetres": 175.26,
+        "raw": "5'9\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/avery-miles/13576",
+        "sourcePlayerId": "13576"
+      }
+    },
+    {
+      "id": "fdb120b8-f167-85a4-a02a-4a530d6f73d7",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 30,
+      "height": {
+        "inches": 66,
+        "centimetres": 167.64,
+        "raw": "5'6\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/sofia-curcio/13568",
+        "sourcePlayerId": "13568"
+      }
+    },
+    {
+      "id": "c076cea6-3072-8149-a90d-5b253244db90",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 40,
+      "height": {
+        "inches": 69,
+        "centimetres": 175.26,
+        "raw": "5'9\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/ava-stranges/13570",
+        "sourcePlayerId": "13570"
+      }
+    },
+    {
+      "id": "10fa8224-5c97-8ec8-a398-aacb30c81fda",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 50,
+      "height": {
+        "inches": 67,
+        "centimetres": 170.18,
+        "raw": "5'7\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/liz-shapero/13577",
+        "sourcePlayerId": "13577"
+      }
+    },
+    {
+      "id": "fb502262-bb97-877a-a769-461cb0d1809f",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 60,
+      "height": {
+        "inches": 70,
+        "centimetres": 177.8,
+        "raw": "5'10\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/brookelyn-keltos/13569",
+        "sourcePlayerId": "13569"
+      }
+    },
+    {
+      "id": "dd05e826-3548-82b7-a263-905b5280fb60",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 70,
+      "height": {
+        "inches": 70,
+        "centimetres": 177.8,
+        "raw": "5'10\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/hailey-fennema/13572",
+        "sourcePlayerId": "13572"
+      }
+    },
+    {
+      "id": "689ae10c-822b-8561-ae6f-2baba57fcc15",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 80,
+      "height": {
+        "inches": 68,
+        "centimetres": 172.72,
+        "raw": "5'8\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/kaleah-gosse/13574",
+        "sourcePlayerId": "13574"
+      }
+    },
+    {
+      "id": "e40de435-4a93-8264-a757-8b62a97c37de",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 90,
+      "height": {
+        "inches": 70,
+        "centimetres": 177.8,
+        "raw": "5'10\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/katie-firth/13573",
+        "sourcePlayerId": "13573"
+      }
+    },
+    {
+      "id": "f950301a-1356-876f-ad21-61494fd9550d",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 100,
+      "height": {
+        "inches": 65,
+        "centimetres": 165.1,
+        "raw": "5'5\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/shailah-adams/13566",
+        "sourcePlayerId": "13566"
+      }
+    },
+    {
+      "id": "19cac959-56e6-8831-adc2-b9b29f4885cf",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 110,
+      "height": {
+        "inches": 68,
+        "centimetres": 172.72,
+        "raw": "5'8\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/jamie-addy/13567",
+        "sourcePlayerId": "13567"
+      }
+    },
+    {
+      "id": "9f70c731-56dd-8c5d-a6d6-d4906f59cbc0",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 120,
+      "height": {
+        "inches": 73,
+        "centimetres": 185.42,
+        "raw": "6'1\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/lucy-machida-gleadall/13575",
+        "sourcePlayerId": "13575"
+      }
+    },
+    {
+      "id": "12922f87-8643-81e9-adcb-70f5968613f5",
+      "revisionHash": "83ccfbcbc162873c564c2ec7ccbd4992ccb2f57ad253e9eb56f8e9ea210ed068",
+      "rowNumber": 130,
+      "height": {
+        "inches": 69,
+        "centimetres": 175.26,
+        "raw": "5'9\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:48.922Z",
+        "sourceHash": "9882d26a319cf6132ac8f4d54ad71b95f0ceb4b9e2758ee68eb986bcc3302d59",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-basketball/roster/vienna-vercesi/13571",
+        "sourcePlayerId": "13571"
+      }
+    },
+    {
+      "id": "a96ec9da-323b-8a40-a974-86b882343c9a",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 20,
+      "height": {
+        "inches": 70,
+        "centimetres": 177.8,
+        "raw": "5'10\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/joshua-lafleche/13520",
+        "sourcePlayerId": "13520"
+      }
+    },
+    {
+      "id": "8c974b1f-934d-82dc-a40f-746d9d32406c",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 30,
+      "height": {
+        "inches": 77,
+        "centimetres": 195.58,
+        "raw": "6'5\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/liam-strong/13523",
+        "sourcePlayerId": "13523"
+      }
+    },
+    {
+      "id": "027776be-f300-819f-ae78-a4f741df6faf",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 40,
+      "height": {
+        "inches": 75,
+        "centimetres": 190.5,
+        "raw": "6'3\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/jacob-langman/13526",
+        "sourcePlayerId": "13526"
+      }
+    },
+    {
+      "id": "996369ac-084b-834f-a19f-21bce6a91dab",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 50,
+      "height": {
+        "inches": 77,
+        "centimetres": 195.58,
+        "raw": "6'5\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/jonah-ragaisis/13521",
+        "sourcePlayerId": "13521"
+      }
+    },
+    {
+      "id": "9a19a66e-a229-8598-a0c9-6dd07aac4f1d",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 70,
+      "height": {
+        "inches": 75,
+        "centimetres": 190.5,
+        "raw": "6'3\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/lucas-bouwers/13513",
+        "sourcePlayerId": "13513"
+      }
+    },
+    {
+      "id": "d9fc6d95-9236-863f-a450-99a37f53aa91",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 80,
+      "height": {
+        "inches": 78,
+        "centimetres": 198.12,
+        "raw": "6'6\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/devin-cooney/13515",
+        "sourcePlayerId": "13515"
+      }
+    },
+    {
+      "id": "d2bee944-ee0d-89e2-ae9c-1eb541b1885d",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 90,
+      "height": {
+        "inches": 73,
+        "centimetres": 185.42,
+        "raw": "6'1\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/kyle-stodola/13527",
+        "sourcePlayerId": "13527"
+      }
+    },
+    {
+      "id": "e8874f40-b511-8f37-a907-ae0d43339e4a",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 100,
+      "height": {
+        "inches": 76,
+        "centimetres": 193.04,
+        "raw": "6'4\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/cole-wiersma/13524",
+        "sourcePlayerId": "13524"
+      }
+    },
+    {
+      "id": "7f1aee41-daa2-8d4e-a565-86c6ed132a55",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 120,
+      "height": {
+        "inches": 76,
+        "centimetres": 193.04,
+        "raw": "6'4\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/toby-snider/13522",
+        "sourcePlayerId": "13522"
+      }
+    },
+    {
+      "id": "c660869c-5d66-8fc0-ac28-1b0730a2549c",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 130,
+      "height": {
+        "inches": 69,
+        "centimetres": 175.26,
+        "raw": "5'9\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/oliver-westhaver/13528",
+        "sourcePlayerId": "13528"
+      }
+    },
+    {
+      "id": "544af08c-a380-8d48-a2ba-62f32cd36e9c",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 140,
+      "height": {
+        "inches": 77,
+        "centimetres": 195.58,
+        "raw": "6'5\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/caleb-huot/13517",
+        "sourcePlayerId": "13517"
+      }
+    },
+    {
+      "id": "6620a8a1-0b52-808d-a37f-e7f7c0490410",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 150,
+      "height": {
+        "inches": 74,
+        "centimetres": 187.96,
+        "raw": "6'2\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/zayd-bazin/13525",
+        "sourcePlayerId": "13525"
+      }
+    },
+    {
+      "id": "af95fe07-34d4-8873-a01b-c31605df7795",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 160,
+      "height": {
+        "inches": 77,
+        "centimetres": 195.58,
+        "raw": "6'5\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/gavin-everett/13516",
+        "sourcePlayerId": "13516"
+      }
+    },
+    {
+      "id": "d1ab1a7a-20c6-8daa-a824-570ad927dd08",
+      "revisionHash": "75adf335ed4e12c128d74db8982b6ee8ea59dfdde5db6c773aef36895bd01641",
+      "rowNumber": 170,
+      "height": {
+        "inches": 80,
+        "centimetres": 203.2,
+        "raw": "6'8\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.081Z",
+        "sourceHash": "300035465724e5cf432c61cfe22ae9536174247dd3a772977e717b2c3a7b0f75",
+        "sourceUrl": "https://gobadgers.ca/sports/mens-volleyball/roster/mathieu-joli-coeur/13518",
+        "sourcePlayerId": "13518"
+      }
+    },
+    {
+      "id": "01aa7733-d428-8a8c-a583-4ec87f908eaa",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 20,
+      "height": {
+        "inches": 70,
+        "centimetres": 177.8,
+        "raw": "5'10\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/tatiana-drozd/13532",
+        "sourcePlayerId": "13532"
+      }
+    },
+    {
+      "id": "1179a1a9-7537-839f-a890-c0243244863e",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 30,
+      "height": {
+        "inches": 70,
+        "centimetres": 177.8,
+        "raw": "5'10\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/kaiya-greydanus/13536",
+        "sourcePlayerId": "13536"
+      }
+    },
+    {
+      "id": "c9729a85-6ff4-85f3-a4a0-49828b3165dd",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 40,
+      "height": {
+        "inches": 70,
+        "centimetres": 177.8,
+        "raw": "5'10\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/sera-leung/13539",
+        "sourcePlayerId": "13539"
+      }
+    },
+    {
+      "id": "808b3e51-2c84-86cd-a57f-5300ebcfa901",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 50,
+      "height": {
+        "inches": 74,
+        "centimetres": 187.96,
+        "raw": "6'2\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/anna-minyaylo/13540",
+        "sourcePlayerId": "13540"
+      }
+    },
+    {
+      "id": "5325b814-fa8e-81af-ac6b-e5a2916d0ccb",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 60,
+      "height": {
+        "inches": 71,
+        "centimetres": 180.34,
+        "raw": "5'11\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/campbell-phaneuf/13541",
+        "sourcePlayerId": "13541"
+      }
+    },
+    {
+      "id": "4cc873eb-8c91-8831-ad6d-928b79887045",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 70,
+      "height": {
+        "inches": 67,
+        "centimetres": 170.18,
+        "raw": "5'7\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/abbey-whittington/13545",
+        "sourcePlayerId": "13545"
+      }
+    },
+    {
+      "id": "0cb88333-44a4-8606-a9b1-fe3663c334dd",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 100,
+      "height": {
+        "inches": 68,
+        "centimetres": 172.72,
+        "raw": "5'8\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/eve-entwistle/13534",
+        "sourcePlayerId": "13534"
+      }
+    },
+    {
+      "id": "cb8760a3-c734-8e1b-a74d-afde3256b9f3",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 110,
+      "height": {
+        "inches": 72,
+        "centimetres": 182.88,
+        "raw": "6'0\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/alaina-larochelle/13538",
+        "sourcePlayerId": "13538"
+      }
+    },
+    {
+      "id": "3e7c6fe2-ca81-8e8f-af44-cfe32a3a7f9f",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 120,
+      "height": {
+        "inches": 70,
+        "centimetres": 177.8,
+        "raw": "5'10\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/mackenna-knox/13537",
+        "sourcePlayerId": "13537"
+      }
+    },
+    {
+      "id": "07b547e2-5429-8f26-aca2-6cab4a44eda8",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 130,
+      "height": {
+        "inches": 71,
+        "centimetres": 180.34,
+        "raw": "5'11\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/madison-tuck/13544",
+        "sourcePlayerId": "13544"
+      }
+    },
+    {
+      "id": "0763eb9a-9917-8def-a032-50b2ec626c42",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 140,
+      "height": {
+        "inches": 72,
+        "centimetres": 182.88,
+        "raw": "6'0\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/daryan-chadwick/13531",
+        "sourcePlayerId": "13531"
+      }
+    },
+    {
+      "id": "c200d5dd-7087-8414-ad47-11877d7b5fa2",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 150,
+      "height": {
+        "inches": 71,
+        "centimetres": 180.34,
+        "raw": "5'11\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/emma-baruchelli/13530",
+        "sourcePlayerId": "13530"
+      }
+    },
+    {
+      "id": "67bf67fe-4693-8080-ae35-be0a98014c27",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 160,
+      "height": {
+        "inches": 70,
+        "centimetres": 177.8,
+        "raw": "5'10\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/avery-duncan/13533",
+        "sourcePlayerId": "13533"
+      }
+    },
+    {
+      "id": "e3fc9e19-3d30-86dd-a88e-fb00a7f3d395",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 170,
+      "height": {
+        "inches": 74,
+        "centimetres": 187.96,
+        "raw": "6'2\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/charlotte-ross/13543",
+        "sourcePlayerId": "13543"
+      }
+    },
+    {
+      "id": "7601e6d0-ae11-876b-ab2f-edbcef23187a",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 180,
+      "height": {
+        "inches": 68,
+        "centimetres": 172.72,
+        "raw": "5'8\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/kara-rakamnuaykit/13542",
+        "sourcePlayerId": "13542"
+      }
+    },
+    {
+      "id": "612c8eec-6f79-865c-a5d3-5685470531ac",
+      "revisionHash": "07b937510ab7589820d77403c61c387b14226cf2490310cbba56ad0036d319f2",
+      "rowNumber": 190,
+      "height": {
+        "inches": 71,
+        "centimetres": 180.34,
+        "raw": "5'11\"",
+        "season": "2026-27",
+        "retrievedAt": "2026-10-14T15:14:49.420Z",
+        "sourceHash": "9c856f076f2135b6c9bb124593b3be7b8c98370c6884a56fbcbe5369e200321c",
+        "sourceUrl": "https://gobadgers.ca/sports/womens-volleyball/roster/victoria-george/13535",
+        "sourcePlayerId": "13535"
+      }
+    }
+  ],
+  "missing": [
+    {
+      "id": "c75b67dc-56f4-8429-a643-ac79cedf63c0",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "a9f2b9ef-60c6-8e6a-a6bc-ac2dc190a041",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "64afcdf6-46f8-8de9-a744-6d9577a2dbd2",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "c52dd6ec-0ceb-8263-a08a-6432755559f4",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "77d27017-a5b0-8769-a7ea-f78284221aff",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "4e6d4157-6aa8-8a16-a39e-58447b94fdd4",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "d35c6e04-d084-8bec-a123-33ace0c667fb",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "f2284616-e008-88b3-af36-59a7ded1e18e",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "236ae0c7-f886-8a6b-a835-b66cefcbf1b0",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "efa65600-d143-8c5c-ab03-42753c6c1673",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "d4782a9f-1d7f-8283-aa54-ecc560050c1d",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "b6d866d7-87e7-8f2e-aadd-6ada2926bd45",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "16e39da7-947f-8c81-a947-bb87a6284e29",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "be061f00-8e10-8552-a938-20e990aecdcf",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "73952828-3eb9-8e97-a769-91cf6bc10b17",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "994e817b-4dea-8685-a19b-52ec196435a7",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "30243306-b93d-8e03-a7b5-6fe9572237e7",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "8b489e19-0094-8f5a-a35c-48e6dad34967",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "143ccdc3-d822-88e7-a179-4adccecd017f",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "df8505b0-5fcd-8fab-a104-27472b340051",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "e1ebd748-61e2-8be9-a252-db44b0922ebf",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "f084b76f-2385-827f-a37f-87c8a7080948",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "5465b9e5-8a71-8559-a040-54e1ae72c21e",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "d7938b04-61d6-8835-aea9-983c56826666",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "b9d69319-5739-8a63-a04e-41ffe78d620a",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "a975d29c-2a08-8ec2-ab49-f00139eb9fc8",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "d670ba85-dce8-80fd-af51-6e43e6fbda8e",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "5c17965f-eb90-84e2-afea-0fd986966996",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "f38a2a44-5ad5-8770-aa9a-4be3c3ade567",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "aed85450-9526-864a-ac25-cdb42640fcc7",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "345da3ca-0bf7-86d7-a265-438710a60911",
+      "program": "mens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "69cc612c-6ea9-8284-a3b5-c6a98eb706c1",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "6064cab4-4fe9-8605-afc4-11f516fd811b",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "e5c5d472-34bd-80f0-af32-792799d3122c",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "067d7f51-af03-8519-a67d-c142a2dc8e82",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "2f2a0e3c-7a77-88fb-a17b-258408c3d330",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "37ec4f4b-1f9d-8a9d-a372-95fb56378f99",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "c489410a-f230-8e2e-a033-a2b8188b20ae",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "3eab62fb-ac9e-8932-a4ff-3e6efc1c2e94",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "5a8cde8e-ff50-8d28-a5ea-bf126ab5211b",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "5ac037cb-df8e-8a00-a601-06c686084dc1",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "fb96a0d4-d732-8a06-af4c-cac46d5cfa56",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "96407462-65a0-8dcd-aca4-e431d1e31fc7",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "608ee79e-90bd-8ac3-af0d-8f73527008e0",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "13312140-93f1-8bef-aa70-bfbe1834558d",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "f658219e-95a1-8fee-a41c-212329b22d58",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "15793b8b-ec00-8ee9-a43e-7c6824f5e8c2",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "670d5610-a3bb-8c2a-a06f-e44e0adbcd62",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "ccc053cd-31d8-8379-a2ca-9f68d0c0090b",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "e66bf678-3704-8ded-a896-d4b041ff1a10",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "9b29e3dc-a4eb-85bb-ae47-375a3b29205f",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "97595023-60da-8a92-a9fc-44b35908b5be",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "5987ed64-5d9e-8fdf-ab0f-bda243c9384d",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "4a46c9b0-aabb-8d33-a3a7-c9cd3a9cd0f1",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "f1369673-c5d5-8062-ad8e-45c168b12172",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "8e7caa42-ca04-8845-adee-3b4f165beaa0",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "959d13c8-d9cb-8965-a093-24eccb88e73d",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "10371d8e-283e-8bc4-a3eb-9d771f6f70c0",
+      "program": "womens_hockey",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "71c158fa-6680-86a7-a146-e90e64f42ba7",
+      "program": "womens_basketball",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "50627c44-9c1b-8798-adf4-5cc49c522a59",
+      "program": "womens_volleyball",
+      "reason": "current_official_height_unavailable"
+    },
+    {
+      "id": "f3aebaae-17fb-8fd4-a408-06b16643b214",
+      "program": "womens_volleyball",
+      "reason": "current_official_height_unavailable"
+    }
+  ],
+  "conflicts": []
+}

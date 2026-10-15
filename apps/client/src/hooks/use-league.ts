@@ -1,8 +1,16 @@
-import type { FantasyTeam, League, MatchupResult, StandingsRow } from '@brock-fantasy/domain';
-import { useCallback, useEffect, useState } from 'react';
+import type {
+  DraftState,
+  FantasyTeam,
+  League,
+  MatchupResult,
+  StandingsRow,
+} from '@brock-fantasy/domain';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { Platform } from 'react-native';
 
 import { firstRelated } from '@/lib/relations';
+import { LEAGUE_ROSTER_SELECT } from '@/lib/league-roster-query';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
 
@@ -18,6 +26,8 @@ interface LeagueRow {
   max_members: number;
   invite_code: string;
   state_version: number;
+  draft_scheduled_for: string | null;
+  draft_schedule_version: number;
 }
 
 interface TeamRow {
@@ -44,6 +54,7 @@ interface LeagueData {
   teams: readonly FantasyTeam[];
   standings: readonly StandingsRow[];
   draftId: string | null;
+  draftStatus: DraftState['status'] | null;
   myTeamId: string | null;
   roster: readonly LeagueRosterEntry[];
   matchups: readonly MatchupResult[];
@@ -60,6 +71,8 @@ export interface LeagueRosterEntry {
   displayName: string;
   position: string;
   jerseyNumber: string | null;
+  bio: Record<string, unknown>;
+  programName: string;
   slotCode: string;
   status: 'starter' | 'bench' | 'injured_reserve';
 }
@@ -74,6 +87,7 @@ export interface LeagueChatMessage {
 
 interface DraftRow {
   id: string;
+  status: DraftState['status'];
 }
 
 interface RosterRow {
@@ -83,8 +97,20 @@ interface RosterRow {
   slot_code: string;
   status: LeagueRosterEntry['status'];
   athlete:
-    | { display_name: string; position: string; jersey_number: string | null }
-    | readonly { display_name: string; position: string; jersey_number: string | null }[];
+    | {
+        display_name: string;
+        position: string;
+        jersey_number: string | null;
+        bio: Record<string, unknown>;
+        competition: { name: string } | readonly { name: string }[];
+      }
+    | readonly {
+        display_name: string;
+        position: string;
+        jersey_number: string | null;
+        bio: Record<string, unknown>;
+        competition: { name: string } | readonly { name: string }[];
+      }[];
 }
 
 interface MatchupRow {
@@ -106,13 +132,14 @@ interface MessageRow {
   author: { display_name: string } | readonly { display_name: string }[] | null;
 }
 
-export function useLeague(leagueId: string | undefined): LeagueData {
+export function useLeague(leagueId: string | undefined, rosterTeamId?: string): LeagueData {
   const { user } = useSession();
   const [data, setData] = useState<Omit<LeagueData, 'reload'>>({
     league: null,
     teams: [],
     standings: [],
     draftId: null,
+    draftStatus: null,
     myTeamId: null,
     roster: [],
     matchups: [],
@@ -121,7 +148,29 @@ export function useLeague(leagueId: string | undefined): LeagueData {
     error: null,
   });
 
-  const reload = useCallback(async () => {
+  const pending = useRef<Promise<void> | null>(null);
+  const identity = (user?.id ?? '') + ':' + (leagueId ?? '') + ':' + (rosterTeamId ?? '');
+  const latestIdentity = useRef(identity);
+  latestIdentity.current = identity;
+  useEffect(() => {
+    pending.current = null;
+    setData((current) => ({
+      ...current,
+      league: null,
+      teams: [],
+      standings: [],
+      draftId: null,
+      draftStatus: null,
+      myTeamId: null,
+      roster: [],
+      matchups: [],
+      messages: [],
+      loading: Boolean(user?.id),
+      error: null,
+    }));
+  }, [leagueId, user?.id, rosterTeamId]);
+  const load = useCallback(async () => {
+    const requestIdentity = latestIdentity.current;
     if (!supabase || !leagueId || !user) {
       setData((current) => ({ ...current, loading: false }));
       return;
@@ -132,7 +181,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
         client
           .from('leagues')
           .select(
-            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version',
+            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version, draft_scheduled_for, draft_schedule_version',
           )
           .eq('id', leagueId)
           .single(),
@@ -142,7 +191,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
           .eq('league_id', leagueId)
           .order('draft_position'),
         client.rpc('get_league_standings', { p_league_id: leagueId }),
-        client.from('drafts').select('id').eq('league_id', leagueId).maybeSingle(),
+        client.from('drafts').select('id, status').eq('league_id', leagueId).maybeSingle(),
         client
           .from('matchups')
           .select(
@@ -159,6 +208,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
           .order('created_at')
           .limit(100),
       ]);
+    if (requestIdentity !== latestIdentity.current) return;
     const error =
       leagueResult.error ??
       teamResult.error ??
@@ -187,6 +237,8 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       maxMembers: row.max_members,
       inviteCode: row.invite_code,
       stateVersion: row.state_version,
+      ...(row.draft_scheduled_for ? { draftScheduledFor: row.draft_scheduled_for } : {}),
+      draftScheduleVersion: row.draft_schedule_version,
     };
     const teamRows: TeamRow[] = teamResult.data ?? [];
     const teams = teamRows.map<FantasyTeam>((team) => ({
@@ -197,15 +249,16 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       draftPosition: team.draft_position ?? 0,
     }));
     const myTeamId = teamRows.find((team) => team.owner_id === user.id)?.id ?? null;
-    const rosterResult = myTeamId
+    const viewedTeamId =
+      rosterTeamId && teamRows.some((team) => team.id === rosterTeamId) ? rosterTeamId : myTeamId;
+    const rosterResult = viewedTeamId
       ? await client
           .from('roster_entries')
-          .select(
-            'id, fantasy_team_id, athlete_id, slot_code, status, athlete:athletes!inner(display_name, position, jersey_number)',
-          )
-          .eq('fantasy_team_id', myTeamId)
+          .select(LEAGUE_ROSTER_SELECT)
+          .eq('fantasy_team_id', viewedTeamId)
           .is('released_at', null)
       : { data: [] as RosterRow[], error: null };
+    if (requestIdentity !== latestIdentity.current) return;
     if (rosterResult.error) {
       setData((current) => ({ ...current, loading: false, error: rosterResult.error.message }));
       return;
@@ -226,6 +279,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       teams,
       standings,
       draftId: draftRow?.id ?? null,
+      draftStatus: draftRow?.status ?? null,
       myTeamId,
       roster: (rosterResult.data as unknown as RosterRow[]).flatMap((entry) => {
         const athlete = firstRelated(entry.athlete);
@@ -238,6 +292,8 @@ export function useLeague(leagueId: string | undefined): LeagueData {
                 displayName: athlete.display_name,
                 position: athlete.position,
                 jerseyNumber: athlete.jersey_number,
+                bio: athlete.bio,
+                programName: firstRelated(athlete.competition)?.name ?? 'Brock athlete',
                 slotCode: entry.slot_code,
                 status: entry.status,
               },
@@ -267,48 +323,74 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       loading: false,
       error: null,
     });
-  }, [leagueId, user]);
+  }, [leagueId, user, rosterTeamId]);
 
-  useEffect(() => {
-    void reload();
-    if (!supabase || !leagueId) return;
-    if (Platform.OS === 'web') {
-      const interval = setInterval(() => void reload(), 5_000);
-      return () => clearInterval(interval);
-    }
-    const client = supabase;
-    const channel = client
-      .channel(`league:${leagueId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'matchups', filter: `league_id=eq.${leagueId}` },
-        () => void reload(),
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `league_id=eq.${leagueId}`,
-        },
-        () => void reload(),
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'roster_entries',
-          filter: `league_id=eq.${leagueId}`,
-        },
-        () => void reload(),
-      )
-      .subscribe();
-    return () => {
-      void client.removeChannel(channel);
-    };
-  }, [leagueId, reload]);
+  const reload = useCallback(() => {
+    if (pending.current) return pending.current;
+    const request = load().catch(() =>
+      setData((current) => ({ ...current, loading: false, error: 'League is reconnecting…' })),
+    );
+    pending.current = request;
+    void request.finally(() => {
+      if (pending.current === request) pending.current = null;
+    });
+    return request;
+  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const poll = async () => {
+        await reload();
+        if (active && Platform.OS === 'web')
+          timer = setTimeout(
+            () => void poll(),
+            document.visibilityState === 'hidden' ? 30_000 : 5000,
+          );
+      };
+      void poll();
+      if (!supabase || !leagueId) return;
+      if (Platform.OS === 'web') {
+        return () => {
+          active = false;
+          if (timer) clearTimeout(timer);
+        };
+      }
+      const client = supabase;
+      const channel = client
+        .channel(`league:${leagueId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'matchups', filter: `league_id=eq.${leagueId}` },
+          () => void reload(),
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `league_id=eq.${leagueId}`,
+          },
+          () => void reload(),
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'roster_entries',
+            filter: `league_id=eq.${leagueId}`,
+          },
+          () => void reload(),
+        )
+        .subscribe();
+      return () => {
+        active = false;
+        void client.removeChannel(channel);
+      };
+    }, [leagueId, reload]),
+  );
 
   return { ...data, reload };
 }

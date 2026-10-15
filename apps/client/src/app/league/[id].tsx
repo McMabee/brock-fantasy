@@ -1,38 +1,64 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
+import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
+import { formatFantasyPoints } from '@brock-fantasy/domain';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
   ActionButton,
   AppShell,
   Card,
   EmptyState,
+  ErrorState,
+  LoadingState,
   Pill,
   SectionTitle,
-  uiStyles,
+  useUiStyles,
 } from '@/components/ui';
-import { useLeague, type LeagueChatMessage, type LeagueRosterEntry } from '@/hooks/use-league';
-import { colors, heading, radii } from '@/theme';
+import { useLeague, type LeagueChatMessage } from '@/hooks/use-league';
+import { heading, radii } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { supabase } from '@/lib/supabase';
 import { betaCommand } from '@/lib/web-api';
-import { useSession } from '@/providers/session-provider';
+import { LeagueSettings } from '@/components/league-settings';
+import { LeagueRoster as Roster } from '@/components/league-roster';
 import type { FantasyTeam, League, MatchupResult, StandingsRow } from '@brock-fantasy/domain';
 
-type Tab = 'overview' | 'roster' | 'standings' | 'chat';
+type Tab = 'overview' | 'roster' | 'standings' | 'chat' | 'settings';
+const TABS: readonly Tab[] = ['overview', 'roster', 'standings', 'chat', 'settings'];
 
 export default function LeagueScreen() {
+  const styles = useThemedStyles(createStyles);
   useRequireUser();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const leagueData = useLeague(id);
+  const {
+    id,
+    teamId,
+    tab: requestedTab,
+  } = useLocalSearchParams<{
+    id: string;
+    teamId?: string;
+    tab?: string;
+  }>();
+  const [viewedTeamId, setViewedTeamId] = useState<string | undefined>(teamId);
+  const leagueData = useLeague(id, viewedTeamId);
   const { league, teams, standings, error: loadError } = leagueData;
-  const { user } = useSession();
   const { width } = useWindowDimensions();
-  const [tab, setTab] = useState<Tab>('overview');
+  const [tab, setTab] = useState<Tab>(
+    teamId ? 'roster' : (TABS.find((item) => item === requestedTab) ?? 'overview'),
+  );
+  useEffect(() => {
+    if (teamId) {
+      setViewedTeamId(teamId);
+      setTab('roster');
+    } else if (requestedTab && TABS.includes(requestedTab as Tab)) {
+      setTab(requestedTab as Tab);
+    }
+  }, [requestedTab, teamId]);
   const [chatText, setChatText] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const messages = leagueData.messages;
-  const wide = width >= 850;
+  const wide = width >= 1280;
 
   const sendMessage = async () => {
     const body = chatText.trim();
@@ -77,6 +103,19 @@ export default function LeagueScreen() {
     }
   };
 
+  if (leagueData.loading && !league)
+    return (
+      <AppShell title="Your league">
+        <LoadingState label="Loading your league" rows={4} />
+      </AppShell>
+    );
+  if (!league && loadError)
+    return (
+      <AppShell title="League unavailable">
+        <ErrorState message={loadError} onRetry={() => void leagueData.reload()} />
+        <ActionButton label="Your leagues" href="/dashboard" variant="secondary" />
+      </AppShell>
+    );
   return (
     <AppShell
       eyebrow="Private fantasy league"
@@ -101,10 +140,11 @@ export default function LeagueScreen() {
       </View>
 
       <View accessibilityRole="tablist" style={styles.tabs}>
-        {(['overview', 'roster', 'standings', 'chat'] as const).map((item) => (
+        {TABS.map((item) => (
           <Pressable
             key={item}
             accessibilityRole="tab"
+            aria-selected={tab === item}
             accessibilityState={{ selected: tab === item }}
             onPress={() => setTab(item)}
             style={[styles.tab, tab === item && styles.tabActive]}
@@ -120,19 +160,39 @@ export default function LeagueScreen() {
           league={league}
           teams={teams}
           draftId={leagueData.draftId}
+          draftStatus={leagueData.draftStatus}
           matchups={leagueData.matchups}
-          isCommissioner={league?.commissionerId === user?.id}
         />
       ) : null}
       {tab === 'roster' ? (
-        <Roster
-          entries={leagueData.roster}
-          leagueId={league?.id ?? ''}
-          betaLeague={Boolean(league?.playerPoolId)}
-          teamName={teams.find((team) => team.id === leagueData.myTeamId)?.name ?? 'Your roster'}
-        />
+        <View style={styles.rosterContent}>
+          <View style={styles.teamSelector}>
+            {teams.map((team) => (
+              <ActionButton
+                key={team.id}
+                label={team.name}
+                variant={
+                  (viewedTeamId ?? leagueData.myTeamId) === team.id ? 'primary' : 'secondary'
+                }
+                onPress={() => setViewedTeamId(team.id)}
+              />
+            ))}
+          </View>
+          <Roster
+            entries={leagueData.roster}
+            poolId={league?.playerPoolId}
+            editable={!viewedTeamId || viewedTeamId === leagueData.myTeamId}
+            leagueId={league?.id ?? ''}
+            betaLeague={Boolean(league?.playerPoolId)}
+            teamName={
+              teams.find((team) => team.id === (viewedTeamId ?? leagueData.myTeamId))?.name ??
+              'Your roster'
+            }
+          />
+        </View>
       ) : null}
       {tab === 'standings' ? <Standings league={league} rows={standings} teams={teams} /> : null}
+      {tab === 'settings' ? <LeagueSettings data={leagueData} /> : null}
       {tab === 'chat' ? (
         <Chat
           chatText={chatText}
@@ -152,21 +212,26 @@ function Overview({
   league,
   teams,
   draftId,
+  draftStatus,
   matchups,
-  isCommissioner,
 }: {
   wide: boolean;
   league: League | null;
   teams: readonly FantasyTeam[];
   draftId: string | null;
+  draftStatus: ReturnType<typeof useLeague>['draftStatus'];
   matchups: readonly MatchupResult[];
-  isCommissioner: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   const matchup = matchups.find((item) => item.status === 'active') ?? matchups[0];
   const homeName = teams.find((team) => team.id === matchup?.homeTeamId)?.name ?? 'Home team';
   const awayName = teams.find((team) => team.id === matchup?.awayTeamId)?.name ?? 'Away team';
+  const draftOpen = Boolean(
+    draftId && draftStatus && ['active', 'paused', 'scheduled'].includes(draftStatus),
+  );
   return (
-    <View style={[styles.contentGrid, wide && styles.contentGridWide]}>
+    <View style={[styles.contentGrid, wide && draftOpen && styles.contentGridWide]}>
       <View style={styles.contentMain}>
         {matchup ? (
           <Card accent>
@@ -182,13 +247,23 @@ function Overview({
             </View>
             <View style={styles.scoreGrid}>
               <View style={styles.scoreTeam}>
-                <Text style={styles.scoreTeamName}>{homeName}</Text>
-                <Text style={styles.scoreLeading}>{matchup.homePoints.toFixed(1)}</Text>
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => router.push(`/league/${league?.id}/teams/${matchup.homeTeamId}`)}
+                >
+                  <Text style={styles.scoreTeamName}>{homeName}</Text>
+                </Pressable>
+                <Text style={styles.scoreLeading}>{formatFantasyPoints(matchup.homePoints)}</Text>
               </View>
               <Text style={styles.scoreDash}>—</Text>
               <View style={styles.scoreTeam}>
-                <Text style={styles.scoreTeamName}>{awayName}</Text>
-                <Text style={styles.scoreValue}>{matchup.awayPoints.toFixed(1)}</Text>
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => router.push(`/league/${league?.id}/teams/${matchup.awayTeamId}`)}
+                >
+                  <Text style={styles.scoreTeamName}>{awayName}</Text>
+                </Pressable>
+                <Text style={styles.scoreValue}>{formatFantasyPoints(matchup.awayPoints)}</Text>
               </View>
             </View>
           </Card>
@@ -203,86 +278,35 @@ function Overview({
           title="No recent activity"
           body="Draft, roster, and scoring events will appear after play begins."
         />
+        {draftStatus === 'complete' ? (
+          <Text style={uiStyles.body}>You can view draft results in the Settings tab.</Text>
+        ) : null}
       </View>
-      <View style={styles.contentSide}>
-        <Card>
-          <Text style={styles.panelTitle}>League controls</Text>
-          <Text style={uiStyles.body}>
-            Server-authoritative snake draft, lineup locks, free agents, waivers, and trades for
-            this{' '}
-            {league?.format === 'points_leaderboard' ? 'points leaderboard' : 'head-to-head league'}
-            .
-          </Text>
-          <View style={styles.controlActions}>
-            {draftId ? (
-              <ActionButton
-                label="Open draft room"
-                href={`/draft/${draftId}`}
-                variant="secondary"
-              />
+      {draftOpen ? (
+        <View style={styles.contentSide}>
+          <Card>
+            <Text style={styles.panelTitle}>Draft room</Text>
+            {league?.draftScheduledFor ? (
+              <Text style={uiStyles.body}>
+                Draft planned for{' '}
+                {new Date(league.draftScheduledFor).toLocaleString('en-CA', {
+                  timeZone: 'America/Toronto',
+                })}{' '}
+                (Toronto time). The commissioner starts the draft manually.
+              </Text>
             ) : null}
-            {isCommissioner && league ? (
-              <ActionButton
-                label="Commissioner controls"
-                href={`/commissioner/${league.id}`}
-                variant="ghost"
-              />
-            ) : null}
-          </View>
-        </Card>
-      </View>
-    </View>
-  );
-}
-
-function Roster({
-  entries,
-  teamName,
-  leagueId,
-  betaLeague,
-}: {
-  entries: readonly LeagueRosterEntry[];
-  teamName: string;
-  leagueId: string;
-  betaLeague: boolean;
-}) {
-  return (
-    <View>
-      <SectionTitle title={teamName} detail="Lineup locks at game start" />
-      {entries.length > 0 ? (
-        <Card>
-          {entries.map((entry) => (
-            <View key={entry.id} style={styles.rosterRow}>
-              <View style={styles.position}>
-                <Text style={styles.positionText}>{entry.slotCode}</Text>
-              </View>
-              <View style={styles.rosterCopy}>
-                <Text style={styles.rosterName}>{entry.displayName}</Text>
-                <Text style={styles.rosterMeta}>
-                  {entry.jerseyNumber ? `#${entry.jerseyNumber} · ` : ''}Brock {entry.position} ·{' '}
-                  {entry.status}
-                </Text>
-              </View>
+            <View style={styles.controlActions}>
+              {draftId && draftStatus && ['active', 'paused', 'scheduled'].includes(draftStatus) ? (
+                <ActionButton
+                  label="Open draft room"
+                  href={`/draft/${draftId}`}
+                  variant="secondary"
+                />
+              ) : null}
             </View>
-          ))}
-        </Card>
-      ) : (
-        <EmptyState
-          title="Roster is empty"
-          body="Athletes appear here as draft picks and transactions commit."
-        />
-      )}
-      <View style={styles.inlineActions}>
-        <ActionButton
-          label="Set lineup"
-          href={betaLeague ? `/lineup-beta/${leagueId}` : `/lineup/${leagueId}`}
-        />
-        <ActionButton
-          label="Free agents, waivers & trades"
-          href={`/transactions/${leagueId}`}
-          variant="secondary"
-        />
-      </View>
+          </Card>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -296,6 +320,8 @@ function Standings({
   teams: readonly FantasyTeam[];
   league: League | null;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
   const nameFor = (teamId: string) =>
     teams.find((team) => team.id === teamId)?.name ?? 'Unknown team';
   return (
@@ -316,13 +342,22 @@ function Standings({
           <Text style={styles.standingStat}>L</Text>
           <Text style={styles.standingPoints}>PF</Text>
         </View>
-        {rows.map((row) => (
-          <View key={row.fantasyTeamId} style={styles.standingRow}>
+        {rows.map((row, index) => (
+          <View
+            key={row.fantasyTeamId}
+            style={[styles.standingRow, index === rows.length - 1 && uiStyles.lastRow]}
+          >
             <Text style={styles.standingRank}>{row.rank}</Text>
-            <Text style={styles.standingTeam}>{nameFor(row.fantasyTeamId)}</Text>
+            <Pressable
+              accessibilityRole="link"
+              style={styles.standingTeam}
+              onPress={() => router.push(`/league/${league?.id}/teams/${row.fantasyTeamId}`)}
+            >
+              <Text style={styles.standingTeam}>{nameFor(row.fantasyTeamId)}</Text>
+            </Pressable>
             <Text style={styles.standingStat}>{row.wins}</Text>
             <Text style={styles.standingStat}>{row.losses}</Text>
-            <Text style={styles.standingPoints}>{row.pointsFor.toFixed(1)}</Text>
+            <Text style={styles.standingPoints}>{formatFantasyPoints(row.pointsFor)}</Text>
           </View>
         ))}
       </Card>
@@ -345,6 +380,9 @@ function Chat({
   onReport: (messageId: string) => void;
   onMute: (authorId: string | null) => void;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   return (
     <View style={styles.chatLayout}>
       <SectionTitle title="League chat" detail="Text only · Report and mute available" />
@@ -388,121 +426,163 @@ function Chat({
   );
 }
 
-const styles = StyleSheet.create({
-  loadError: { color: colors.danger, marginBottom: 12, fontSize: 12 },
-  inviteBar: {
-    backgroundColor: colors.canvasSoft,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.sm,
-    padding: 13,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  inviteLabel: { color: colors.muted, fontSize: 8, fontWeight: '800', letterSpacing: 1.5 },
-  inviteCode: {
-    color: colors.brand,
-    fontWeight: '900',
-    fontSize: 17,
-    letterSpacing: 1.5,
-    marginTop: 3,
-  },
-  inviteMeta: { color: colors.muted, fontSize: 11 },
-  tabs: {
-    flexDirection: 'row',
-    gap: 4,
-    marginTop: 18,
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-  },
-  tab: { paddingHorizontal: 15, paddingVertical: 13 },
-  tabActive: { borderBottomColor: colors.brand, borderBottomWidth: 2 },
-  tabText: { color: colors.muted, fontWeight: '700', textTransform: 'capitalize', fontSize: 13 },
-  tabTextActive: { color: colors.text },
-  contentGrid: { gap: 17, marginTop: 20 },
-  contentGridWide: { flexDirection: 'row', alignItems: 'flex-start' },
-  contentMain: { flex: 1.6, minWidth: 0 },
-  contentSide: { flex: 0.8, minWidth: 280, gap: 15 },
-  scoreHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  scoreTitle: { ...heading, fontSize: 20, marginTop: 10 },
-  scoreClock: { color: colors.accent, fontWeight: '900' },
-  scoreGrid: { flexDirection: 'row', alignItems: 'center', paddingVertical: 28 },
-  scoreTeam: { flex: 1, alignItems: 'center' },
-  scoreTeamName: { color: colors.text, fontWeight: '800', fontSize: 12, textAlign: 'center' },
-  scoreLeading: { color: colors.brand, fontWeight: '900', fontSize: 36, marginTop: 7 },
-  scoreValue: { color: colors.text, fontWeight: '900', fontSize: 36, marginTop: 7 },
-  scoreDash: { color: colors.muted, fontSize: 20 },
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    paddingVertical: 13,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  activityTag: { color: colors.brand, fontSize: 9, fontWeight: '900', width: 42 },
-  activityTitle: { color: colors.text, fontSize: 12, fontWeight: '700', flex: 1 },
-  activityTime: { color: colors.muted, fontSize: 10 },
-  panelTitle: { ...heading, fontSize: 18, marginBottom: 8 },
-  controlActions: { gap: 8, marginTop: 18 },
-  rosterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-    paddingVertical: 13,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  position: {
-    width: 39,
-    height: 39,
-    backgroundColor: colors.canvasSoft,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  positionText: { color: colors.brand, fontSize: 11, fontWeight: '900' },
-  rosterCopy: { flex: 1 },
-  rosterName: { color: colors.text, fontSize: 13, fontWeight: '800' },
-  rosterMeta: { color: colors.muted, fontSize: 10, marginTop: 3 },
-  rosterPoints: { alignItems: 'flex-end' },
-  rosterPointsValue: { color: colors.text, fontSize: 14, fontWeight: '900' },
-  rosterPointsLabel: { color: colors.muted, fontSize: 7, letterSpacing: 1 },
-  inlineActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 15 },
-  standingHeader: {
-    flexDirection: 'row',
-    paddingBottom: 10,
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-  },
-  standingRow: {
-    flexDirection: 'row',
-    paddingVertical: 14,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  standingRank: { color: colors.muted, width: 30, fontSize: 11 },
-  standingTeam: { color: colors.text, flex: 1, fontSize: 12, fontWeight: '700' },
-  standingStat: { color: colors.text, width: 38, textAlign: 'right', fontSize: 12 },
-  standingPoints: {
-    color: colors.brand,
-    width: 60,
-    textAlign: 'right',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  chatLayout: { maxWidth: 760, width: '100%', alignSelf: 'center' },
-  chatCard: { gap: 4 },
-  message: { backgroundColor: colors.canvasSoft, borderRadius: 12, padding: 13, marginBottom: 8 },
-  messageHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  messageAuthor: { color: colors.brand, fontSize: 11, fontWeight: '900' },
-  messageTime: { color: colors.muted, fontSize: 9 },
-  messageBody: { color: colors.text, fontSize: 13, lineHeight: 19, marginTop: 6 },
-  report: { color: colors.muted, fontSize: 9, marginTop: 8 },
-  chatActions: { flexDirection: 'row', gap: 16 },
-  composer: { flexDirection: 'row', gap: 9, marginTop: 10 },
-  composerInput: { flex: 1 },
-});
+const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    loadError: { fontFamily: 'Inter', color: colors.danger, marginBottom: 12, fontSize: 12 },
+    inviteBar: {
+      backgroundColor: colors.canvasSoft,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: radii.sm,
+      padding: 13,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 12,
+    },
+    inviteLabel: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 8,
+      fontWeight: '800',
+      letterSpacing: 1.5,
+    },
+    inviteCode: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      fontWeight: '900',
+      fontSize: 17,
+      letterSpacing: 1.5,
+      marginTop: 3,
+    },
+    inviteMeta: { fontFamily: 'Inter', color: colors.muted, fontSize: 11 },
+    tabs: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 4,
+      marginTop: 18,
+      borderBottomColor: colors.border,
+      borderBottomWidth: 1,
+    },
+    tab: { paddingHorizontal: 12, paddingVertical: 13, minHeight: 44 },
+    tabActive: { borderBottomColor: colors.brand, borderBottomWidth: 2 },
+    tabText: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontWeight: '700',
+      textTransform: 'capitalize',
+      fontSize: 13,
+    },
+    tabTextActive: { color: colors.text },
+    rosterContent: { paddingTop: 20, gap: 20 },
+    teamSelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    contentGrid: { gap: 17, marginTop: 20 },
+    contentGridWide: { flexDirection: 'row', alignItems: 'flex-start' },
+    contentMain: { flex: 1.6, minWidth: 0 },
+    contentSide: { flex: 0.8, minWidth: 280, gap: 15 },
+    scoreHeader: { flexDirection: 'row', justifyContent: 'space-between' },
+    scoreTitle: { ...heading, fontSize: 20, marginTop: 10, color: colors.text },
+    scoreClock: { color: colors.accent, fontWeight: '900' },
+    scoreGrid: { flexDirection: 'row', alignItems: 'center', paddingVertical: 28 },
+    scoreTeam: { flex: 1, alignItems: 'center' },
+    scoreTeamName: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      fontWeight: '800',
+      fontSize: 12,
+      textAlign: 'center',
+    },
+    scoreLeading: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      fontWeight: '900',
+      fontSize: 36,
+      marginTop: 7,
+    },
+    scoreValue: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      fontWeight: '900',
+      fontSize: 36,
+      marginTop: 7,
+    },
+    scoreDash: { fontFamily: 'Inter', color: colors.muted, fontSize: 20 },
+    activityRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 11,
+      paddingVertical: 13,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    activityTag: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      fontSize: 9,
+      fontWeight: '900',
+      width: 42,
+    },
+    activityTitle: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '700',
+      flex: 1,
+    },
+    activityTime: { fontFamily: 'Inter', color: colors.muted, fontSize: 10 },
+    panelTitle: { ...heading, fontSize: 18, marginBottom: 8, color: colors.text },
+    controlActions: { gap: 8, marginTop: 18 },
+    standingHeader: {
+      flexDirection: 'row',
+      paddingBottom: 10,
+      borderBottomColor: colors.border,
+      borderBottomWidth: 1,
+    },
+    standingRow: {
+      flexDirection: 'row',
+      paddingVertical: 14,
+      borderBottomColor: colors.border,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    standingRank: { fontFamily: 'Inter', color: colors.muted, width: 30, fontSize: 11 },
+    standingTeam: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      flex: 1,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    standingStat: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      width: 38,
+      textAlign: 'right',
+      fontSize: 12,
+    },
+    standingPoints: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      width: 60,
+      textAlign: 'right',
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    chatLayout: { maxWidth: 760, width: '100%', alignSelf: 'center' },
+    chatCard: { gap: 4 },
+    message: { backgroundColor: colors.canvasSoft, borderRadius: 12, padding: 13, marginBottom: 8 },
+    messageHeader: { flexDirection: 'row', justifyContent: 'space-between' },
+    messageAuthor: { fontFamily: 'Inter', color: colors.text, fontSize: 11, fontWeight: '900' },
+    messageTime: { fontFamily: 'Inter', color: colors.muted, fontSize: 9 },
+    messageBody: {
+      fontFamily: 'Inter',
+      color: colors.text,
+      fontSize: 13,
+      lineHeight: 19,
+      marginTop: 6,
+    },
+    report: { fontFamily: 'Inter', color: colors.muted, fontSize: 9, marginTop: 8 },
+    chatActions: { flexDirection: 'row', gap: 16 },
+    composer: { flexDirection: 'row', gap: 9, marginTop: 10 },
+    composerInput: { flex: 1 },
+  });

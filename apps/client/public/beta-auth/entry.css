@@ -1,0 +1,251 @@
+@import url('/ui/theme.css');
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bf-canvas);
+  color: var(--bf-text);
+  font:
+    16px/1.6 system-ui,
+    sans-serif;
+}
+header {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 24px;
+  border-bottom: 1px solid var(--bf-border);
+}
+header a {
+  font-weight: 800;
+  text-decoration: none;
+}
+header span,
+.eyebrow {
+  color: var(--bf-link);
+  font-size: 13px;
+  font-weight: 700;
+}
+main {
+  max-width: 540px;
+  margin: 60px auto;
+  padding: 0 24px;
+}
+code {
+  overflow-wrap: anywhere;
+}
+h1 {
+  font-size: 32px;
+  line-height: 1.2;
+}
+a {
+  color: inherit;
+}
+label {
+  display: block;
+  margin: 20px 0;
+}
+input:not([type='checkbox']) {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 8px;
+  background: var(--bf-canvas-soft);
+  color: inherit;
+  border: 1px solid var(--bf-border);
+  border-radius: 4px;
+  padding: 12px;
+  font: inherit;
+}
+button {
+  min-height: 48px;
+  width: 100%;
+  background: var(--bf-red);
+  color: white;
+  border: 0;
+  border-radius: 4px;
+  font: 700 16px system-ui;
+  cursor: pointer;
+}
+.check {
+  display: flex;
+  gap: 12px;
+}
+.check input {
+  flex-shrink: 0;
+}
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 24px;
+}
+.notice {
+  padding: 16px;
+  border-left: 3px solid var(--bf-red);
+  background: var(--bf-panel);
+}
+.honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--bf-link);
+  outline-offset: 4px;
+}
+
+body {
+  font-family: Inter, system-ui, sans-serif;
+}
+header {
+  align-items: center;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding: 20px 32px;
+}
+.auth-brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: var(--bf-text);
+}
+.auth-brand img {
+  object-fit: contain;
+}
+header span {
+  color: var(--bf-muted);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.auth-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 64px;
+  max-width: 1120px;
+  margin: 72px auto;
+  padding-inline: 32px;
+}
+.auth-intro h2 {
+  font:
+    700 clamp(64px, 7vw, 100px)/0.95 BarlowCondensed,
+    sans-serif;
+  margin: 24px 0;
+  color: var(--bf-text);
+}
+.auth-intro > p:last-of-type {
+  max-width: 340px;
+  color: var(--bf-muted);
+  line-height: 1.8;
+}
+.auth-sports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 36px;
+  color: var(--bf-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+}
+main {
+  width: 100%;
+  max-width: 480px;
+  margin: 0;
+  padding: 32px;
+  border: 1px solid var(--bf-border);
+  border-radius: 16px;
+  background: var(--bf-panel);
+  animation: bf-enter 200ms ease-out;
+}
+h1 {
+  font:
+    700 42px/1.1 BarlowCondensed,
+    sans-serif;
+  margin: 12px 0;
+}
+main > p {
+  color: var(--bf-muted);
+  font-size: 14px;
+}
+.eyebrow {
+  color: var(--bf-muted);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+}
+input:not([type='checkbox']) {
+  border-radius: 12px;
+  min-height: 52px;
+}
+button {
+  border-radius: 12px;
+  min-height: 52px;
+  font-family: Inter, system-ui, sans-serif;
+  transition: opacity 150ms ease;
+  font-size: 19px;
+}
+button:hover {
+  opacity: 0.85;
+}
+nav {
+  gap: 8px 16px;
+  font-size: 12px;
+}
+nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--bf-link);
+}
+.check {
+  font-size: 13px;
+  align-items: flex-start;
+  min-height: 44px;
+}
+.check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--bf-red);
+}
+.notice {
+  border-radius: 12px;
+}
+body > main {
+  margin: 32px auto;
+}
+@media (max-width: 850px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+    max-width: 540px;
+    margin: 32px auto;
+    gap: 24px;
+    padding-inline: 16px;
+  }
+  .auth-intro {
+    display: none;
+  }
+  main {
+    max-width: none;
+    padding: 24px;
+  }
+  header {
+    padding: 16px;
+  }
+  header span {
+    max-width: 90px;
+    text-align: right;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  main,
+  button {
+    animation: none;
+    transition: none;
+  }
+}

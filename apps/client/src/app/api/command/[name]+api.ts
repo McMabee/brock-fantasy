@@ -1,9 +1,21 @@
 import type { RequestHandler } from 'expo-router/server';
+import { actor } from '../../../server/session';
+import { AppAccessUnavailable, withAvailability } from '../../../server/app-access';
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const commands: Readonly<Record<string, readonly string[]>> = {
-  create_beta_league: ['p_name', 'p_pool_id', 'p_max_members', 'p_idempotency_key'],
+  admin_accept_invitation: ['p_invitation_id'],
+  admin_set_account_role: ['p_user_id', 'p_enabled', 'p_reason', 'p_idempotency_key'],
+  create_beta_league: ['p_name', 'p_team_name', 'p_pool_id', 'p_max_members', 'p_idempotency_key'],
+  rename_my_fantasy_team: ['p_league_id', 'p_name', 'p_idempotency_key'],
+  delete_league: ['p_league_id', 'p_confirmation_name', 'p_expected_version', 'p_idempotency_key'],
   start_draft: ['p_league_id', 'p_rounds', 'p_pick_seconds', 'p_idempotency_key'],
+  schedule_league_draft: [
+    'p_league_id',
+    'p_scheduled_for',
+    'p_expected_version',
+    'p_idempotency_key',
+  ],
   make_draft_pick: [
     'p_draft_id',
     'p_athlete_id',
@@ -18,6 +30,15 @@ const commands: Readonly<Record<string, readonly string[]>> = {
   request_waiver: ['p_fantasy_team_id', 'p_athlete_in_id', 'p_athlete_out_id', 'p_idempotency_key'],
   generate_matchup_schedule: ['p_league_id', 'p_starts_at', 'p_cycles', 'p_idempotency_key'],
   get_beta_lineup: ['p_fantasy_team_id'],
+  get_schedule_review: [],
+  review_game_schedule: [
+    'p_game_id',
+    'p_expected_revision',
+    'p_action',
+    'p_changes',
+    'p_reason',
+    'p_idempotency_key',
+  ],
   get_athlete_adp: ['p_athlete_id', 'p_pool_id', 'p_league_size'],
   publish_game_revision: [
     'p_game_id',
@@ -82,7 +103,7 @@ function validRequest(request: Request): string | null {
   return null;
 }
 
-export const POST: RequestHandler = async (request, params) => {
+const handle: RequestHandler = async (request, params) => {
   const name = params.name;
   const allowed = typeof name === 'string' ? commands[name] : undefined;
   if (!allowed) return json({ error: 'Unknown command.' }, 404);
@@ -104,10 +125,8 @@ export const POST: RequestHandler = async (request, params) => {
   const payload = raw as Record<string, unknown>;
   if (Object.keys(payload).some((field) => !allowed.includes(field)))
     return json({ error: 'Unexpected command input.' }, 400);
-  const user = await fetch(`${url}/auth/v1/user`, {
-    headers: { apikey: key, authorization: `Bearer ${accessToken}` },
-  });
-  if (!user.ok) return json({ error: 'Your session has expired.' }, 401);
+  const current = await actor(request);
+  if (!current) return json({ error: 'Sign in with a verified, eligible account.' }, 401);
   const result = await fetch(`${url}/rest/v1/rpc/${name}`, {
     method: 'POST',
     headers: {
@@ -117,7 +136,11 @@ export const POST: RequestHandler = async (request, params) => {
       prefer: 'return=representation',
     },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(12000),
+  }).catch(() => {
+    throw new AppAccessUnavailable('Command confirmation unavailable.');
   });
+  if (result.status >= 500) throw new AppAccessUnavailable('Command confirmation unavailable.');
   const response: unknown = await result.json().catch((): null => null);
   if (!result.ok) {
     const errorResponse =
@@ -132,3 +155,5 @@ export const POST: RequestHandler = async (request, params) => {
   }
   return json(response);
 };
+
+export const POST = withAvailability(handle);

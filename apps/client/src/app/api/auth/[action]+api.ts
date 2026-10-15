@@ -1,10 +1,24 @@
 import type { RequestHandler } from 'expo-router/server';
+import { ELIGIBILITY_POLICY_VERSION, registrationYearAt } from '@brock-fantasy/domain';
+import { limitAuthRequest } from '../../../server/auth-rate-limit';
+import { AppAccessUnavailable, canUseApp } from '../../../server/app-access';
+import { signupHandoff, handoffPage } from '../../../server/signup-handoff';
+import { testerPage } from '../../../server/tester-entry';
+import { authReturnPath } from '../../../lib/admin-navigation';
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const REFRESH_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-refresh' : 'bf_refresh';
 const CSRF_COOKIE = 'bf_csrf';
 const encoder = new TextEncoder();
-const rateWindows = new Map<string, { count: number; resetAt: number }>();
+class AuthUnavailableError extends Error {}
+
+function unavailable(reason: string, httpStatus?: number): AuthUnavailableError {
+  // Callers supply fixed codes only; never log provider bodies or request/error objects.
+  console.error(JSON.stringify({ event: 'brock_auth_provider_unavailable', reason, httpStatus }));
+  return new AuthUnavailableError(
+    'Authentication is temporarily unavailable. Please try again shortly.',
+  );
+}
 
 type AuthAction =
   | 'csrf'
@@ -26,7 +40,8 @@ function config() {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const key =
     process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error('Supabase web authentication is not configured.');
+  if (!url) throw unavailable('public_supabase_url_missing');
+  if (!key) throw unavailable('public_supabase_key_missing');
   return { url: url.replace(/\/$/u, ''), key };
 }
 
@@ -97,20 +112,6 @@ function requireSameOrigin(request: Request, requireCsrf: boolean): string | nul
   return null;
 }
 
-function allowed(request: Request, action: string, max = 10, seconds = 60): boolean {
-  const address = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const key = `${action}:${address}`;
-  const now = Date.now();
-  const row = rateWindows.get(key);
-  if (!row || row.resetAt <= now) {
-    rateWindows.set(key, { count: 1, resetAt: now + seconds * 1_000 });
-    return true;
-  }
-  if (row.count >= max) return false;
-  row.count += 1;
-  return true;
-}
-
 function csrfCookie(): string {
   return serializeCookie(CSRF_COOKIE, crypto.randomUUID(), {
     httpOnly: false,
@@ -146,7 +147,9 @@ async function digest(value: string): Promise<string> {
 
 async function json(request: Request): Promise<Record<string, unknown> | null> {
   try {
-    const value: unknown = await request.json();
+    const raw = await request.text();
+    if (encoder.encode(raw).length > 8192) return null;
+    const value: unknown = JSON.parse(raw);
     return value && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : null;
@@ -163,7 +166,42 @@ async function authFetch(path: string, init: RequestInit = {}): Promise<Response
   const { url, key } = config();
   const headers = new Headers(init.headers);
   headers.set('apikey', key);
-  return fetch(`${url}/auth/v1${path}`, { ...init, headers });
+  let result: Response;
+  try {
+    result = await fetch(`${url}/auth/v1${path}`, {
+      ...init,
+      headers,
+      signal: init.signal ?? AbortSignal.timeout(5000),
+      redirect: 'error',
+    });
+  } catch {
+    throw unavailable('provider_network_or_timeout');
+  }
+  if (result.status >= 500) throw unavailable('provider_http_error', result.status);
+  return result;
+}
+
+async function providerJson<T>(result: Response): Promise<T> {
+  try {
+    return (await result.json()) as T;
+  } catch {
+    throw unavailable('provider_invalid_response');
+  }
+}
+
+async function providerTokens(result: Response): Promise<AuthTokens> {
+  const tokens = await providerJson<AuthTokens | null>(result);
+  if (
+    !tokens ||
+    typeof tokens.access_token !== 'string' ||
+    !tokens.access_token ||
+    typeof tokens.refresh_token !== 'string' ||
+    !tokens.refresh_token ||
+    (tokens.expires_in !== undefined &&
+      (typeof tokens.expires_in !== 'number' || !Number.isFinite(tokens.expires_in)))
+  )
+    throw unavailable('provider_invalid_response');
+  return tokens;
 }
 
 async function currentUser(
@@ -171,11 +209,12 @@ async function currentUser(
 ): Promise<{ id: string; email: string | null; emailConfirmedAt: string | null } | null> {
   const result = await authFetch('/user', { headers: { authorization: `Bearer ${accessToken}` } });
   if (!result.ok) return null;
-  const user = (await result.json()) as {
+  const user = await providerJson<{
     id?: unknown;
     email?: unknown;
     email_confirmed_at?: unknown;
-  };
+  } | null>(result);
+  if (!user || typeof user.id !== 'string') throw unavailable('provider_invalid_response');
   return typeof user.id === 'string'
     ? {
         id: user.id,
@@ -191,18 +230,48 @@ function authError(status: number): Response {
     return response({ error: 'Too many requests. Please wait and try again.' }, 429);
   return response({ error: 'Authentication could not be completed.' }, status >= 500 ? 503 : 401);
 }
+async function accountAccess(token: string, attested: unknown): Promise<boolean> {
+  if (await canUseApp(token)) return true;
+  if (attested !== true) return false;
+  const { url, key } = config();
+  const result = await fetch(url + '/rest/v1/rpc/record_account_eligibility', {
+    method: 'POST',
+    headers: { apikey: key, authorization: 'Bearer ' + token, 'content-type': 'application/json' },
+    body: JSON.stringify({ p_attested: true, p_policy_version: ELIGIBILITY_POLICY_VERSION }),
+    signal: AbortSignal.timeout(5000),
+    redirect: 'error',
+  }).catch(() => {
+    throw unavailable('eligibility_confirmation_unavailable');
+  });
+  if (result.status >= 500) throw unavailable('eligibility_confirmation_unavailable');
+  return result.ok && (await canUseApp(token));
+}
 
-export const GET: RequestHandler = async (request, params) => {
+const get: RequestHandler = async (request, params) => {
   const action = params.action as AuthAction;
   if (action === 'csrf') return response({ ok: true }, 200, [csrfCookie()]);
   if (action !== 'session') return response({ error: 'Not found.' }, 404);
   const accessToken = cookie(request, ACCESS_COOKIE);
-  if (!accessToken) return response({ user: null });
+  if (!accessToken)
+    return response({ user: null, canRefresh: Boolean(cookie(request, REFRESH_COOKIE)) });
   const user = await currentUser(accessToken);
-  return user ? response({ user }) : response({ user: null }, 200, clearSessionCookies());
+  return user && (await canUseApp(accessToken))
+    ? response({ user, expiresAt: accessTokenExpiry(accessToken) })
+    : response({ user: null, canRefresh: Boolean(cookie(request, REFRESH_COOKIE)) }, 401);
 };
 
-export const POST: RequestHandler = async (request, params) => {
+function accessTokenExpiry(token: string): number {
+  try {
+    const value = JSON.parse(
+      atob(token.split('.')[1]!.replace(/-/gu, '+').replace(/_/gu, '/')),
+    ) as { exp?: number };
+    return typeof value.exp === 'number' ? value.exp * 1000 : Date.now() + 60_000;
+  } catch {
+    return Date.now() + 60_000;
+  }
+}
+
+const post: RequestHandler = async (request, params) => {
   const action = params.action as AuthAction;
   if (
     !['sign-in', 'sign-up', 'recover', 'refresh', 'sign-out', 'update-password'].includes(action)
@@ -212,16 +281,36 @@ export const POST: RequestHandler = async (request, params) => {
   const needsCsrf = !['sign-in', 'sign-up', 'recover'].includes(action);
   const originError = requireSameOrigin(request, needsCsrf);
   if (originError) return response({ error: originError }, 403);
-  if (!allowed(request, action, action === 'sign-in' ? 8 : 5)) return authError(429);
-
   if (action === 'sign-out') {
     const accessToken = cookie(request, ACCESS_COOKIE);
-    if (accessToken)
-      await authFetch('/logout', {
-        method: 'POST',
-        headers: { authorization: `Bearer ${accessToken}` },
-      });
-    return response({ ok: true }, 200, clearSessionCookies());
+    let globalSignoutConfirmed = false;
+    if (accessToken) {
+      try {
+        const signedOut = await authFetch('/logout', {
+          method: 'POST',
+          headers: { authorization: `Bearer ${accessToken}` },
+          signal: AbortSignal.timeout(3000),
+        });
+        globalSignoutConfirmed = signedOut.ok;
+      } catch {
+        // Local logout remains available during provider/limiter outages.
+      }
+    }
+    return response({ ok: true, globalSignoutConfirmed }, 200, clearSessionCookies());
+  }
+  const rate = await limitAuthRequest(request, action);
+  if (rate.status !== 'allowed') {
+    const result = response(
+      {
+        error:
+          rate.status === 'limited'
+            ? 'Too many requests. Please try again shortly.'
+            : 'Authentication is temporarily unavailable. Please try again shortly.',
+      },
+      rate.status === 'limited' ? 429 : 503,
+    );
+    result.headers.set('retry-after', String(rate.retryAfterSeconds));
+    return result;
   }
   if (action === 'refresh') {
     const refreshToken = cookie(request, REFRESH_COOKIE);
@@ -232,9 +321,33 @@ export const POST: RequestHandler = async (request, params) => {
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
     if (!refreshed.ok) return authError(refreshed.status);
-    const tokens = (await refreshed.json()) as AuthTokens;
-    const user = await currentUser(tokens.access_token);
-    return user ? response({ user }, 200, sessionCookies(tokens)) : authError(401);
+    const tokens = await providerTokens(refreshed);
+    try {
+      const user = await currentUser(tokens.access_token);
+      return user && (await canUseApp(tokens.access_token))
+        ? response(
+            { user, expiresAt: Date.now() + (tokens.expires_in ?? 3600) * 1000 },
+            200,
+            sessionCookies(tokens),
+          )
+        : response(
+            { error: 'A verified, eligible account is required.' },
+            403,
+            clearSessionCookies(),
+          );
+    } catch (error) {
+      if (!(error instanceof AuthUnavailableError) && !(error instanceof AppAccessUnavailable))
+        throw error;
+      // Supabase has already rotated this refresh token. Retain the new pair
+      // even while eligibility/user reads fail, or a retry can revoke the session.
+      const retry = response(
+        { error: 'Connection unavailable. Retrying…' },
+        503,
+        sessionCookies(tokens),
+      );
+      retry.headers.set('retry-after', '2');
+      return retry;
+    }
   }
 
   const body = await json(request);
@@ -244,13 +357,14 @@ export const POST: RequestHandler = async (request, params) => {
     const email = string(body.email, 320)?.trim().toLowerCase();
     const password = string(body.password, 512);
     if (!email || !password) return response({ error: 'Email and password are required.' }, 400);
+
     const signedIn = await authFetch('/token?grant_type=password', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
     if (!signedIn.ok) return authError(signedIn.status);
-    const tokens = (await signedIn.json()) as AuthTokens;
+    const tokens = await providerTokens(signedIn);
     const user = await currentUser(tokens.access_token);
     if (!user?.emailConfirmedAt)
       return response(
@@ -258,13 +372,30 @@ export const POST: RequestHandler = async (request, params) => {
         403,
         clearSessionCookies(),
       );
-    return response({ user }, 200, sessionCookies(tokens));
+    if (!(await accountAccess(tokens.access_token, body.eligibilityAttested)))
+      return response(
+        {
+          error:
+            'A verified, eligible account is required. If you meet the eligibility requirement, check the confirmation box and sign in again.',
+        },
+        403,
+        clearSessionCookies(),
+      );
+    return response(
+      { user, expiresAt: Date.now() + (tokens.expires_in ?? 3600) * 1000 },
+      200,
+      sessionCookies(tokens),
+    );
   }
 
   const requestUrl = requestOrigin(request);
   if (action === 'sign-up' || action === 'recover') {
     const email = string(body.email, 320)?.trim().toLowerCase();
-    if (!email) return response({ error: 'A valid email is required.' }, 400);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email))
+      return response({ error: 'A valid email is required.' }, 400);
+
+    if (action === 'sign-up' && typeof body.website === 'string' && body.website !== '')
+      return response({ error: 'This registration could not be accepted.' }, 400);
     const verifier =
       crypto.randomUUID().replace(/-/gu, '') + crypto.randomUUID().replace(/-/gu, '');
     const challenge = await digest(verifier);
@@ -285,24 +416,45 @@ export const POST: RequestHandler = async (request, params) => {
     const displayName = string(body.displayName, 80)?.trim();
     if (!password || password.length < 8 || !displayName)
       return response({ error: 'Display name and an 8+ character password are required.' }, 400);
+    if (body.eligibilityAttested !== true)
+      return response({ error: 'Confirm that you are 18 or turn 18 this calendar year.' }, 400);
     const signedUp = await authFetch(`/signup?redirect_to=${encodeURIComponent(redirectTo)}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         email,
         password,
-        data: { display_name: displayName },
+        data: {
+          display_name: displayName,
+          beta_age_eligible: true,
+          beta_eligibility_year: registrationYearAt(),
+          beta_eligibility_policy_version: ELIGIBILITY_POLICY_VERSION,
+        },
         code_challenge: challenge,
         code_challenge_method: 's256',
       }),
     });
-    return signedUp.ok
-      ? response({ ok: true }, 200, [verifierCookie, flowCookie, csrfCookie()])
-      : authError(signedUp.status);
+    if (!signedUp.ok) return authError(signedUp.status);
+    const created = await providerJson<{ id?: string; user?: { id?: string } }>(signedUp);
+    const id = created.user?.id ?? created.id;
+    if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/iu.test(id))
+      throw unavailable('provider_invalid_response');
+    const receipt = await signupHandoff(id, email);
+    return response({ ok: true, signupReceipt: receipt }, 200, [
+      verifierCookie,
+      flowCookie,
+      csrfCookie(),
+    ]);
   }
 
   const accessToken = cookie(request, ACCESS_COOKIE);
   if (!accessToken) return authError(401);
+  if (!(await accountAccess(accessToken, body.eligibilityAttested)))
+    return response(
+      { error: 'A verified, eligible account is required.' },
+      403,
+      clearSessionCookies(),
+    );
   const password = string(body.password, 512);
   if (!password || password.length < 8)
     return response({ error: 'Use an 8+ character password.' }, 400);
@@ -312,4 +464,77 @@ export const POST: RequestHandler = async (request, params) => {
     body: JSON.stringify({ password }),
   });
   return updated.ok ? response({ ok: true }, 200) : authError(updated.status);
+};
+
+function withAvailabilityHandling(handler: RequestHandler): RequestHandler {
+  return async (request, params) => {
+    try {
+      return await handler(request, params);
+    } catch (error) {
+      if (!(error instanceof AuthUnavailableError) && !(error instanceof AppAccessUnavailable))
+        throw error;
+      const result = response({ error: error.message }, 503);
+      result.headers.set('retry-after', '30');
+      return result;
+    }
+  };
+}
+
+export const GET = withAvailabilityHandling(get);
+const jsonPost = withAvailabilityHandling(post);
+export const POST: RequestHandler = async (request, params) => {
+  if (!request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded'))
+    return jsonPost(request, params);
+  const raw = await request.text();
+  if (raw.length > 8192) return response({ error: 'Invalid request.' }, 400);
+  const form = new URLSearchParams(raw);
+  const action = String(params.action);
+  const headers = new Headers(request.headers);
+  headers.set('content-type', 'application/json');
+  headers.delete('content-length');
+  if (form.get('csrf')) headers.set('x-csrf-token', form.get('csrf')!);
+  const result = await jsonPost(
+    new Request(request.url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        email: form.get('email'),
+        password: form.get('password'),
+        displayName: form.get('displayName'),
+        eligibilityAttested: form.get('eligibilityAttested') === 'true',
+        website: form.get('website') ?? '',
+      }),
+    }),
+    params,
+  );
+  const cookies = result.headers.getSetCookie();
+  const query = new URL(request.url).searchParams;
+  const returnTo = query.get('returnTo') ?? query.get('next');
+  if (result.ok && (action === 'sign-in' || action === 'update-password')) {
+    const redirectHeaders = new Headers({
+      location: returnTo ? authReturnPath(returnTo) : '/dashboard',
+      'cache-control': 'no-store, private',
+    });
+    cookies.forEach((value) => redirectHeaders.append('set-cookie', value));
+    return new Response(null, { status: 303, headers: redirectHeaders });
+  }
+  const body = (await result.json()) as { error?: string; signupReceipt?: string };
+  if (result.ok && action === 'sign-up' && body.signupReceipt)
+    return handoffPage(body.signupReceipt, cookies);
+  return testerPage(
+    action === 'sign-up'
+      ? 'activate'
+      : action === 'recover'
+        ? 'recover'
+        : action === 'update-password'
+          ? 'reset'
+          : 'sign-in',
+    body.error ??
+      'Check your email for the next step. Instructions will arrive if this account is eligible.',
+    result.status,
+    cookies,
+    cookie(request, CSRF_COOKIE) ?? '',
+    returnTo ? authReturnPath(returnTo) : '',
+    cookie(request, 'bf_theme') === 'light' ? 'light' : 'dark',
+  );
 };
