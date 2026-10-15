@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import ts from 'typescript';
 import { readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
 const deployment = JSON.parse(await readFile('vercel.json', 'utf8'));
 assert.equal(deployment.proxy.entrypoint, 'proxy.ts');
 assert.equal(deployment.functions['api/index.js'].includeFiles, 'apps/client/dist/server/**');
@@ -21,6 +23,10 @@ const sessionUrl = moduleUrl(
   ),
 );
 const compiled = compile(await readFile('proxy.ts', 'utf8'))
+  .replace(
+    "'./config/public-deployment.cjs'",
+    JSON.stringify(pathToFileURL(resolve('config/public-deployment.cjs')).href),
+  )
   .replace(
     /import \{ next, rewrite \} from '@vercel\/functions';/u,
     "const next=(options)=>new Response(null,{headers:{...options?.headers,'x-test-next':'1'}});const rewrite=url=>new Response(null,{headers:{'x-test-rewrite':url.toString()}});",
@@ -211,6 +217,16 @@ try {
   sessionValid = true;
   eligible = false;
   assert.equal((await dataApi.POST(dataRequest('/rest/v1/rpc/get_player_insights'))).status, 401);
+  for (const name of Object.keys(process.env))
+    if (name.startsWith('EXPO_PUBLIC_')) delete process.env[name];
+  process.env.VERCEL_GIT_COMMIT_REF = 'main';
+  process.env.VERCEL_ENV = 'production';
+  assert.equal(proxy(new Request('https://play.brockfantasy.ca/auth')).status, 200);
+  assert.equal(proxy(new Request('https://beta.brockfantasy.ca/auth')).status, 403);
+  assert.equal(proxy(new Request('https://play.brockfantasy.ca/api/admin/games')).status, 401);
+  process.env.VERCEL_GIT_COMMIT_REF = 'beta';
+  assert.equal(proxy(new Request('https://beta.brockfantasy.ca/auth')).status, 200);
+  assert.equal(proxy(new Request('https://play.brockfantasy.ca/auth')).status, 403);
   console.log(
     'Public shells, cached assets, live private API authorization, participant-token insight forwarding, mutation denial, alternate host denial and retryable 503/session preservation passed.',
   );

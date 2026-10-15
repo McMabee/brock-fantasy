@@ -1,5 +1,6 @@
 import { next, rewrite } from '@vercel/functions';
 import { requestCookie } from './apps/client/src/server/session';
+import { resolvePublicDeploymentConfig } from './config/public-deployment.cjs';
 
 const headers = { 'cache-control': 'no-store, private', 'x-content-type-options': 'nosniff' };
 const entries: Record<string, string> = {
@@ -35,12 +36,12 @@ const policyPaths = new Set(
 );
 export default function proxy(request: Request): Response {
   const url = new URL(request.url);
-  const local = process.env.EXPO_PUBLIC_APP_ENV === 'local' && process.env.VERCEL !== '1';
-  const origin = process.env.EXPO_PUBLIC_APP_ORIGIN;
+  const config = resolvePublicDeploymentConfig(process.env);
+  const environment = config.EXPO_PUBLIC_APP_ENV ?? process.env.EXPO_PUBLIC_APP_ENV;
+  const local = environment === 'local' && process.env.VERCEL !== '1';
+  const origin = config.EXPO_PUBLIC_APP_ORIGIN ?? process.env.EXPO_PUBLIC_APP_ORIGIN;
   const expectedOrigin =
-    process.env.EXPO_PUBLIC_APP_ENV === 'production'
-      ? 'https://play.brockfantasy.ca'
-      : 'https://beta.brockfantasy.ca';
+    environment === 'production' ? 'https://play.brockfantasy.ca' : 'https://beta.brockfantasy.ca';
   if (!local && (origin !== expectedOrigin || url.origin !== expectedOrigin))
     return new Response('This deployment is not a public application entry.', {
       status: 403,

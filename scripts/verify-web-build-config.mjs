@@ -1,18 +1,13 @@
+import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import { validatePublicAuthConfig } from '../apps/client/src/lib/public-auth-config.ts';
+import { resolvePublicDeploymentConfig } from '../config/public-deployment.cjs';
 
-// Local exports keep their Expo dotenv workflow. Hosted exports must receive
-// public Config variables from Vercel before Metro starts; no server secrets needed.
+// - Resolve hosted public defaults before Expo starts
+// - Preserve explicit overrides so invalid or privileged values still fail validation
 if (process.env.VERCEL === '1') {
-  const required = [
-    'EXPO_PUBLIC_APP_ENV',
-    'EXPO_PUBLIC_SUPABASE_URL',
-    'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
-    'EXPO_PUBLIC_APP_ORIGIN',
-    'EXPO_PUBLIC_SUPPORT_EMAIL',
-  ];
-  const missing = required.filter((name) => !process.env[name]);
-  if (missing.length)
-    throw new Error(`Missing Vercel public Config variables: ${missing.join(', ')}.`);
+  Object.assign(process.env, resolvePublicDeploymentConfig(process.env));
   if (
     Object.entries(process.env).some(
       ([name, value]) =>
@@ -31,7 +26,24 @@ if (process.env.VERCEL === '1') {
     throw new Error(
       'The beta branch requires staging and EXPO_PUBLIC_APP_ORIGIN=https://beta.brockfantasy.ca.',
     );
+  if (
+    process.env.VERCEL_GIT_COMMIT_REF === 'main' &&
+    process.env.EXPO_PUBLIC_APP_ENV !== 'production'
+  )
+    throw new Error('The main branch requires EXPO_PUBLIC_APP_ENV=production.');
   console.log(
     'Vercel public Config variables validated; server secrets are not required for export.',
   );
+}
+
+if (process.argv.includes('--build')) {
+  // - Launch Expo from this process so validated defaults reach the child environment
+  const clientRequire = createRequire(new URL('../apps/client/package.json', import.meta.url));
+  const result = spawnSync(
+    process.execPath,
+    [clientRequire.resolve('expo/bin/cli'), 'export', '--platform', 'web'],
+    { stdio: 'inherit', cwd: fileURLToPath(new URL('../apps/client', import.meta.url)) },
+  );
+  if (result.error) throw result.error;
+  process.exit(result.status ?? 1);
 }

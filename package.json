@@ -11,7 +11,7 @@
     "web": "pnpm --filter @brock-fantasy/client web",
     "android": "pnpm --filter @brock-fantasy/client android",
     "ios": "pnpm --filter @brock-fantasy/client ios",
-    "build:web": "node --experimental-strip-types scripts/verify-web-build-config.mjs && pnpm --filter @brock-fantasy/client build:web",
+    "build:web": "node --experimental-strip-types scripts/verify-web-build-config.mjs --build",
     "preview": "pnpm --filter @brock-fantasy/client preview",
     "smoke:mobile": "pnpm --filter @brock-fantasy/client smoke:mobile",
     "format": "prettier --write .",

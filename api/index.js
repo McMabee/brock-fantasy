@@ -1,4 +1,8 @@
 const path = require('node:path');
+const { resolvePublicDeploymentConfig } = require('../config/public-deployment.cjs');
+
+// - Apply the same public defaults before loading Expo server routes
+Object.assign(process.env, resolvePublicDeploymentConfig(process.env));
 const { createRequestHandler } = require('expo-server/adapter/vercel');
 
 const handleRequest = createRequestHandler({

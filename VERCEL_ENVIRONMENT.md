@@ -5,12 +5,35 @@ adapter. Keep the repository root, `pnpm install --frozen-lockfile`,
 `pnpm build:web`, output `apps/client/dist/client`, included bundle
 `apps/client/dist/server/**`, and Node 24.x. Do not switch to SPA output.
 
+## Builds from a clean checkout
+
+`config/public-web.json` contains only the approved public Supabase URL,
+publishable key and support addresses. These browser-visible settings are safe
+to ship with the application. Vercel builds and API cold starts use these defaults
+when public project variables are absent; explicit project variables take precedence
+and still undergo build validation. Main defaults to production at
+`https://play.brockfantasy.ca`; beta defaults to staging at
+`https://beta.brockfantasy.ca`. Routing middleware uses the same defaults and
+continues rejecting other hosts. Keep Vercel system environment variables enabled.
+
+`pnpm build:web` passes the resolved settings to the Expo child process before
+exporting. It never needs private server credentials, local `.env` files or the
+ignored `logic/` CSV inputs. Those CSVs are operator import sources; executable
+game rules are tracked in `packages/domain/src` and `supabase/migrations`.
+Keep `logic/`, `dev/`, `.vercel/` and local environment files ignored.
+
+Server-only credentials still belong in Vercel's deployment environment:
+`SUPABASE_SECRET_KEY` and `AUTH_RATE_LIMIT_HMAC_SECRET` are required for hosted
+authentication. Administrator email invitations additionally need `RESEND_API_KEY`
+and `ADMIN_INVITE_EMAIL_FROM`. Missing credentials continue to fail closed at
+runtime; a successful export does not verify their hosted configuration.
+
 ## Beta variables
 
 Public account signup and the administrator-only beta also require server Config `PUBLIC_REGISTRATION_ORIGIN=https://www.brockfantasy.ca`, the additive access/registration migrations including `20261009232603_public_accounts_admin_access.sql`, and protected routing middleware. Follow [the cross-repository rollout runbook](REGISTRATION_PRIVATE_BETA.md) before publishing. The association project uses its own restricted database credential for signup receipts and optional launch/news consent; never copy `SUPABASE_SECRET_KEY` into that project or expose private values with a public prefix. Old development-enrollment switches do not gate account signup. Existing admin/MFA credentials and user roles stay unchanged.
 
 Open Vercel → project **brock-fantasy** → **Environment Variables** (under
-Settings in some dashboard layouts). Add these nine project variables with
+Settings in some dashboard layouts). Use these values for explicit overrides and server settings with
 target **Preview**, Git branch **beta**. Branch overrides take precedence over
 general Preview settings. Enter values without surrounding quotes.
 
@@ -34,8 +57,8 @@ credentials to use a public prefix. Vercel API payloads use `visibility=config`
 with `type=encrypted` (or `plain`), and `visibility=secret` with `type=sensitive`.
 See [Vercel Config/Secret documentation](https://vercel.com/docs/environment-variables/sensitive-environment-variables).
 
-`pnpm build:web` checks the five public Config variables before Metro on Vercel.
-It requires staging plus the beta origin when `VERCEL_GIT_COMMIT_REF=beta`, and
+`pnpm build:web` resolves and checks the five public settings before Metro on Vercel.
+It requires production on main, staging plus the beta origin when `VERCEL_GIT_COMMIT_REF=beta`, and
 never requires server secrets during export. The application also
 validates public configuration during rendering.
 
@@ -43,8 +66,9 @@ Copy keys privately from [Supabase project Settings → API Keys](https://supaba
 Use a `sb_publishable_...` key for the public variable and a `sb_secret_...` key
 for the server variable. A legacy `anon` JWT is supported for public compatibility;
 only a legacy `service_role` JWT is supported as the server fallback. Secret API
-keys travel in `apikey`, never as Bearer JWTs. Do not commit real keys or paste
-server credentials into chat. [Supabase documents the boundary and header requirements](https://supabase.com/docs/guides/api/api-keys).
+keys travel in `apikey`, never as Bearer JWTs. Never commit secret or service-role
+keys or paste server credentials into chat. Only the browser-safe publishable key
+belongs in `config/public-web.json`. [Supabase documents the boundary and header requirements](https://supabase.com/docs/guides/api/api-keys).
 
 Enable **Enable access to System Environment Variables** in Vercel's Environment
 Variables page. The limiter requires Vercel's system `VERCEL=1`; do not manually
