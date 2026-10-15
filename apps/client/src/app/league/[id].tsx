@@ -165,8 +165,8 @@ export default function LeagueScreen() {
         />
       ) : null}
       {tab === 'roster' ? (
-        <View style={{ gap: 12 }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <View style={styles.rosterContent}>
+          <View style={styles.teamSelector}>
             {teams.map((team) => (
               <ActionButton
                 key={team.id}
@@ -475,6 +475,8 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       fontSize: 13,
     },
     tabTextActive: { color: colors.text },
+    rosterContent: { paddingTop: 20, gap: 20 },
+    teamSelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     contentGrid: { gap: 17, marginTop: 20 },
     contentGridWide: { flexDirection: 'row', alignItems: 'flex-start' },
     contentMain: { flex: 1.6, minWidth: 0 },
