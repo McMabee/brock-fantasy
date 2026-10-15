@@ -33,7 +33,7 @@ The association receipt handler also needs its existing restricted `PRELAUNCH_DA
 
 # Feedback delivery
 
-The feedback form posts to FormSubmit for delivery to `tymabee@proton.me`. Complete FormSubmit's destination activation email when prompted, then submit an owner-approved test report. Automated browser checks intercept these posts and do not send email.
+The feedback form posts to `https://formsubmit.co/c561de24beb750974ce891e2eb88ed52`, using the recipient identifier supplied by FormSubmit for delivery to `tymabee@proton.me`. The form action and report-page helper text do not expose the raw recipient email. Complete FormSubmit's destination activation email when prompted, then submit an owner-approved test report. Automated browser checks intercept these posts and do not send email.
 
 # Verification
 

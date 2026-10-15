@@ -38,7 +38,7 @@ export default function FeedbackScreen() {
       ) : (
         <form
           className="feedback-form"
-          action="https://formsubmit.co/tymabee@proton.me"
+          action="https://formsubmit.co/c561de24beb750974ce891e2eb88ed52"
           method="POST"
         >
           <p>Found a problem or have an idea? Tell us what happened and how we can improve.</p>
@@ -115,8 +115,8 @@ export default function FeedbackScreen() {
             <input type="email" name="email" autoComplete="email" maxLength={320} />
           </label>
           <p className="feedback-note">
-            Reports are sent through FormSubmit to tymabee@proton.me. Please leave out passwords,
-            recovery codes and other private account details.
+            Reports are sent through FormSubmit to the Brock Fantasy team. Please leave out
+            passwords, recovery codes and other private account details.
           </p>
           <button className="feedback-submit" type="submit">
             Send {kind.toLowerCase()}

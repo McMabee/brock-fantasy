@@ -11,6 +11,7 @@ process.env.EXPO_PUBLIC_APP_ENV = 'local';
 delete process.env.VERCEL;
 const { default: handler } = await import('../api/index.js');
 const staticRoot = path.resolve('apps/client/dist/client');
+const feedbackEndpoint = 'https://formsubmit.co/c561de24beb750974ce891e2eb88ed52';
 const mime = {
   '.js': 'text/javascript',
   '.css': 'text/css',
@@ -88,6 +89,8 @@ try {
     assert.equal(await page.locator('.feedback-form').getAttribute('method'), 'POST');
     for (const kind of ['Bug', 'Suggestion']) {
       if (kind === 'Suggestion') await page.goto(origin + '/feedback');
+      assert.equal(await page.locator('.feedback-form').getAttribute('action'), feedbackEndpoint);
+      assert.ok(!(await page.locator('.feedback-form').innerText()).includes('tymabee@proton.me'));
       await page.getByRole('radio', { name: kind, exact: true }).check();
       await page.getByLabel('Title', { exact: false }).fill('Fixture feedback title');
       await page
@@ -117,7 +120,8 @@ try {
         animations: 'disabled',
       });
       let captured = false;
-      await page.route('https://formsubmit.co/tymabee@proton.me', async (route) => {
+      await page.route('https://formsubmit.co/**', async (route) => {
+        assert.equal(route.request().url(), feedbackEndpoint);
         assert.equal(route.request().method(), 'POST');
         const form = new URLSearchParams(route.request().postData());
         assert.equal(form.get('Report type'), kind);
@@ -134,7 +138,7 @@ try {
       await page.waitForURL('**/feedback?submitted=1');
       await page.getByRole('heading', { name: 'Thanks for your feedback', exact: true }).waitFor();
       assert.equal(captured, true);
-      await page.unroute('https://formsubmit.co/tymabee@proton.me');
+      await page.unroute('https://formsubmit.co/**');
     }
     results.push({
       width,

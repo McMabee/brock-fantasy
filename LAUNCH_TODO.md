@@ -4,6 +4,7 @@
 - [x] Verify `/signup` from a direct visit and from in-app navigation
 - [x] Remove public beta labels and staging entry links from the main websites
 - [x] Add footer access to the bug/suggestion form and verify both report types are included in FormSubmit posts to `tymabee@proton.me`
+- [x] Use the recipient identifier supplied by FormSubmit in the action URL and remove the raw email from the report form
 - [x] Restore the association's account-confirmation receipt handler and compiled Node runtime on main
 - [ ] Verify the deployed Production authentication endpoint after the owner adds `SUPABASE_SECRET_KEY` and `AUTH_RATE_LIMIT_HMAC_SECRET` privately in Vercel and redeploys
 - [ ] Verify a real new-account signup, email verification and association confirmation after both main branches deploy
