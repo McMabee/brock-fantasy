@@ -16,7 +16,7 @@ test('staging and production validate public config without any server secrets',
   validatePublicAuthConfig({
     ...beta,
     EXPO_PUBLIC_APP_ENV: 'production',
-    EXPO_PUBLIC_APP_ORIGIN: 'https://brockfantasy.ca',
+    EXPO_PUBLIC_APP_ORIGIN: 'https://play.brockfantasy.ca',
   });
   validatePublicAuthConfig({});
 });
@@ -40,6 +40,8 @@ test('hosted config rejects invalid environments, origins, projects and support 
     { EXPO_PUBLIC_APP_ENV: 'preview' },
     { EXPO_PUBLIC_APP_ORIGIN: 'http://beta.brockfantasy.ca' },
     { EXPO_PUBLIC_APP_ORIGIN: 'https://beta.brockfantasy.ca/path' },
+    { EXPO_PUBLIC_APP_ORIGIN: 'https://play.brockfantasy.ca' },
+    { EXPO_PUBLIC_APP_ENV: 'production' },
     { EXPO_PUBLIC_SUPABASE_URL: 'https://other.supabase.co' },
     { EXPO_PUBLIC_SUPPORT_EMAIL: 'tymabee@proton.me' },
   ])

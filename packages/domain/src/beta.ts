@@ -5,7 +5,7 @@ export const BETA_SEASON = '2026-27';
 export const BETA_PLAYER_POOL_ID = 'b0000000-0000-4000-8000-000000000003';
 export const LEAGUE_SIZES = [4, 6, 8, 10] as const;
 export type BetaPosition = 'F' | 'D' | 'G' | 'BC' | 'FC' | 'HT' | 'S' | 'L';
-export type BetaSlot = 'HK_F' | 'HK_DG' | 'BB_BC' | 'BB_FC' | 'VB_HT' | 'VB_LS' | 'BN';
+export type BetaSlot = 'HK_F' | 'HK_DG' | 'BB_BC' | 'BB_FC' | 'VB_HT' | 'VB_LS' | 'FLEX' | 'BN';
 export const BETA_SLOTS: Readonly<Record<BetaSlot, readonly BetaPosition[]>> = {
   HK_F: ['F'],
   HK_DG: ['D', 'G'],
@@ -13,6 +13,7 @@ export const BETA_SLOTS: Readonly<Record<BetaSlot, readonly BetaPosition[]>> = {
   BB_FC: ['FC'],
   VB_HT: ['HT'],
   VB_LS: ['L', 'S'],
+  FLEX: ['F', 'D', 'G', 'BC', 'FC', 'HT', 'L', 'S'],
   BN: ['F', 'D', 'G', 'BC', 'FC', 'HT', 'L', 'S'],
 };
 export const STARTER_SLOTS = Object.keys(BETA_SLOTS).filter((s) => s !== 'BN') as BetaSlot[];

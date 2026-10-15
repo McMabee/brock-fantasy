@@ -16,11 +16,12 @@ import { useCompetitions } from '@/hooks/use-competitions';
 import { ASSOCIATION_INSTAGRAM_URL } from '@/lib/association';
 import { useSession } from '@/providers/session-provider';
 import { heading } from '@/theme';
+import { programNames } from '@/lib/player-program';
 
 export default function HomeScreen() {
   const styles = useThemedStyles(createStyles);
   const { user, loading } = useSession();
-  const competitionQuery = useCompetitions();
+  const competitionQuery = useCompetitions(Boolean(user));
   const competitions = competitionQuery.data;
 
   return (
@@ -40,7 +41,7 @@ export default function HomeScreen() {
             href={user ? '/dashboard' : '/auth'}
           />
           {!loading && !user ? (
-            <ActionButton label="Create an account" href="/auth" variant="secondary" />
+            <ActionButton label="Create an account" href="/signup" variant="secondary" />
           ) : null}
         </View>
         <Text style={styles.instagram}>
@@ -58,8 +59,20 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      <SectionTitle title="2026–27 programs" detail="Imported source data" />
-      {competitionQuery.loading ? (
+      <SectionTitle
+        title="2026–27 programs"
+        detail="Men’s and women’s hockey, basketball and volleyball"
+      />
+      {!user ? (
+        <View style={styles.programGrid}>
+          {Object.entries(programNames).map(([key, name]) => (
+            <Card key={key} style={styles.programCard}>
+              <Text style={styles.programName}>{name}</Text>
+              <Text style={styles.programMeta}>Brock Badgers · 2026–27</Text>
+            </Card>
+          ))}
+        </View>
+      ) : competitionQuery.loading ? (
         <LoadingState label="Loading programs" rows={2} />
       ) : competitionQuery.error ? (
         <ErrorState message={competitionQuery.error} />

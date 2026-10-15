@@ -269,7 +269,9 @@ export default function DraftRoomScreen() {
           const athlete = athleteById.get(cell.entry?.athlete_id ?? ghost ?? '');
           const name =
             cell.slot.code === 'BN'
-              ? 'Bench ' + (index - mySlots.filter((s) => s.code !== 'BN').length + 1)
+              ? rosterSlotLabel('BN') +
+                ' ' +
+                (index - mySlots.filter((s) => s.code !== 'BN').length + 1)
               : rosterSlotLabel(cell.slot.code);
           return (
             <View key={index} style={[styles.rosterSlot, ghost ? styles.preview : null]}>
@@ -731,7 +733,13 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       padding: 10,
       gap: 5,
     },
-    slotLabel: { fontFamily: 'Inter', color: colors.muted, fontSize: 11, fontWeight: '800' },
+    slotLabel: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 13,
+      lineHeight: 20,
+      fontWeight: '800',
+    },
     preview: { borderStyle: 'dashed', opacity: 0.7 },
     historyRow: { gap: 4, borderBottomWidth: 1, borderColor: colors.border, paddingBottom: 10 },
     orderItem: { padding: 10, borderColor: colors.border, borderWidth: 1, borderRadius: 8 },

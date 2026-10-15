@@ -54,9 +54,14 @@ export function validatePublicAuthConfig(values: PublicAuthConfig): void {
     const value = values.EXPO_PUBLIC_APP_ORIGIN!;
     const url = new URL(value);
     if (url.protocol !== 'https:' || url.origin !== value.replace(/\/$/u, '')) throw new Error();
+    const expected =
+      environment === 'production'
+        ? 'https://play.brockfantasy.ca'
+        : 'https://beta.brockfantasy.ca';
+    if (url.origin !== expected) throw new Error();
   } catch {
     throw new Error(
-      'Staging and production require an HTTPS EXPO_PUBLIC_APP_ORIGIN without a path.',
+      'EXPO_PUBLIC_APP_ORIGIN must be https://beta.brockfantasy.ca for staging or https://play.brockfantasy.ca for production.',
     );
   }
   const recipients = values

@@ -126,6 +126,59 @@ try {
     const output = await sql(db, await readFile(process.env.BROCK_TEST_EXTRA_SQL, 'utf8'));
     console.log(output.trim());
   }
+  if (process.env.BROCK_TEST_FLEX_UPGRADE_SQL) {
+    const flex = migrations.findIndex((name) =>
+      name.endsWith('_flex_game_lineups_and_schedule_review.sql'),
+    );
+    assert.ok(flex > 0);
+    const prior = await scaffold('flex_upgrade');
+    await migrate(prior, migrations.slice(0, flex));
+    const fixture = await readFile(process.env.BROCK_TEST_FLEX_UPGRADE_SQL, 'utf8');
+    assert.ok(fixture.includes("rollback;select 'public-beta-rehearsal-passed';"));
+    await sql(
+      prior,
+      fixture.replace(
+        "rollback;select 'public-beta-rehearsal-passed';",
+        "commit;select 'retained-upgrade-fixture';",
+      ),
+    );
+    await sql(
+      prior,
+      `
+      create table public.fixture_before_rosters as select * from public.roster_entries;
+      create table public.fixture_before_picks as select * from public.draft_picks;
+      insert into public.fantasy_point_events(league_id,fantasy_team_id,athlete_id,game_id,ruleset_id,stat_key,stat_value,points,kind,source_identity)
+      select r.league_id,r.fantasy_team_id,r.athlete_id,g.id,l.ruleset_id,'skater.goals',1,20,'score','preserved-upgrade-event'
+      from public.roster_entries r join public.leagues l on l.id=r.league_id
+      join public.athletes a on a.id=r.athlete_id join public.games g on g.competition_id=a.competition_id
+      where r.slot_code='HK_F' limit 1;
+    `,
+    );
+    await migrate(prior, migrations.slice(flex));
+    await sql(
+      prior,
+      `do $$ begin
+      if (select count(*) from public.draft_picks)<>140 or exists(
+        (select * from public.fixture_before_picks except select * from public.draft_picks)
+        union all (select * from public.draft_picks except select * from public.fixture_before_picks)
+      ) then raise exception 'Upgrade changed draft history'; end if;
+      if exists(select fantasy_team_id from public.roster_entries where released_at is null group by fantasy_team_id
+        having count(*)<>10 or count(*) filter(where status='starter')<>7 or count(*) filter(where slot_code='BN')<>3
+          or count(*) filter(where slot_code='FLEX')<>1) then raise exception 'Upgrade did not preserve legal ten-athlete rosters'; end if;
+      if exists(select b.id from public.fixture_before_rosters b left join public.roster_entries r on r.id=b.id and r.athlete_id=b.athlete_id
+        and r.fantasy_team_id=b.fantasy_team_id where r.id is null) then raise exception 'Upgrade changed roster ownership'; end if;
+      if (select sum(points) from public.fantasy_point_events where source_identity='preserved-upgrade-event')<>20 then raise exception 'Upgrade changed earned points'; end if;
+      if exists(select 1 from public.fantasy_teams t join public.leagues l on l.id=t.league_id
+        cross join lateral (select b.athlete_id from public.fixture_before_rosters b
+          join public.athletes a on a.id=b.athlete_id left join beta_private.next_period_projections(l.pool_id) q on q.athlete_id=b.athlete_id
+          where b.fantasy_team_id=t.id and b.slot_code='BN' order by q.points desc nulls last,q.season_points desc nulls last,a.display_name,b.id limit 1) expected
+        where not exists(select 1 from public.roster_entries r where r.fantasy_team_id=t.id and r.athlete_id=expected.athlete_id and r.slot_code='FLEX')) then raise exception 'Upgrade did not choose the highest next-period projected reserve'; end if;
+    end $$;`,
+    );
+    console.log(
+      'Upgrade preserved 140 picks, all 140 owned athletes and earned points; every team received the highest-projected reserve in FLEX',
+    );
+  }
 
   const concurrentEmail = 'concurrent-enrollment@example.test';
   await Promise.all(

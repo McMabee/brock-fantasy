@@ -18,6 +18,7 @@ import { useMyLeagues } from '@/hooks/use-my-leagues';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { heading } from '@/theme';
 import { RulesLink } from '@/components/rules-link';
+import { PendingConfirmation } from '@/components/player-insights';
 
 export default function DashboardScreen() {
   const styles = useThemedStyles(createStyles);
@@ -25,7 +26,7 @@ export default function DashboardScreen() {
   const access = useRequireUser();
   const leagueQuery = useMyLeagues();
   const leagues = leagueQuery.data;
-  const competitionQuery = useCompetitions();
+  const competitionQuery = useCompetitions(access.allowed);
   const competitions = competitionQuery.data;
   const programGames = useProgramGames(competitions.map((competition) => competition.id));
 
@@ -133,6 +134,9 @@ export default function DashboardScreen() {
                         ? `Next game · ${new Date(programGames.games[competition.id]!.starts_at).toLocaleString('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}`
                         : 'No upcoming game scheduled'))}
                 </Text>
+                {programGames.games[competition.id]?.schedule_confirmed === false ? (
+                  <PendingConfirmation />
+                ) : null}
               </View>
               <Pill label={competition.isActive ? 'ACTIVE' : 'PENDING'} tone="info" />
             </View>

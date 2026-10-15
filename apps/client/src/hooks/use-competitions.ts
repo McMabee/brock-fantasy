@@ -13,17 +13,21 @@ interface CompetitionRow {
   sports: { code: SportCode } | { code: SportCode }[];
 }
 
-export function useCompetitions() {
+export function useCompetitions(enabled = true) {
   const [competitions, setCompetitions] = useState<readonly Competition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!supabase) {
+    if (!supabase || !enabled) {
+      setCompetitions([]);
+      setError(null);
       setLoading(false);
       return;
     }
     let active = true;
+    setLoading(true);
+    setError(null);
     const client = supabase;
     const load = async () => {
       const result = await client
@@ -61,7 +65,7 @@ export function useCompetitions() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [enabled]);
 
   return { data: competitions, loading, error };
 }

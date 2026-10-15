@@ -1,16 +1,12 @@
-import {
-  BETA_RULE_VERSION,
-  BETA_SEASON,
-  STAT_WEIGHTS,
-  TRADE_DEADLINE,
-} from '@brock-fantasy/domain';
+import { BETA_SEASON, STAT_WEIGHTS, TRADE_DEADLINE } from '@brock-fantasy/domain';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ActionButton, AppShell, Card, SectionTitle, useUiStyles } from '@/components/ui';
+import { ActionButton, AppShell, Card, useUiStyles } from '@/components/ui';
 import { RulesLink } from '@/components/rules-link';
 import { ROSTER_GUIDE, slotEligibility } from '@/lib/roster-guide';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
+import { fonts } from '@/theme';
 
 const SECTIONS = [
   { id: 'overview', label: 'Getting started' },
@@ -28,8 +24,8 @@ const SCORING = [
   { key: 'volleyball', label: 'Volleyball' },
 ] as const;
 const STAT_LABELS: Readonly<Record<string, string>> = {
-  multi_point: 'Game with 2+ goals and assists combined',
-  double_double: 'Double-double',
+  multi_point: 'Multi-point game bonus',
+  double_double: 'Double-double bonus',
   hitter_bonus: 'Hitter with 10+ kills',
   setter_bonus: 'Setter with 40+ assists',
   libero_bonus: 'Libero with 8+ digs',
@@ -43,11 +39,8 @@ export default function RulesScreen() {
   const router = useRouter();
   const selected = SECTIONS.some((item) => item.id === section) ? section : 'overview';
   return (
-    <AppShell
-      eyebrow={`${BETA_SEASON} beta · ${BETA_RULE_VERSION}`}
-      title="How to play Brock Fantasy"
-    >
-      <Text style={ui.body}>
+    <AppShell eyebrow={`${BETA_SEASON} · Fantasy rules`} title="How to play Brock Fantasy">
+      <Text style={styles.body}>
         Build one fantasy team from Brock men’s and women’s hockey, basketball and volleyball. Your
         starters earn fantasy points from their real games.
       </Text>
@@ -61,26 +54,25 @@ export default function RulesScreen() {
             onPress={() => router.setParams({ section: item.id })}
             style={[styles.tab, selected === item.id && styles.selected]}
           >
-            <Text style={ui.body}>{item.label}</Text>
+            <Text style={styles.body}>{item.label}</Text>
           </Pressable>
         ))}
       </View>
       {selected === 'overview' ? (
-        <Card style={styles.content}>
-          <SectionTitle title="Your first season" />
+        <Card style={styles.article}>
+          <RulesHeading title="Your first season" />
           <Paragraph title="1. Join or create a league">
             Private beta leagues have 4, 6, 8 or 10 managers. Each manager owns one fantasy team.
             Join with an invite code, or create a league and invite your friends.
           </Paragraph>
           <Paragraph title="2. Draft ten athletes">
             Take turns choosing athletes. An athlete can belong to only one team in your league, but
-            can be drafted independently in other leagues. Fill six starter spots and four bench
+            can be drafted independently in other leagues. Fill seven starter spots and three bench
             spots from the combined six-program pool.
           </Paragraph>
           <Paragraph title="3. Choose your starters">
             Open your league’s Roster tab, then Set lineup. Starters earn team points; bench
-            athletes are reserves. Save your lineup before each athlete’s first game of the fantasy
-            period.
+            athletes are reserves. Save your lineup before each athlete’s next game.
           </Paragraph>
           <Paragraph title="4. Follow your matchup">
             A fantasy period is the scoring window shown by your league, which can cover more than
@@ -99,9 +91,9 @@ export default function RulesScreen() {
         </Card>
       ) : null}
       {selected === 'roster' ? (
-        <Card style={styles.content}>
-          <SectionTitle title="Six starters + four bench = ten athletes" />
-          <Text style={ui.body}>
+        <Card style={styles.article}>
+          <RulesHeading title="Seven starters + three bench = ten athletes" />
+          <Text style={styles.body}>
             Fill each starter spot with one eligible athlete. Men’s and women’s programs can fill
             the same sport’s spots. A player’s real position determines where they can play in your
             fantasy lineup; their fantasy slot is the place you assign them.
@@ -112,12 +104,19 @@ export default function RulesScreen() {
               style={[styles.ruleRow, index !== ROSTER_GUIDE.length - 1 && ui.listRow]}
             >
               <View style={styles.rowCopy}>
-                <Text style={ui.label}>
-                  {slot.label} · {slot.count} {slot.count === 1 ? 'spot' : 'spots'}
+                <Text
+                  accessibilityRole="header"
+                  accessibilityLabel={slot.label}
+                  {...{ dataSet: { bfFont: 'body' } }}
+                  style={styles.paragraphTitle}
+                >
+                  <Text accessible={false}>{slot.icon} </Text>
+                  {slot.shortLabel}
                 </Text>
-                <Text style={ui.body}>Eligible: {slotEligibility(slot.code)}</Text>
+                <Text style={styles.body}>Eligible: {slotEligibility(slot.code)}</Text>
                 <Text style={styles.note}>
-                  {slot.code} · {slot.code === 'BN' ? 'Reserve' : 'Starter'}
+                  {slot.count} {slot.count === 1 ? 'spot' : 'spots'} ·{' '}
+                  {slot.code === 'BN' ? 'Reserve' : 'Starter'}
                 </Text>
               </View>
             </View>
@@ -129,20 +128,20 @@ export default function RulesScreen() {
           </Paragraph>
           <Paragraph title="Flexible positions and reserves">
             If an athlete has more than one eligible position, they can fill either matching slot,
-            but only one slot at a time. Any eligible athlete can sit on your bench. Bench points do
-            not count toward your matchup, and there is no separate injured-reserve spot in the
-            beta.
+            but only one slot at a time. Any athlete, including a goalie, can fill FLEX or sit on
+            your bench. Bench points do not count toward your matchup, and there is no separate
+            injured-reserve spot in the beta.
           </Paragraph>
-          <Text style={ui.body}>
-            Example: a women’s hockey goalie can fill Hockey defence or goalie, or Bench. A men’s
-            volleyball setter can fill Volleyball libero or setter, or Bench.
+          <Text style={styles.body}>
+            Example: a women’s hockey goalie can fill Hockey defence or goalie, FLEX, or Bench. A
+            men’s volleyball setter can fill Volleyball libero or setter, FLEX, or Bench.
           </Text>
           <RulesLink section="lineup" label="Learn when your lineup locks" />
         </Card>
       ) : null}
       {selected === 'draft' ? (
-        <Card style={styles.content}>
-          <SectionTitle title="Ten rounds of a snake draft" />
+        <Card style={styles.article}>
+          <RulesHeading title="Ten rounds of a snake draft" />
           <Paragraph title="Draft order">
             The starting order is randomized once. Each round reverses that order: in a four-team
             league, round one goes 1 → 2 → 3 → 4 and round two goes 4 → 3 → 2 → 1. Ten rounds give
@@ -160,20 +159,20 @@ export default function RulesScreen() {
             pick may happen shortly after the timer reaches zero.
           </Paragraph>
           <Paragraph title="Why a player may be unavailable">
-            A player may already be drafted, be ineligible, or leave you unable to complete all six
-            starter slots with the remaining player pool. Draft choices must allow a legal final
-            roster; bench spots do not remove the need to fill every starter position.
+            A player may already be drafted, be ineligible, or leave you unable to complete all
+            seven starter slots with the remaining player pool. Draft choices must allow a legal
+            final roster; bench spots do not remove the need to fill every starter position.
           </Paragraph>
           <Paragraph title="After the final pick">
-            The draft room closes. View every recorded pick through Draft results in league Settings
-            or on the league overview, then review your lineup.
+            The draft room closes. Open your league’s Settings tab and select Draft results to view
+            every recorded pick, then review your lineup.
           </Paragraph>
           <RulesLink section="roster" label="Check roster requirements before drafting" />
         </Card>
       ) : null}
       {selected === 'lineup' ? (
-        <Card style={styles.content}>
-          <SectionTitle title="Set your lineup before games begin" />
+        <Card style={styles.article}>
+          <RulesHeading title="Set your lineup before games begin" />
           <Paragraph title="Save your assignments">
             Set lineup shows the spots each athlete is eligible to fill. Move athletes between an
             eligible starter spot and the bench, then save all ten assignments. To replace a starter
@@ -181,28 +180,32 @@ export default function RulesScreen() {
             athletes swap places when both are unlocked and eligible for their new spots. Save to
             confirm.
           </Paragraph>
-          <Paragraph title="The first game locks the period">
-            Each athlete and their occupied slot lock at that athlete’s first scheduled game of the
-            fantasy period. The lock lasts until the period ends. Both starters and bench athletes
-            lock, so you cannot promote a benched athlete after seeing their game result.
+          <Paragraph title="Each game locks its athletes">
+            Every athlete, including bench athletes, locks at scheduled game start and unlocks when
+            that game is marked finished. Other athletes remain movable. A game uses the starting
+            lineup captured when it begins, so later changes cannot earn points retroactively.
           </Paragraph>
-          <Paragraph title="An example">
-            If your hockey forward’s first game is Friday at 7 pm, their assignment locks then for
-            the rest of the period, including later games. Another athlete who has not yet reached
-            their first game can still be moved if the destination slot is free and unlocked.
+          <Paragraph title="Unlimited substitutions between games">
+            You can substitute eligible athletes without a weekly limit and bring an athlete back
+            for a later game. If Athlete A earns 10 points, then you replace A with Athlete B before
+            B’s next game, A’s 10 points remain and B’s later starting games also count.
           </Paragraph>
-          <Paragraph title="Games and points">
-            A locked starter earns points from eligible games in that period. Bench athletes do not
-            earn matchup points. Use the lock times shown on Set lineup and the period end time to
-            plan changes; the athlete’s next game alone does not reset a period lock.
+          <Paragraph title="Schedule exceptions and confirmation">
+            Cancelled games are excluded from projections. Postponed games unlock affected athletes
+            and are excluded until a replacement start is published. Rescheduled games belong to the
+            fantasy period containing the new start time. Official schedule changes apply
+            immediately and show ⚠ Pending confirmation until an administrator confirms them. Admin
+            overrides remain authoritative until cleared. Unplayed postponed games capture a fresh
+            lineup at their replacement start. Games with recorded stats or earned points retain
+            their historical assignments and game identity.
           </Paragraph>
         </Card>
       ) : null}
       {selected === 'scoring' ? (
         <View style={styles.content}>
-          <Card style={styles.content}>
-            <SectionTitle title="Real game stats become fantasy points" />
-            <Text style={ui.body}>
+          <Card style={styles.article}>
+            <RulesHeading title="Real game stats become fantasy points" />
+            <Text style={styles.body}>
               Each recorded statistic is multiplied by the value below. Bonuses apply once per game
               when their condition is met. Penalties can make a score negative. Only eligible
               starter games count toward your team; historical totals and projections do not. During
@@ -210,22 +213,22 @@ export default function RulesScreen() {
             </Text>
           </Card>
           {SCORING.map((category) => (
-            <Card key={category.key}>
-              <SectionTitle title={category.label} />
+            <Card key={category.key} style={styles.article}>
+              <RulesHeading title={category.label} />
               {Object.entries(STAT_WEIGHTS[category.key]).map(([stat, points], index, rows) => (
                 <View key={stat} style={[styles.ruleRow, index !== rows.length - 1 && ui.listRow]}>
-                  <Text style={[ui.body, styles.rowCopy]}>
+                  <Text style={[styles.body, styles.rowCopy]}>
                     {STAT_LABELS[stat] ?? stat.replaceAll('_', ' ')}
                   </Text>
-                  <Text style={ui.label}>
+                  <Text style={styles.points}>
                     {points > 0 ? '+' : ''}
-                    {points} FP
+                    {points} {Math.abs(points) === 1 ? 'point' : 'points'}
                   </Text>
                 </View>
               ))}
             </Card>
           ))}
-          <Card style={styles.content}>
+          <Card style={styles.article}>
             <Paragraph title="Bonus details">
               A hockey multi-point bonus requires at least two goals and assists combined. A
               basketball double-double requires 10 or more in at least two categories: points, total
@@ -243,8 +246,8 @@ export default function RulesScreen() {
         </View>
       ) : null}
       {selected === 'transactions' ? (
-        <Card style={styles.content}>
-          <SectionTitle title="Improve your roster after the draft" />
+        <Card style={styles.article}>
+          <RulesHeading title="Improve your roster after the draft" />
           <Paragraph title="Free agents">
             A free agent is an eligible athlete who is not owned in your league and is available
             immediately. Add them through Free agents, waivers & trades. If your roster already has
@@ -252,20 +255,20 @@ export default function RulesScreen() {
             spot, and a locked athlete cannot be dropped.
           </Paragraph>
           <Paragraph title="Waiver claims">
-            Dropped athletes have a 24-hour waiver window. An unowned athlete whose first game has
-            already locked can remain on waivers until the period ends. Submit a claim instead of an
-            immediate add. At settlement, lower-ranked teams have priority; creation time breaks
-            equal priority. A claim may fail if another manager wins it or your roster can no longer
-            make the requested change.
+            Dropped athletes have a 24-hour waiver window. Athletes cannot be acquired or dropped
+            during their games, but become movable again after their game is marked finished. Submit
+            a claim during the waiver window instead of an immediate add. At settlement,
+            lower-ranked teams have priority; creation time breaks equal priority. A claim may fail
+            if another manager wins it or your roster can no longer make the requested change.
           </Paragraph>
           <Paragraph title="Trades">
             Offer athletes to another manager in the same league. The receiving manager must accept,
             and the trade then goes through a 24-hour review period. Only managers outside the trade
             may veto it: 2 votes in a 4-team league, 3 in a 6-team league, or 4 in an 8- or 10-team
-            league. Acceptance does not move athletes immediately. Locked rosters can delay
-            execution, and both resulting rosters must remain legal.
+            league. Acceptance does not move athletes immediately. A traded athlete’s ongoing game
+            can delay execution, and both resulting rosters must remain legal.
           </Paragraph>
-          <Text style={ui.body}>
+          <Text style={styles.body}>
             The {BETA_SEASON} trade deadline is{' '}
             {new Date(TRADE_DEADLINE).toLocaleString('en-CA', {
               timeZone: 'America/Toronto',
@@ -277,12 +280,16 @@ export default function RulesScreen() {
         </Card>
       ) : null}
       {selected === 'stats' ? (
-        <Card style={styles.content}>
-          <SectionTitle title="Read player stats with confidence" />
+        <Card style={styles.article}>
+          <RulesHeading title="Read player stats with confidence" />
           <Paragraph title="Projected FP">
             Projected fantasy points are the supplied estimate for the full season. They help you
-            compare players before drafting and do not add points to your team. Weekly forecasts are
-            shown only when available.
+            compare players before drafting and do not add points to your team. Next-period
+            forecasts use supplied season projected points divided by projected games, multiplied by
+            scheduled games in the next fantasy period. Period dates are displayed; before the
+            season this means the first upcoming period. Known zero-game periods show 0. Missing or
+            invalid inputs show Unavailable, sort last, and are flagged to administrators. Forecasts
+            using an unconfirmed schedule are marked pending confirmation.
           </Paragraph>
           <Paragraph title="ADP: average draft position">
             Lower ADP means an athlete is usually picked earlier. The supplied ADP counts as one
@@ -290,7 +297,7 @@ export default function RulesScreen() {
             season pool contributes its overall pick number across all leagues, including beta test
             drafts and automatic picks.
           </Paragraph>
-          <Text style={ui.body}>
+          <Text style={styles.body}>
             Example: a supplied ADP of 20 and completed-draft picks at 10 and 15 give an ADP of (20
             + 10 + 15) ÷ 3 = 15. With no supplied value, ADP uses recorded completed picks alone.
             Picks from unfinished or voided drafts do not count.
@@ -317,19 +324,63 @@ export default function RulesScreen() {
 }
 
 function Paragraph({ title, children }: { title: string; children: string }) {
-  const ui = useUiStyles();
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={{ gap: 6 }}>
-      <Text accessibilityRole="header" style={ui.label}>
+      <Text
+        accessibilityRole="header"
+        {...{ dataSet: { bfFont: 'body' } }}
+        style={styles.paragraphTitle}
+      >
         {title}
       </Text>
-      <Text style={ui.body}>{children}</Text>
+      <Text style={styles.body}>{children}</Text>
     </View>
+  );
+}
+
+function RulesHeading({ title }: { title: string }) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <Text
+      accessibilityRole="header"
+      {...{ dataSet: { bfFont: 'body' } }}
+      style={styles.sectionHeading}
+    >
+      {title}
+    </Text>
   );
 }
 
 const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
   StyleSheet.create({
+    body: { fontFamily: fonts.body, color: colors.muted, fontSize: 16, lineHeight: 26 },
+    paragraphTitle: {
+      fontFamily: fonts.body,
+      color: colors.text,
+      fontSize: 18,
+      lineHeight: 26,
+      fontWeight: '700',
+    },
+    sectionHeading: {
+      fontFamily: fonts.body,
+      color: colors.text,
+      fontSize: 22,
+      lineHeight: 30,
+      fontWeight: '800',
+    },
+    points: {
+      fontFamily: fonts.body,
+      color: colors.text,
+      fontSize: 16,
+      lineHeight: 24,
+      fontWeight: '700',
+      fontVariant: ['tabular-nums'],
+      backgroundColor: colors.canvasSoft,
+      borderRadius: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+    },
     tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginVertical: 20 },
     tab: {
       minHeight: 44,
@@ -340,9 +391,16 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       borderColor: colors.border,
     },
     selected: { borderColor: colors.brand, backgroundColor: colors.canvasSoft },
-    content: { gap: 18 },
+    content: { gap: 20 },
+    article: { gap: 20, paddingTop: 28, paddingBottom: 24, paddingHorizontal: 24 },
     ruleRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 },
     rowCopy: { flex: 1, minWidth: 0 },
-    note: { color: colors.muted, fontFamily: 'Inter', fontSize: 12, marginTop: 6 },
+    note: {
+      color: colors.muted,
+      fontFamily: fonts.body,
+      fontSize: 16,
+      lineHeight: 24,
+      marginTop: 6,
+    },
     actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 20 },
   });

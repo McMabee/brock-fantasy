@@ -37,6 +37,7 @@ const readRpc = new Set([
   'get_pool_adp',
   'get_draft_results',
   'get_beta_lineup',
+  'get_player_insights',
   'get_league_standings',
 ]);
 

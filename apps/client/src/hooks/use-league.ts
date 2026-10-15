@@ -132,7 +132,7 @@ interface MessageRow {
   author: { display_name: string } | readonly { display_name: string }[] | null;
 }
 
-export function useLeague(leagueId: string | undefined): LeagueData {
+export function useLeague(leagueId: string | undefined, rosterTeamId?: string): LeagueData {
   const { user } = useSession();
   const [data, setData] = useState<Omit<LeagueData, 'reload'>>({
     league: null,
@@ -149,7 +149,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
   });
 
   const pending = useRef<Promise<void> | null>(null);
-  const identity = (user?.id ?? '') + ':' + (leagueId ?? '');
+  const identity = (user?.id ?? '') + ':' + (leagueId ?? '') + ':' + (rosterTeamId ?? '');
   const latestIdentity = useRef(identity);
   latestIdentity.current = identity;
   useEffect(() => {
@@ -168,7 +168,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       loading: Boolean(user?.id),
       error: null,
     }));
-  }, [leagueId, user?.id]);
+  }, [leagueId, user?.id, rosterTeamId]);
   const load = useCallback(async () => {
     const requestIdentity = latestIdentity.current;
     if (!supabase || !leagueId || !user) {
@@ -249,11 +249,13 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       draftPosition: team.draft_position ?? 0,
     }));
     const myTeamId = teamRows.find((team) => team.owner_id === user.id)?.id ?? null;
-    const rosterResult = myTeamId
+    const viewedTeamId =
+      rosterTeamId && teamRows.some((team) => team.id === rosterTeamId) ? rosterTeamId : myTeamId;
+    const rosterResult = viewedTeamId
       ? await client
           .from('roster_entries')
           .select(LEAGUE_ROSTER_SELECT)
-          .eq('fantasy_team_id', myTeamId)
+          .eq('fantasy_team_id', viewedTeamId)
           .is('released_at', null)
       : { data: [] as RosterRow[], error: null };
     if (requestIdentity !== latestIdentity.current) return;
@@ -321,7 +323,7 @@ export function useLeague(leagueId: string | undefined): LeagueData {
       loading: false,
       error: null,
     });
-  }, [leagueId, user]);
+  }, [leagueId, user, rosterTeamId]);
 
   const reload = useCallback(() => {
     if (pending.current) return pending.current;

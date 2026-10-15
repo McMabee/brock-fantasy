@@ -84,13 +84,14 @@ const slotLabels = {
   BB_FC: 'Basketball front court',
   VB_HT: 'Volleyball hitter',
   VB_LS: 'Volleyball libero / setter',
+  FLEX: 'FLEX',
   BN: 'Bench',
 };
 const slotRules = Object.entries(BETA_SLOTS).map(([code, positions]) => ({
   slot_code: code,
   label: slotLabels[code],
   allowed_positions: positions,
-  slot_count: code === 'BN' ? 4 : 1,
+  slot_count: code === 'BN' ? 3 : 1,
   is_starter: code !== 'BN',
 }));
 const fullRosterPlayers = [];
@@ -111,7 +112,7 @@ for (const slot of slotRules.filter((item) => item.is_starter)) {
     unlocks_at: null,
   });
 }
-for (const position of ['HT', 'BC', 'F', 'S']) {
+for (const position of ['HT', 'BC', 'F']) {
   const player = players.find(
     (athlete) =>
       !fullRosterPlayers.some((item) => item.athlete_id === athlete.id) &&
@@ -207,6 +208,41 @@ try {
     let queue = [];
     let picks = [];
     let fullLineupEntries = fullRosterPlayers.map((entry) => ({ ...entry }));
+    let pendingSchedule = true;
+    const scheduleReviewFixture = () => ({
+      games: pendingSchedule
+        ? [
+            {
+              id: 'g',
+              program: 'Brock Hockey',
+              home: 'Brock',
+              away: 'Guelph',
+              starts_at: new Date(Date.now() + 3600_000).toISOString(),
+              status: 'scheduled',
+              schedule_confirmed: false,
+              schedule_override: false,
+              schedule_revision: 1,
+              source_url: 'https://gobadgers.ca/',
+              schedule_change: {},
+            },
+          ]
+        : [],
+      sources: [
+        {
+          id: 'source',
+          program: 'mens_hockey',
+          last_synced_at: new Date().toISOString(),
+          last_error: null,
+        },
+      ],
+      alerts: [
+        {
+          id: 'missing-projection',
+          display_name: 'Projection fixture',
+          message: 'Missing projected games',
+        },
+      ],
+    });
     let savedLineup = null;
     const snapshot = () => ({
       revision: 'revision-' + picks.length + '-' + queue.join(','),
@@ -264,8 +300,39 @@ try {
           },
           expiresAt: Date.now() + 3600000,
         });
-      if (url.pathname === '/api/admin/status') return reply({ isAdmin: false });
+      if (url.pathname === '/api/admin/status')
+        return reply({
+          isAdmin: scenario.startsWith('admin-'),
+          hasAdminRole: scenario.startsWith('admin-'),
+          aal: 'aal2',
+          authenticated: true,
+        });
       if (url.pathname === '/api/auth/csrf') return reply({});
+      if (url.pathname === '/api/admin/games') {
+        const game = {
+          id: 'admin-game',
+          starts_at: new Date(Date.now() + 3600_000).toISOString(),
+          status: 'scheduled',
+          home_score: 0,
+          away_score: 0,
+          state_version: 1,
+          stats_complete: false,
+          manual_override: false,
+          home: { name: 'Brock' },
+          away: { name: 'Toronto' },
+          program: 'mens_hockey',
+        };
+        return url.searchParams.has('gameId')
+          ? reply({
+              game,
+              sport: 'hockey',
+              stats: [],
+              athletes: [
+                { id: players[0].id, display_name: players[0].display_name, position: 'F' },
+              ],
+            })
+          : reply({ games: [game] });
+      }
       if (url.pathname.startsWith('/api/draft/')) {
         if (!connected) return reply({ error: 'Connection unavailable. Reconnecting…' }, 503);
         return reply(snapshot());
@@ -289,6 +356,11 @@ try {
           }));
           return reply({ state_version: 2 });
         }
+        if (url.pathname.endsWith('get_schedule_review')) return reply(scheduleReviewFixture());
+        if (url.pathname.endsWith('review_game_schedule')) {
+          pendingSchedule = false;
+          return reply({ revision: 2 });
+        }
         if (url.pathname.endsWith('make_draft_pick')) {
           pendingPick = true;
           await new Promise((resolve) => setTimeout(resolve, 350));
@@ -311,6 +383,19 @@ try {
       if (url.pathname === '/api/data/supabase') {
         const dataPath = new URL(url.searchParams.get('path'), origin);
         const table = dataPath.pathname.split('/').at(-1);
+        if (table === 'get_league_standings')
+          return reply(
+            teams.map((team, index) => ({
+              rank: index + 1,
+              fantasy_team_id: team.id,
+              wins: 3 - index,
+              losses: index,
+              ties: 1,
+              points_for: 123.5 + index,
+              points_against: 100,
+              standing_points: 7 - index * 2,
+            })),
+          );
         if (scenario === 'loading' && table === 'athletes')
           await new Promise((resolve) => setTimeout(resolve, 1100));
         if (scenario === 'error' && table === 'athletes')
@@ -321,6 +406,47 @@ try {
           if (scenario === 'empty') return reply([]);
           const id = dataPath.searchParams.get('id')?.replace('eq.', '');
           return reply(id ? players.find((p) => p.id === id) : players);
+        }
+        if (table === 'get_player_insights') {
+          const payload = JSON.parse(route.request().postData() ?? '{}');
+          return reply(
+            players
+              .filter((player) => !payload.p_athlete_id || player.id === payload.p_athlete_id)
+              .map((player, index) => ({
+                id: player.id,
+                displayName: player.display_name,
+                jerseyNumber: player.jersey_number,
+                bio: player.bio,
+                positions: player.positions,
+                position: player.position,
+                program: player.bio.program,
+                team: 'Brock',
+                teamId: 't',
+                competitionId: 'c',
+                seasonPoints: 7,
+                seasonProjection:
+                  player.summaries.find((item) => item.kind === 'supplied_projection')
+                    ?.fantasy_points ?? null,
+                nextProjection: index === 2 ? null : 100 - index,
+                projectedGames: 20,
+                scheduledGames: 2,
+                period: {
+                  number: 2,
+                  startsAt: '2026-11-01T04:00:00Z',
+                  endsAt: '2026-11-14T05:00:00Z',
+                },
+                pending: index === 0,
+                adp: player.adp.average,
+                nextGame: {
+                  id: 'g',
+                  starts_at: new Date(Date.now() + 3600_000).toISOString(),
+                  status: 'scheduled',
+                  schedule_confirmed: false,
+                  opponent: 'Guelph',
+                  home: true,
+                },
+              })),
+          );
         }
         if (table === 'get_pool_adp')
           return scenario === 'adp-error'
@@ -398,6 +524,36 @@ try {
               sports: { code: 'volleyball' },
             },
           ]);
+        if (table === 'games' && dataPath.searchParams.get('select')?.includes('home:teams'))
+          return reply([
+            {
+              id: 'fixture-game-a',
+              starts_at: new Date(Date.now() - 86400_000).toISOString(),
+              status: 'final',
+              home_team_id: 't',
+              schedule_confirmed: true,
+              home: { name: 'Brock' },
+              away: { name: 'Guelph' },
+            },
+            {
+              id: 'fixture-game-b',
+              starts_at: new Date(Date.now() - 43200_000).toISOString(),
+              status: 'final',
+              home_team_id: 't',
+              schedule_confirmed: true,
+              home: { name: 'Brock' },
+              away: { name: 'Toronto' },
+            },
+            {
+              id: 'g',
+              starts_at: new Date(Date.now() + 3600_000).toISOString(),
+              status: 'scheduled',
+              home_team_id: 't',
+              schedule_confirmed: false,
+              home: { name: 'Brock' },
+              away: { name: 'Guelph' },
+            },
+          ]);
         if (table === 'games')
           return reply([
             {
@@ -407,7 +563,15 @@ try {
               status: 'scheduled',
             },
           ]);
-        if (table === 'scoring_rulesets') return reply({ draft_config: { pickSeconds: 120 } });
+        if (table === 'scoring_rulesets')
+          return reply({
+            draft_config: { pickSeconds: 120 },
+            transaction_config: {
+              freeAgentsEnabled: true,
+              waiversEnabled: true,
+              tradesEnabled: true,
+            },
+          });
         if (table === 'roster_slot_rules') return reply(slotRules);
         if (
           table === 'roster_entries' &&
@@ -462,6 +626,29 @@ try {
               points: 5,
               stat_key: 'assists',
               created_at: new Date().toISOString(),
+            },
+          ]);
+        if (table === 'pool_rankings') return reply(players.map((player) => ({ athlete: player })));
+        if (
+          table === 'roster_entries' &&
+          dataPath.searchParams.get('fantasy_team_id') === 'eq.' + otherTeam
+        )
+          return reply([
+            {
+              id: 'opponent-entry',
+              fantasy_team_id: otherTeam,
+              athlete_id: players[3].id,
+              slot_code: 'FLEX',
+              status: 'starter',
+              athlete: { ...players[3], competition: { name: 'Brock Volleyball' } },
+            },
+            {
+              id: 'opponent-bench',
+              fantasy_team_id: otherTeam,
+              athlete_id: benchPlayer.id,
+              slot_code: 'BN',
+              status: 'bench',
+              athlete: { ...benchPlayer, competition: { name: 'Brock Basketball' } },
             },
           ]);
         if (table === 'roster_entries')
@@ -639,7 +826,10 @@ try {
       'Filtered history omits its final separator',
     );
     const forecast = await page
-      .getByText('Weekly projections are not available yet.', { exact: true })
+      .getByText(
+        'Supplied season points ÷ projected games × scheduled games in the next fantasy period',
+        { exact: true },
+      )
       .locator('..')
       .boundingBox();
     const back = await page
@@ -747,6 +937,14 @@ try {
       await page.setViewportSize({ width, height: 1000 });
       commissioner = true;
       await page.goto(origin + '/league/' + leagueId);
+      await page
+        .getByText('You can view draft results in the Settings tab.', { exact: true })
+        .waitFor();
+      assert.equal(await page.getByText('League controls', { exact: true }).count(), 0);
+      assert.equal(
+        await page.getByRole('link', { name: 'View draft results', exact: true }).count(),
+        0,
+      );
       await page.getByRole('tab', { name: 'settings', exact: true }).click();
       await page.getByText('Commissioner settings', { exact: true }).waitFor();
       const transactionLink = page.getByRole('link', {
@@ -779,14 +977,14 @@ try {
       );
       await page.screenshot({ path: path.join(output, `league-settings-${theme}-${width}.png`) });
       await page.getByRole('tab', { name: 'roster', exact: true }).click();
-      await page.getByText('Volleyball hitter', { exact: true }).waitFor();
+      await page.getByRole('heading', { name: 'Volleyball hitter', exact: true }).waitFor();
       await page.getByText('Player position: Hitter / middle blocker', { exact: true }).waitFor();
-      await page.getByText('Bench · 1/4', { exact: true }).waitFor();
+      await page.getByText('🪑 Bench · 1/3', { exact: true }).waitFor();
       assert.equal(
         await page
           .getByText('Empty spot · add an eligible athlete or update your lineup', { exact: true })
           .count(),
-        5,
+        6,
       );
       assert.ok(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -795,7 +993,9 @@ try {
       await page
         .getByRole('link', { name: 'Roster rules & eligible positions', exact: true })
         .click();
-      await page.getByText('Six starters + four bench = ten athletes', { exact: true }).waitFor();
+      await page
+        .getByText('Seven starters + three bench = ten athletes', { exact: true })
+        .waitFor();
       assert.ok(
         page.url().includes('section=roster'),
         'Roster help opens the matching rules topic',
@@ -848,31 +1048,46 @@ try {
     for (const width of [320, 390, 1440]) {
       await page.setViewportSize({ width, height: width <= 390 ? 844 : 1000 });
       await page.goto(origin + '/lineup-beta/' + leagueId);
-      await page.getByText(players[0].display_name, { exact: true }).waitFor();
       await page
-        .getByRole('button', { name: 'Volleyball hitter · 1/1 selected', exact: true })
+        .getByRole('button', { name: `Insights for ${players[0].display_name}`, exact: true })
         .waitFor();
       assert.ok(
         await page
-          .getByRole('button', { name: 'Basketball back court · 0/1 selected', exact: true })
+          .getByRole('button', { name: `Move ${benchPlayer.display_name}`, exact: true })
           .isDisabled(),
-        'Locked reserves cannot be promoted',
+        'Locked reserves cannot be moved',
       );
       assert.ok(
         await page.getByRole('button', { name: 'Save lineup', exact: true }).isDisabled(),
         'Incomplete roster cannot save',
       );
+      await page
+        .getByRole('button', { name: `Move ${players[0].display_name}`, exact: true })
+        .click();
+      await page
+        .getByRole('button', { name: 'Move selected athlete to Bench', exact: true })
+        .click();
+      await page
+        .getByText('Assignment updated. Save lineup to confirm.', { exact: true })
+        .waitFor();
       assert.ok(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
         `Lineup labels fit ${theme} ${width}`,
       );
-      await page.getByRole('button', { name: 'Bench · 1/4 selected', exact: true }).first().click();
-      await page
-        .getByRole('button', { name: 'Volleyball hitter · 0/1 selected', exact: true })
-        .waitFor();
       await page.screenshot({ path: path.join(output, `lineup-beginner-${theme}-${width}.png`) });
+      await page.evaluate(() => sessionStorage.clear());
       await page.goto(origin + '/rules');
       await page.getByText('How to play Brock Fantasy', { exact: true }).waitFor();
+      const rulesTitle = await page
+        .getByText('1. Join or create a league', { exact: true })
+        .evaluate((element) => ({
+          family: window.getComputedStyle(element).fontFamily,
+          size: parseFloat(window.getComputedStyle(element).fontSize),
+        }));
+      assert.ok(
+        rulesTitle.family.includes('Inter') && rulesTitle.size >= 18,
+        'Rules article headings use readable app typography',
+      );
       for (const topic of [
         'Getting started',
         'Roster & positions',
@@ -894,45 +1109,114 @@ try {
       }
       await page.getByRole('tab', { name: 'Roster & positions', exact: true }).click();
       assert.equal(
-        await page.getByText(/spot[s]?$/).count(),
-        7,
-        'Rules show all six starter slots and four bench spaces',
+        await page.getByText(/^\d spots? · (Starter|Reserve)$/).count(),
+        8,
+        'Rules show seven starter slots and three bench spaces',
+      );
+      const rosterRulesText = await page.locator('body').innerText();
+      assert.equal(
+        /\b(?:HK_F|HK_DG|BB_BC|BB_FC|VB_HT|VB_LS|BN)\b/u.test(rosterRulesText),
+        false,
+        'Rules hide internal roster codes',
+      );
+      await page.getByRole('heading', { name: 'Hockey forward', exact: true }).waitFor();
+      assert.ok(
+        rosterRulesText.includes('🏒') &&
+          rosterRulesText.includes('🏀') &&
+          rosterRulesText.includes('🏐'),
+        'Roster spots have sport icons',
       );
       await page.screenshot({ path: path.join(output, `rules-roster-${theme}-${width}.png`) });
       await page.getByRole('tab', { name: 'Scoring', exact: true }).click();
       await page.getByText('Hockey goalies', { exact: true }).waitFor();
+      await page.getByText('+20 points', { exact: true }).waitFor();
+      await page.getByText('-1 point', { exact: true }).first().waitFor();
+      const scoringTitleFont = await page
+        .getByText('Hockey goalies', { exact: true })
+        .evaluate((element) => window.getComputedStyle(element).fontFamily);
+      assert.ok(
+        scoringTitleFont.includes('Inter'),
+        'Scoring headings use the same font as the article',
+      );
+      await page.screenshot({ path: path.join(output, `rules-scoring-${theme}-${width}.png`) });
       const rulesAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
       assert.equal(rulesAxe.violations.length, 0, `Rules accessibility: ${theme} ${width}`);
       accessibility.push({ page: 'rules', theme, width, violations: rulesAxe.violations });
     }
     scenario = 'full-lineup';
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(origin + '/lineup-beta/' + leagueId);
+    await page.getByText('Starting lineup', { exact: true }).waitFor();
+    await page.getByText('Bench', { exact: true }).first().waitFor();
+    await page.screenshot({ path: path.join(output, `lineup-full-${theme}.png`) });
     const reserve = fullRosterPlayers.find(
       (entry) => entry.slot_code === 'BN' && entry.positions.includes('HT'),
     );
     const oldStarter = fullRosterPlayers.find((entry) => entry.slot_code === 'VB_HT');
-    const athleteCard = (name) =>
-      page.getByText(name, { exact: true }).locator('..').locator('..').locator('..');
-    await athleteCard(reserve.display_name)
-      .getByRole('button', { name: 'Volleyball hitter · 1/1 selected', exact: true })
+    const dragSource = page
+      .getByRole('button', { name: `Insights for ${reserve.display_name}`, exact: true })
+      .locator('xpath=ancestor::div[@draggable="true"][1]');
+    await dragSource.scrollIntoViewIfNeeded();
+    const sourceBox = await dragSource.boundingBox();
+    assert.ok(sourceBox);
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+    await page.mouse.down();
+    // - Begin native dragging before scrolling to an offscreen destination
+    await page.mouse.move(
+      sourceBox.x + sourceBox.width / 2 + 15,
+      sourceBox.y + sourceBox.height / 2 + 15,
+      { steps: 5 },
+    );
+    const dragTarget = page.getByRole('button', {
+      name: `Insights for ${oldStarter.display_name}`,
+      exact: true,
+    });
+    await dragTarget.scrollIntoViewIfNeeded();
+    const targetBox = await dragTarget.boundingBox();
+    assert.ok(targetBox);
+    await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
+      steps: 10,
+    });
+    await page.mouse.move(
+      targetBox.x + targetBox.width / 2,
+      targetBox.y + targetBox.height / 2 + 2,
+    );
+    await page.mouse.up();
+    await page.getByText('UNSAVED CHANGES', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Reload saved lineup', exact: true }).click();
+    await page.getByText('SAVED LINEUP', { exact: true }).waitFor();
+    await page.getByRole('button', { name: `Move ${reserve.display_name}`, exact: true }).click();
+    await page
+      .getByRole('button', { name: 'Move selected athlete to Hitter', exact: true })
       .click();
     await page
       .getByText(
-        `${reserve.display_name} and ${oldStarter.display_name} swapped spots. Save your lineup to confirm.`,
+        `${reserve.display_name} and ${oldStarter.display_name} swapped. Save lineup to confirm.`,
         { exact: true },
       )
       .waitFor();
     const reserveGuard = fullRosterPlayers.find(
       (entry) => entry.slot_code === 'BN' && entry.positions.includes('BC'),
     );
-    await athleteCard(reserveGuard.display_name)
-      .getByRole('button', { name: 'Basketball back court · 1/1 selected', exact: true })
-      .click();
     await page
-      .getByText('That starter is locked until the period ends.', { exact: true })
+      .getByRole('button', { name: `Move ${reserveGuard.display_name}`, exact: true })
+      .click();
+    await page.getByRole('button', { name: 'Move selected athlete to Guard', exact: true }).click();
+    await page
+      .getByText('Choose two unlocked athletes eligible for each other’s positions.', {
+        exact: true,
+      })
       .waitFor();
+    await page
+      .getByRole('button', { name: `Insights for ${reserve.display_name}`, exact: true })
+      .click();
+    await page.getByRole('button', { name: 'Close athlete insights', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Full player profile →', exact: true }).click();
+    await page.waitForURL('**/players/' + reserve.athlete_id);
+    await page.goBack();
+    await page.getByText('UNSAVED CHANGES', { exact: true }).waitFor();
     await page.getByRole('button', { name: 'Save lineup', exact: true }).click();
-    await page.getByText(/Period lineup committed/).waitFor();
+    await page.getByText(/Lineup saved/).waitFor();
     assert.equal(
       savedLineup.find((entry) => entry.athlete_id === reserve.athlete_id).slot_code,
       'VB_HT',
@@ -941,12 +1225,104 @@ try {
       savedLineup.find((entry) => entry.athlete_id === oldStarter.athlete_id).slot_code,
       'BN',
     );
-    assert.equal(savedLineup.filter((entry) => entry.slot_code === 'BN').length, 4);
+    assert.equal(savedLineup.filter((entry) => entry.slot_code === 'BN').length, 3);
     assert.equal(
       savedLineup.find((entry) => entry.athlete_id === reserveGuard.athlete_id).slot_code,
       'BN',
       'Locked starter blocks the attempted swap',
     );
+    results.push(
+      `lineup ${theme}: desktop drag, full-bench swap, explicit save, locks and draft recovery`,
+    );
+    scenario = 'populated';
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(origin + '/transactions/' + leagueId);
+    await page.getByRole('textbox', { name: 'Search available athletes', exact: true }).waitFor();
+    const freePlayer = players.find(
+      (player) => player.id !== players[0].id && player.id !== benchPlayer.id,
+    );
+    await page
+      .getByRole('textbox', { name: 'Search available athletes', exact: true })
+      .fill(freePlayer.display_name);
+    const insightButton = page.getByRole('button', {
+      name: `Insights for ${freePlayer.display_name}`,
+      exact: true,
+    });
+    await insightButton.waitFor();
+    await insightButton.click();
+    await page.getByRole('button', { name: 'Full player profile →', exact: true }).waitFor();
+    assert.ok(
+      (await page.getByText('⚠ Pending confirmation', { exact: true }).count()) > 0,
+      'Upcoming game clearly flags pending confirmation',
+    );
+    const panelAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    accessibility.push({
+      page: 'insights-panel',
+      theme,
+      width: 390,
+      violations: panelAxe.violations,
+    });
+    await page.screenshot({ path: path.join(output, `free-agent-insights-${theme}.png`) });
+    await page.getByRole('button', { name: 'Close athlete insights', exact: true }).click();
+    assert.equal(
+      await page
+        .getByRole('textbox', { name: 'Search available athletes', exact: true })
+        .inputValue(),
+      freePlayer.display_name,
+      'Closing insights preserves filters',
+    );
+    assert.ok(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      'Free agency fits phones',
+    );
+    await page.screenshot({ path: path.join(output, `free-agency-${theme}.png`) });
+    await page.goto(origin + '/league/' + leagueId + '?tab=standings');
+    await page.getByRole('link', { name: 'Campus Crew', exact: true }).click();
+    await page.waitForURL('**/league/' + leagueId + '/teams/' + otherTeam);
+    await page.getByText('Campus Crew', { exact: true }).last().waitFor();
+    await page
+      .getByRole('button', { name: `Insights for ${players[3].display_name}`, exact: true })
+      .waitFor();
+    await page.getByText('124.5', { exact: true }).filter({ visible: true }).waitFor();
+    await page.getByText('2–1–1', { exact: true }).waitFor();
+    await page
+      .getByRole('button', { name: `Insights for ${benchPlayer.display_name}`, exact: true })
+      .waitFor();
+    assert.equal(
+      await page.getByRole('link', { name: 'Set lineup', exact: true }).count(),
+      0,
+      'Other team rosters are read-only',
+    );
+    await page.screenshot({ path: path.join(output, `opponent-roster-${theme}.png`) });
+    await page.getByRole('link', { name: 'Back to league standings', exact: true }).click();
+    await page.getByText('League standings', { exact: true }).filter({ visible: true }).waitFor();
+    scenario = 'admin-games';
+    await page.goto(origin + '/admin/games');
+    const date = page.getByLabel('Filter game date', { exact: true });
+    await date.waitFor();
+    assert.ok((await date.boundingBox()).height >= 44, 'Date filter has a full touch target');
+    await page.getByRole('button', { name: /Brock vs Toronto/ }).click();
+    const addPlayer = page.getByRole('switch', {
+      name: `Include ${players[0].display_name}`,
+      exact: true,
+    });
+    await addPlayer.waitFor();
+    assert.ok((await addPlayer.boundingBox()).height >= 44, 'Add player has a padded touch target');
+    await page.screenshot({ path: path.join(output, `admin-games-${theme}.png`), fullPage: true });
+    const adminAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    assert.equal(adminAxe.violations.length, 0, `Scorekeeper accessibility: ${theme}`);
+    scenario = 'admin-schedule';
+    await page.goto(origin + '/admin/schedules');
+    await page.getByText('Projection fixture: Missing projected games', { exact: true }).waitFor();
+    await page.getByText('⚠ Pending confirmation', { exact: true }).waitFor();
+    await page.screenshot({ path: path.join(output, `admin-schedule-${theme}.png`) });
+    await page
+      .getByRole('textbox', { name: 'Review reason for g', exact: true })
+      .fill('Confirmed against the official Brock schedule');
+    await page.getByRole('button', { name: 'Confirm current schedule', exact: true }).click();
+    await page
+      .getByText('All schedules are confirmed and no overrides are pinned', { exact: true })
+      .waitFor();
     await context.close();
     results.push(
       `settings/results/roster/notifications ${theme}: commissioner visibility, rename, completed-room redirect, ADP rollout tolerance`,
@@ -971,7 +1347,7 @@ try {
       await page.screenshot({ path: path.join(output, `${route.slice(1)}-${theme}-390.png`) });
     }
     await page.goto(origin + '/rules?section=roster');
-    await page.getByText('Six starters + four bench = ten athletes', { exact: true }).waitFor();
+    await page.getByText('Seven starters + three bench = ten athletes', { exact: true }).waitFor();
     assert.ok(page.url().includes('/rules'), 'Rules are readable without signing in');
     await page.screenshot({ path: path.join(output, `rules-public-${theme}-390.png`) });
     await page.setViewportSize({ width: 1440, height: 1000 });

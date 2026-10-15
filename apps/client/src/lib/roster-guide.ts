@@ -11,16 +11,43 @@ export const POSITION_LABELS: Readonly<Record<BetaPosition, string>> = {
   S: 'Setter',
 };
 
-export const ROSTER_GUIDE: readonly { code: BetaSlot; label: string; count: number }[] = [
-  { code: 'HK_F', label: 'Hockey forward', count: 1 },
-  { code: 'HK_DG', label: 'Hockey defence or goalie', count: 1 },
-  { code: 'BB_BC', label: 'Basketball guard', count: 1 },
-  { code: 'BB_FC', label: 'Basketball forward or centre', count: 1 },
-  { code: 'VB_HT', label: 'Volleyball hitter', count: 1 },
-  { code: 'VB_LS', label: 'Volleyball libero or setter', count: 1 },
-  { code: 'BN', label: 'Bench', count: 4 },
+export const ROSTER_GUIDE: readonly {
+  code: BetaSlot;
+  label: string;
+  icon: string;
+  shortLabel: string;
+  count: number;
+}[] = [
+  { code: 'HK_F', label: 'Hockey forward', icon: '🏒', shortLabel: 'Forward', count: 1 },
+  {
+    code: 'HK_DG',
+    label: 'Hockey defence or goalie',
+    icon: '🏒',
+    shortLabel: 'Defence / goalie',
+    count: 1,
+  },
+  { code: 'BB_BC', label: 'Basketball guard', icon: '🏀', shortLabel: 'Guard', count: 1 },
+  {
+    code: 'BB_FC',
+    label: 'Basketball forward or centre',
+    icon: '🏀',
+    shortLabel: 'Forward / centre',
+    count: 1,
+  },
+  { code: 'VB_HT', label: 'Volleyball hitter', icon: '🏐', shortLabel: 'Hitter', count: 1 },
+  {
+    code: 'VB_LS',
+    label: 'Volleyball libero or setter',
+    icon: '🏐',
+    shortLabel: 'Libero / setter',
+    count: 1,
+  },
+  { code: 'FLEX', label: 'FLEX · any sport or position', icon: '⭐', shortLabel: 'FLEX', count: 1 },
+  { code: 'BN', label: 'Bench', icon: '🪑', shortLabel: 'Bench', count: 3 },
 ];
-const SLOT_LABELS = new Map(ROSTER_GUIDE.map((slot) => [slot.code, slot.label]));
+const SLOT_LABELS = new Map(
+  ROSTER_GUIDE.map((slot) => [slot.code, `${slot.icon} ${slot.shortLabel}`]),
+);
 
 export function rosterSlotLabel(code: string): string {
   return SLOT_LABELS.get(code as BetaSlot) ?? code.replaceAll('_', ' ');
@@ -34,7 +61,7 @@ export function positionLabel(position: string): string {
 }
 
 export function slotEligibility(code: BetaSlot): string {
-  return code === 'BN'
+  return code === 'BN' || code === 'FLEX'
     ? 'Any eligible athlete from the six programs'
     : BETA_SLOTS[code].map((position) => POSITION_LABELS[position]).join(' or ');
 }

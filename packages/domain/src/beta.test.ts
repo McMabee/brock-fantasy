@@ -208,7 +208,8 @@ describe('approved beta rules', () => {
     ];
     expect(rosterCanComplete(athletes, ['BB_BC', 'BB_FC'])).toBe(true);
     expect(rosterCanComplete(athletes, ['BB_BC', 'VB_LS'])).toBe(false);
-    expect(Object.keys(BETA_SLOTS)).toHaveLength(7);
+    expect(Object.keys(BETA_SLOTS)).toHaveLength(8);
+    expect(BETA_SLOTS.FLEX).toContain('G');
   });
   it('weights the top five and rejects invalid RNG values', () => {
     expect(weightedAutopick(['a', 'b', 'c', 'd', 'e', 'f'], 0)).toBe('a');

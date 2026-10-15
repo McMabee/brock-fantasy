@@ -6,6 +6,7 @@ interface ProgramGame {
   competition_id: string;
   starts_at: string;
   status: 'scheduled' | 'in_progress';
+  schedule_confirmed: boolean;
 }
 
 export function useProgramGames(competitionIds: readonly string[]) {
@@ -26,7 +27,7 @@ export function useProgramGames(competitionIds: readonly string[]) {
     const load = async () => {
       const result = await client
         .from('games')
-        .select('id, competition_id, starts_at, status')
+        .select('id, competition_id, starts_at, status, schedule_confirmed')
         .in('competition_id', key.split(','))
         .in('status', ['scheduled', 'in_progress'])
         .or(`starts_at.gte.${new Date().toISOString()},status.eq.in_progress`)

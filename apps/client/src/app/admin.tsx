@@ -116,6 +116,11 @@ export default function AdminScreen() {
               preview.
             </Text>
             <ActionButton label="Update game scores and stats" href="/admin/games" />
+            <ActionButton
+              label="Schedule confirmations, overrides & projection alerts"
+              href="/admin/schedules"
+              variant="secondary"
+            />
             <Text style={uiStyles.label}>Advanced tools</Text>
             <ActionButton
               label="Import provider snapshot"

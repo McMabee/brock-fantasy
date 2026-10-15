@@ -37,10 +37,11 @@ export default function proxy(request: Request): Response {
   const url = new URL(request.url);
   const local = process.env.EXPO_PUBLIC_APP_ENV === 'local' && process.env.VERCEL !== '1';
   const origin = process.env.EXPO_PUBLIC_APP_ORIGIN;
-  if (
-    !local &&
-    (!origin || url.origin !== new URL(origin).origin || url.hostname !== 'beta.brockfantasy.ca')
-  )
+  const expectedOrigin =
+    process.env.EXPO_PUBLIC_APP_ENV === 'production'
+      ? 'https://play.brockfantasy.ca'
+      : 'https://beta.brockfantasy.ca';
+  if (!local && (origin !== expectedOrigin || url.origin !== expectedOrigin))
     return new Response('This deployment is not a public application entry.', {
       status: 403,
       headers,

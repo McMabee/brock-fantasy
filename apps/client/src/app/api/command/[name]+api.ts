@@ -30,6 +30,15 @@ const commands: Readonly<Record<string, readonly string[]>> = {
   request_waiver: ['p_fantasy_team_id', 'p_athlete_in_id', 'p_athlete_out_id', 'p_idempotency_key'],
   generate_matchup_schedule: ['p_league_id', 'p_starts_at', 'p_cycles', 'p_idempotency_key'],
   get_beta_lineup: ['p_fantasy_team_id'],
+  get_schedule_review: [],
+  review_game_schedule: [
+    'p_game_id',
+    'p_expected_revision',
+    'p_action',
+    'p_changes',
+    'p_reason',
+    'p_idempotency_key',
+  ],
   get_athlete_adp: ['p_athlete_id', 'p_pool_id', 'p_league_size'],
   publish_game_revision: [
     'p_game_id',

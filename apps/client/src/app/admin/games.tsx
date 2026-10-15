@@ -14,6 +14,7 @@ import {
 import { useRequireAdmin } from '@/hooks/use-route-access';
 import { betaCommand } from '@/lib/web-api';
 import { webRequest } from '@/lib/web-request';
+import { programNames } from '@/lib/player-program';
 
 import { AdminAccess } from '@/components/admin-access';
 
@@ -322,11 +323,33 @@ export default function AdminGamesScreen() {
       <View style={styles.layout}>
         <Card style={styles.searchPane}>
           {Platform.OS === 'web' ? (
-            <label style={{ color: colors.text }}>
+            <label
+              style={{
+                color: colors.text,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                fontFamily: 'Inter',
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
               Game date (Toronto)
               <input
                 aria-label="Filter game date"
                 type="date"
+                style={{
+                  width: '100%',
+                  maxWidth: 320,
+                  minWidth: 0,
+                  minHeight: 44,
+                  padding: '10px 12px',
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 10,
+                  background: colors.canvasSoft,
+                  color: colors.text,
+                  font: 'inherit',
+                }}
                 value={gameDate}
                 onChange={(e) => setGameDate(e.currentTarget.value)}
               />
@@ -343,7 +366,7 @@ export default function AdminGamesScreen() {
               { value: '', label: 'All programs' },
               ...[...new Set(games.flatMap((g) => (g.program ? [g.program] : [])))]
                 .sort()
-                .map((p) => ({ value: p, label: p })),
+                .map((p) => ({ value: p, label: programNames[p] ?? p })),
             ]}
           />
           <TextInput
@@ -461,12 +484,13 @@ export default function AdminGamesScreen() {
                       return (
                         <View key={athlete.id} style={styles.statLine}>
                           <View style={styles.statHeader}>
-                            <View>
+                            <View style={{ flex: 1, minWidth: 0 }}>
                               <Text style={styles.assetName}>{athlete.display_name}</Text>
                               <Text style={styles.assetMeta}>{athlete.position}</Text>
                             </View>
                             <Pressable
                               accessibilityRole="switch"
+                              aria-checked={included}
                               accessibilityLabel={`Include ${athlete.display_name}`}
                               accessibilityState={{ checked: included }}
                               disabled={working || previouslyCredited}
@@ -572,7 +596,9 @@ export default function AdminGamesScreen() {
           )}
         </Card>
       </View>
-      <ActionButton label="Back to operations" href="/admin" variant="secondary" />
+      <View style={{ paddingTop: 24, paddingBottom: 12 }}>
+        <ActionButton label="Back to operations" href="/admin" variant="secondary" />
+      </View>
     </AppShell>
   );
 }
@@ -603,6 +629,7 @@ function Choice({
           onChange={(e) => onChange(e.currentTarget.value)}
           disabled={disabled}
           style={{
+            minHeight: 44,
             padding: 12,
             borderRadius: 8,
             color: colors.text,
@@ -671,8 +698,8 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
   StyleSheet.create({
     message: { fontFamily: 'Inter', color: colors.text, fontSize: 13, marginTop: 12 },
     layout: { gap: 16, marginTop: 16 },
-    searchPane: { gap: 12 },
-    editor: { gap: 11 },
+    searchPane: { gap: 16, padding: 24 },
+    editor: { gap: 16, padding: 24 },
     gameList: { gap: 6 },
     gameRow: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 11 },
     gameRowActive: { borderColor: colors.red },
@@ -681,7 +708,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     assetName: { fontFamily: 'Inter', color: colors.text, fontSize: 12, fontWeight: '800' },
     assetMeta: { fontFamily: 'Inter', color: colors.muted, fontSize: 10, marginTop: 3 },
     scores: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    field: { flex: 1, minWidth: 150, gap: 6 },
+    field: { flexGrow: 1, minWidth: 150, gap: 6 },
     hint: { fontFamily: 'Inter', color: colors.muted, fontSize: 11, lineHeight: 16 },
     statLines: { gap: 8 },
     statLine: {
@@ -703,13 +730,23 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       borderColor: colors.border,
       borderWidth: 1,
       borderRadius: 999,
-      paddingHorizontal: 9,
-      paddingVertical: 7,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      minWidth: 100,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
     },
     includeActive: { borderColor: colors.red, backgroundColor: colors.canvasSoft },
-    includeText: { fontFamily: 'Inter', color: colors.muted, fontSize: 9, fontWeight: '900' },
+    includeText: { fontFamily: 'Inter', color: colors.muted, fontSize: 11, fontWeight: '700' },
     includeTextActive: { color: colors.text },
-    actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 9 },
+    actions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'flex-end',
+      gap: 12,
+      paddingTop: 18,
+    },
     preview: { borderColor: colors.border, borderWidth: 1, borderRadius: 10, padding: 10, gap: 5 },
     previewLine: { fontFamily: 'Inter', color: colors.text, fontSize: 11 },
   });

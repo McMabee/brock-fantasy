@@ -17,7 +17,7 @@ test('new supplied stats retain canonical IDs across row shifts and exclude the 
   const plan = build();
   assert.equal(plan.players.length, 119);
   assert.equal(plan.exclusions.length, 1);
-  assert.equal(plan.players.filter((player) => player.suppliedAdp !== null).length, 110);
+  assert.equal(plan.players.filter((player) => player.suppliedAdp !== null).length, 119);
   assert.equal(plan.players.find((player) => player.name === 'James Lawton').previousRow, 180);
   assert.equal(
     plan.players.find((player) => player.name === 'James Lawton').provenance.rowNumber,

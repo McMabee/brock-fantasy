@@ -1,118 +1,20 @@
 import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { BETA_SEASON, playerMetrics } from '@brock-fantasy/domain';
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Card, useUiStyles } from './ui';
 import type { DraftPlayer } from '@/lib/draft-state';
 
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { adpLabel } from '@/lib/player-adp';
 import { RulesLink } from './rules-link';
+import { router } from 'expo-router';
+import { usePlayerInsights } from '@/hooks/use-player-insights';
+import { NextGame, PendingConfirmation, projectedPoints } from './player-insights';
+import { DraftPlayerPhoto } from './player-photo';
 
-export function playerHeadshot(player: Pick<DraftPlayer, 'bio'>): string | null {
-  const item = player.bio.headshot;
-  if (!item || typeof item !== 'object' || !('url' in item) || typeof item.url !== 'string')
-    return null;
-  try {
-    const url = new URL(item.url);
-    return url.protocol === 'https:' &&
-      url.hostname === 'gobadgers.ca' &&
-      url.pathname.startsWith('/images/')
-      ? url.href
-      : null;
-  } catch {
-    return null;
-  }
-}
-export function DraftPlayerPhoto({
-  player,
-  size = 42,
-  eager = false,
-}: {
-  player: Pick<DraftPlayer, 'bio' | 'displayName'>;
-  size?: number;
-  eager?: boolean;
-}) {
-  const colors = useThemeColors();
-  const original = playerHeadshot(player);
-  const source = original
-    ? (() => {
-        const url = new URL(original);
-        url.searchParams.set('width', String(size * 2));
-        return url.href;
-      })()
-    : null;
-  const [failed, setFailed] = useState(false);
-  const [loadedSource, setLoadedSource] = useState<string | null>(null);
-  useEffect(() => setFailed(false), [source]);
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 10,
-        overflow: 'hidden',
-        backgroundColor: colors.canvasSoft,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}
-    >
-      <Text
-        accessible={false}
-        style={{
-          color: colors.muted,
-          fontFamily: 'Inter',
-          fontSize: Math.max(12, size / 4),
-          fontWeight: '700',
-        }}
-      >
-        {player.displayName
-          .split(' ')
-          .map((value) => value[0])
-          .join('')
-          .slice(0, 2)}
-      </Text>
-      {source && !failed ? (
-        Platform.OS === 'web' ? (
-          <img
-            alt={player.displayName + ' headshot'}
-            src={source}
-            width={size}
-            height={size}
-            loading={eager ? 'eager' : 'lazy'}
-            decoding="async"
-            onError={() => setFailed(true)}
-            onLoad={() => setLoadedSource(source)}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: size,
-              height: size,
-              objectFit: 'cover',
-              opacity: loadedSource === source ? 1 : 0,
-              transition: 'opacity 200ms ease',
-            }}
-          />
-        ) : (
-          <Image
-            accessibilityLabel={player.displayName + ' headshot'}
-            source={{ uri: source }}
-            onError={() => setFailed(true)}
-            onLoad={() => setLoadedSource(source)}
-            style={{
-              position: 'absolute',
-              width: size,
-              height: size,
-              opacity: loadedSource === source ? 1 : 0,
-            }}
-          />
-        )
-      ) : null}
-    </View>
-  );
-}
+export { DraftPlayerPhoto, playerHeadshot } from './player-photo';
 export function DraftPlayerPanel({
   player,
   onClose,
@@ -138,9 +40,14 @@ export function DraftPlayerPanel({
   }, [player?.id, reducedMotion, entrance]);
   const metrics = player ? playerMetrics(player.bio, player.summaries, BETA_SEASON) : null;
   return (
-    <Modal visible={Boolean(player)} transparent animationType="none" onRequestClose={onClose}>
+    <Modal
+      visible={Boolean(player)}
+      transparent
+      animationType="none"
+      accessibilityLabel="Player details"
+      onRequestClose={onClose}
+    >
       <View
-        accessibilityViewIsModal
         style={[
           styles.backdrop,
           {
@@ -228,12 +135,34 @@ export function DraftPlayerPanel({
                 {!player.summaries.some((s) => s.kind === 'historical') ? (
                   <Text style={uiStyles.body}>Historical statistics are unavailable.</Text>
                 ) : null}
+                <LivePlayerInsights athleteId={player.id} />
+                <ActionButton
+                  label="Full player profile →"
+                  onPress={() => {
+                    onClose();
+                    router.push(`/players/${player.id}`);
+                  }}
+                />
               </ScrollView>
             ) : null}
           </Card>
         </Animated.View>
       </View>
     </Modal>
+  );
+}
+
+function LivePlayerInsights({ athleteId }: { athleteId: string }) {
+  const insights = usePlayerInsights(undefined, athleteId);
+  const ui = useUiStyles();
+  const player = insights.byId.get(athleteId);
+  return (
+    <View style={{ gap: 10 }}>
+      <Text style={ui.body}>Season points: {projectedPoints(player?.seasonPoints)}</Text>
+      <Text style={ui.body}>Next-period projection: {projectedPoints(player?.nextProjection)}</Text>
+      {player?.pending ? <PendingConfirmation /> : null}
+      {player ? <NextGame game={player.nextGame} /> : null}
+    </View>
   );
 }
 const createStyles = (colors: ReturnType<typeof useThemeColors>) =>

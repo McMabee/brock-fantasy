@@ -1,8 +1,8 @@
 import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { formatFantasyPoints } from '@brock-fantasy/domain';
-import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
@@ -16,27 +16,45 @@ import {
   SectionTitle,
   useUiStyles,
 } from '@/components/ui';
-import { useLeague, type LeagueChatMessage, type LeagueRosterEntry } from '@/hooks/use-league';
+import { useLeague, type LeagueChatMessage } from '@/hooks/use-league';
 import { heading, radii } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { supabase } from '@/lib/supabase';
 import { betaCommand } from '@/lib/web-api';
 import { LeagueSettings } from '@/components/league-settings';
-import { DraftPlayerPhoto } from '@/components/draft-player-panel';
-import { RulesLink } from '@/components/rules-link';
-import { ROSTER_GUIDE, positionLabel, rosterSlotLabel, slotEligibility } from '@/lib/roster-guide';
+import { LeagueRoster as Roster } from '@/components/league-roster';
 import type { FantasyTeam, League, MatchupResult, StandingsRow } from '@brock-fantasy/domain';
 
 type Tab = 'overview' | 'roster' | 'standings' | 'chat' | 'settings';
+const TABS: readonly Tab[] = ['overview', 'roster', 'standings', 'chat', 'settings'];
 
 export default function LeagueScreen() {
   const styles = useThemedStyles(createStyles);
   useRequireUser();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const leagueData = useLeague(id);
+  const {
+    id,
+    teamId,
+    tab: requestedTab,
+  } = useLocalSearchParams<{
+    id: string;
+    teamId?: string;
+    tab?: string;
+  }>();
+  const [viewedTeamId, setViewedTeamId] = useState<string | undefined>(teamId);
+  const leagueData = useLeague(id, viewedTeamId);
   const { league, teams, standings, error: loadError } = leagueData;
   const { width } = useWindowDimensions();
-  const [tab, setTab] = useState<Tab>('overview');
+  const [tab, setTab] = useState<Tab>(
+    teamId ? 'roster' : (TABS.find((item) => item === requestedTab) ?? 'overview'),
+  );
+  useEffect(() => {
+    if (teamId) {
+      setViewedTeamId(teamId);
+      setTab('roster');
+    } else if (requestedTab && TABS.includes(requestedTab as Tab)) {
+      setTab(requestedTab as Tab);
+    }
+  }, [requestedTab, teamId]);
   const [chatText, setChatText] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const messages = leagueData.messages;
@@ -122,10 +140,11 @@ export default function LeagueScreen() {
       </View>
 
       <View accessibilityRole="tablist" style={styles.tabs}>
-        {(['overview', 'roster', 'standings', 'chat', 'settings'] as const).map((item) => (
+        {TABS.map((item) => (
           <Pressable
             key={item}
             accessibilityRole="tab"
+            aria-selected={tab === item}
             accessibilityState={{ selected: tab === item }}
             onPress={() => setTab(item)}
             style={[styles.tab, tab === item && styles.tabActive]}
@@ -146,12 +165,31 @@ export default function LeagueScreen() {
         />
       ) : null}
       {tab === 'roster' ? (
-        <Roster
-          entries={leagueData.roster}
-          leagueId={league?.id ?? ''}
-          betaLeague={Boolean(league?.playerPoolId)}
-          teamName={teams.find((team) => team.id === leagueData.myTeamId)?.name ?? 'Your roster'}
-        />
+        <View style={{ gap: 12 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {teams.map((team) => (
+              <ActionButton
+                key={team.id}
+                label={team.name}
+                variant={
+                  (viewedTeamId ?? leagueData.myTeamId) === team.id ? 'primary' : 'secondary'
+                }
+                onPress={() => setViewedTeamId(team.id)}
+              />
+            ))}
+          </View>
+          <Roster
+            entries={leagueData.roster}
+            poolId={league?.playerPoolId}
+            editable={!viewedTeamId || viewedTeamId === leagueData.myTeamId}
+            leagueId={league?.id ?? ''}
+            betaLeague={Boolean(league?.playerPoolId)}
+            teamName={
+              teams.find((team) => team.id === (viewedTeamId ?? leagueData.myTeamId))?.name ??
+              'Your roster'
+            }
+          />
+        </View>
       ) : null}
       {tab === 'standings' ? <Standings league={league} rows={standings} teams={teams} /> : null}
       {tab === 'settings' ? <LeagueSettings data={leagueData} /> : null}
@@ -189,8 +227,11 @@ function Overview({
   const matchup = matchups.find((item) => item.status === 'active') ?? matchups[0];
   const homeName = teams.find((team) => team.id === matchup?.homeTeamId)?.name ?? 'Home team';
   const awayName = teams.find((team) => team.id === matchup?.awayTeamId)?.name ?? 'Away team';
+  const draftOpen = Boolean(
+    draftId && draftStatus && ['active', 'paused', 'scheduled'].includes(draftStatus),
+  );
   return (
-    <View style={[styles.contentGrid, wide && styles.contentGridWide]}>
+    <View style={[styles.contentGrid, wide && draftOpen && styles.contentGridWide]}>
       <View style={styles.contentMain}>
         {matchup ? (
           <Card accent>
@@ -206,12 +247,22 @@ function Overview({
             </View>
             <View style={styles.scoreGrid}>
               <View style={styles.scoreTeam}>
-                <Text style={styles.scoreTeamName}>{homeName}</Text>
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => router.push(`/league/${league?.id}/teams/${matchup.homeTeamId}`)}
+                >
+                  <Text style={styles.scoreTeamName}>{homeName}</Text>
+                </Pressable>
                 <Text style={styles.scoreLeading}>{formatFantasyPoints(matchup.homePoints)}</Text>
               </View>
               <Text style={styles.scoreDash}>—</Text>
               <View style={styles.scoreTeam}>
-                <Text style={styles.scoreTeamName}>{awayName}</Text>
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => router.push(`/league/${league?.id}/teams/${matchup.awayTeamId}`)}
+                >
+                  <Text style={styles.scoreTeamName}>{awayName}</Text>
+                </Pressable>
                 <Text style={styles.scoreValue}>{formatFantasyPoints(matchup.awayPoints)}</Text>
               </View>
             </View>
@@ -227,194 +278,35 @@ function Overview({
           title="No recent activity"
           body="Draft, roster, and scoring events will appear after play begins."
         />
-      </View>
-      <View style={styles.contentSide}>
-        <Card>
-          <Text style={styles.panelTitle}>League controls</Text>
-          {league?.draftScheduledFor ? (
-            <Text style={uiStyles.body}>
-              Draft planned for{' '}
-              {new Date(league.draftScheduledFor).toLocaleString('en-CA', {
-                timeZone: 'America/Toronto',
-              })}{' '}
-              (Toronto time). The commissioner starts the draft manually.
-            </Text>
-          ) : null}
-          <Text style={uiStyles.body}>
-            Draft your team, choose your starters, and earn points from their real games in this{' '}
-            {league?.format === 'points_leaderboard' ? 'points leaderboard' : 'head-to-head league'}
-            .
-          </Text>
-          <RulesLink label="League rules & how to play" />
-          <View style={styles.controlActions}>
-            {draftId && draftStatus && ['active', 'paused', 'scheduled'].includes(draftStatus) ? (
-              <ActionButton
-                label="Open draft room"
-                href={`/draft/${draftId}`}
-                variant="secondary"
-              />
-            ) : null}
-            {draftId && draftStatus === 'complete' ? (
-              <ActionButton
-                label="View draft results"
-                href={`/draft-results/${draftId}`}
-                variant="secondary"
-              />
-            ) : null}
-          </View>
-        </Card>
-      </View>
-    </View>
-  );
-}
-
-function Roster({
-  entries,
-  teamName,
-  leagueId,
-  betaLeague,
-}: {
-  entries: readonly LeagueRosterEntry[];
-  teamName: string;
-  leagueId: string;
-  betaLeague: boolean;
-}) {
-  const styles = useThemedStyles(createStyles);
-  const uiStyles = useUiStyles();
-  // - Group once so starter slots and bench entries use constant time lookups
-  const entriesBySlot = useMemo(() => {
-    const grouped = new Map<string, LeagueRosterEntry[]>();
-    for (const entry of entries) {
-      const group = grouped.get(entry.slotCode) ?? [];
-      group.push(entry);
-      grouped.set(entry.slotCode, group);
-    }
-    return grouped;
-  }, [entries]);
-  const starters = entries.filter((entry) => entry.status === 'starter');
-  const bench = entriesBySlot.get('BN') ?? [];
-  const starterSlots = ROSTER_GUIDE.filter((slot) => slot.code !== 'BN');
-  return (
-    <View>
-      <SectionTitle
-        title={teamName}
-        detail={
-          betaLeague ? `${starters.length}/6 starters · ${bench.length}/4 bench` : 'Your athletes'
-        }
-      />
-      {betaLeague ? (
-        <>
-          <Card style={{ gap: 8 }}>
-            <Text style={uiStyles.body}>
-              Your ten-athlete team has six starters and four bench spots. Starters earn matchup
-              points; bench athletes are reserves. Use Set lineup to move athletes into eligible
-              spots.
-            </Text>
-            <Text style={uiStyles.body}>
-              Each athlete and their slot lock at their first game of the fantasy period, then
-              unlock when the period ends. Bench assignments lock too.
-            </Text>
-            <RulesLink section="roster" label="Roster rules & eligible positions" />
-          </Card>
-          <SectionTitle title="Starters" detail="These six spots earn your team points" />
-          <Card>
-            {starterSlots.map((slot, index) => {
-              const athletes = entriesBySlot.get(slot.code) ?? [];
-              return (
-                <View
-                  key={slot.code}
-                  style={[
-                    styles.starterSlot,
-                    index !== starterSlots.length - 1 && uiStyles.listRow,
-                  ]}
-                >
-                  <Text style={uiStyles.label}>{slot.label}</Text>
-                  <Text style={styles.rosterMeta}>Eligible: {slotEligibility(slot.code)}</Text>
-                  {athletes.length ? (
-                    athletes.map((entry) => (
-                      <RosterAthlete key={entry.id} entry={entry} betaLeague />
-                    ))
-                  ) : (
-                    <Text style={styles.emptySlot}>
-                      Empty spot · add an eligible athlete or update your lineup
-                    </Text>
-                  )}
-                </View>
-              );
-            })}
-          </Card>
-          <SectionTitle
-            title={`Bench · ${bench.length}/4`}
-            detail="Reserves · points do not count toward your matchup"
-          />
-          <Card>
-            {bench.length ? (
-              bench.map((entry, index) => (
-                <View
-                  key={entry.id}
-                  style={[styles.rosterRow, index === bench.length - 1 && uiStyles.lastRow]}
-                >
-                  <RosterAthlete entry={entry} betaLeague />
-                </View>
-              ))
-            ) : (
-              <Text style={uiStyles.body}>
-                Your four bench spots are empty. Any eligible athlete can be a reserve.
-              </Text>
-            )}
-          </Card>
-        </>
-      ) : entries.length > 0 ? (
-        <Card>
-          {entries.map((entry, index) => (
-            <View
-              key={entry.id}
-              style={[styles.rosterRow, index === entries.length - 1 && uiStyles.lastRow]}
-            >
-              <RosterAthlete entry={entry} betaLeague={false} />
-            </View>
-          ))}
-        </Card>
-      ) : (
-        <EmptyState
-          title="Roster is empty"
-          body="Athletes appear here as draft picks and transactions commit."
-        />
-      )}
-      <View style={styles.inlineActions}>
-        <ActionButton
-          label="Set lineup"
-          href={betaLeague ? `/lineup-beta/${leagueId}` : `/lineup/${leagueId}`}
-        />
-        <ActionButton
-          label="Free agents, waivers & trades"
-          href={`/transactions/${leagueId}`}
-          variant="secondary"
-        />
-        {!betaLeague ? (
-          <RulesLink section="roster" label="Roster rules & eligible positions" />
+        {draftStatus === 'complete' ? (
+          <Text style={uiStyles.body}>You can view draft results in the Settings tab.</Text>
         ) : null}
       </View>
-    </View>
-  );
-}
-
-function RosterAthlete({ entry, betaLeague }: { entry: LeagueRosterEntry; betaLeague: boolean }) {
-  const styles = useThemedStyles(createStyles);
-  return (
-    <View style={styles.athleteRow}>
-      <DraftPlayerPhoto player={{ displayName: entry.displayName, bio: entry.bio }} size={44} />
-      <View style={styles.rosterCopy}>
-        <Text style={styles.rosterName}>{entry.displayName}</Text>
-        <Text style={styles.rosterMeta}>
-          {entry.programName.replace(/^Brock /u, '')}
-          {entry.jerseyNumber !== null ? ` · #${entry.jerseyNumber}` : ''}
-        </Text>
-        <Text style={styles.rosterMeta}>
-          Player position: {betaLeague ? positionLabel(entry.position) : entry.position}
-          {!betaLeague ? ` · Assigned to ${rosterSlotLabel(entry.slotCode)} · ${entry.status}` : ''}
-        </Text>
-      </View>
+      {draftOpen ? (
+        <View style={styles.contentSide}>
+          <Card>
+            <Text style={styles.panelTitle}>Draft room</Text>
+            {league?.draftScheduledFor ? (
+              <Text style={uiStyles.body}>
+                Draft planned for{' '}
+                {new Date(league.draftScheduledFor).toLocaleString('en-CA', {
+                  timeZone: 'America/Toronto',
+                })}{' '}
+                (Toronto time). The commissioner starts the draft manually.
+              </Text>
+            ) : null}
+            <View style={styles.controlActions}>
+              {draftId && draftStatus && ['active', 'paused', 'scheduled'].includes(draftStatus) ? (
+                <ActionButton
+                  label="Open draft room"
+                  href={`/draft/${draftId}`}
+                  variant="secondary"
+                />
+              ) : null}
+            </View>
+          </Card>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -456,7 +348,13 @@ function Standings({
             style={[styles.standingRow, index === rows.length - 1 && uiStyles.lastRow]}
           >
             <Text style={styles.standingRank}>{row.rank}</Text>
-            <Text style={styles.standingTeam}>{nameFor(row.fantasyTeamId)}</Text>
+            <Pressable
+              accessibilityRole="link"
+              style={styles.standingTeam}
+              onPress={() => router.push(`/league/${league?.id}/teams/${row.fantasyTeamId}`)}
+            >
+              <Text style={styles.standingTeam}>{nameFor(row.fantasyTeamId)}</Text>
+            </Pressable>
             <Text style={styles.standingStat}>{row.wins}</Text>
             <Text style={styles.standingStat}>{row.losses}</Text>
             <Text style={styles.standingPoints}>{formatFantasyPoints(row.pointsFor)}</Text>
@@ -633,46 +531,6 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     activityTime: { fontFamily: 'Inter', color: colors.muted, fontSize: 10 },
     panelTitle: { ...heading, fontSize: 18, marginBottom: 8, color: colors.text },
     controlActions: { gap: 8, marginTop: 18 },
-    rosterRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 13,
-      paddingVertical: 13,
-      borderBottomColor: colors.border,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    position: {
-      width: 39,
-      height: 39,
-      backgroundColor: colors.canvasSoft,
-      borderRadius: 11,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    positionText: { fontFamily: 'Inter', color: colors.text, fontSize: 11, fontWeight: '900' },
-    rosterCopy: { flex: 1 },
-    starterSlot: { paddingVertical: 14, gap: 4 },
-    athleteRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      paddingTop: 8,
-      flex: 1,
-      minWidth: 0,
-    },
-    emptySlot: {
-      fontFamily: 'Inter',
-      color: colors.muted,
-      fontSize: 12,
-      lineHeight: 18,
-      paddingVertical: 10,
-    },
-    rosterName: { fontFamily: 'Inter', color: colors.text, fontSize: 13, fontWeight: '800' },
-    rosterMeta: { fontFamily: 'Inter', color: colors.muted, fontSize: 10, marginTop: 3 },
-    rosterPoints: { alignItems: 'flex-end' },
-    rosterPointsValue: { fontFamily: 'Inter', color: colors.text, fontSize: 14, fontWeight: '900' },
-    rosterPointsLabel: { fontFamily: 'Inter', color: colors.muted, fontSize: 7, letterSpacing: 1 },
-    inlineActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 15 },
     standingHeader: {
       flexDirection: 'row',
       paddingBottom: 10,

@@ -1,7 +1,15 @@
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { usePlayerInsights } from '@/hooks/use-player-insights';
+import {
+  PlayerInsightsPanel,
+  projectedPoints,
+  PendingConfirmation,
+} from '@/components/player-insights';
+import { DraftPlayerPhoto } from '@/components/draft-player-panel';
+import { positionLabel } from '@/lib/roster-guide';
 
 import {
   ActionButton,
@@ -22,9 +30,36 @@ import { useRequireUser } from '@/hooks/use-route-access';
 export default function TransactionsScreen() {
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
+  const colors = useThemeColors();
   useRequireUser();
-  const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
+  const {
+    leagueId,
+    q,
+    program: initialProgram,
+    position: initialPosition,
+    sort: initialSort,
+  } = useLocalSearchParams<{
+    leagueId: string;
+    q?: string;
+    program?: string;
+    position?: string;
+    sort?: string;
+  }>();
+  const router = useRouter();
   const leagueData = useLeague(leagueId);
+  const insights = usePlayerInsights(leagueData.league?.playerPoolId);
+  const [athleteId, setAthleteId] = useState<string | null>(null);
+  const [search, setSearch] = useState(q ?? '');
+  const [program, setProgram] = useState(initialProgram ?? 'all');
+  const [position, setPosition] = useState(initialPosition ?? 'all');
+  const [sort, setSort] = useState<'next' | 'season' | 'adp' | 'name'>(
+    initialSort === 'season' || initialSort === 'adp' || initialSort === 'name'
+      ? initialSort
+      : 'next',
+  );
+  useEffect(() => {
+    router.setParams({ q: search, program, position, sort });
+  }, [search, program, position, sort, router]);
   const transactions = useTransactions({
     leagueId,
     competitionId: leagueData.league?.competitionId,
@@ -37,6 +72,57 @@ export default function TransactionsScreen() {
   const [requestedAthleteId, setRequestedAthleteId] = useState('');
   const [working, setWorking] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const programs = useMemo(
+    () => [...new Set(insights.players.map((player) => player.program))].sort(),
+    [insights.players],
+  );
+  const available = useMemo(() => {
+    // - Cache joins and normalized search keys before filtering and sorting
+    const query = search.trim().toLocaleLowerCase();
+    const rows = transactions.freeAgents
+      .flatMap((athlete) => {
+        const player = insights.byId.get(athlete.id);
+        if (leagueData.league?.playerPoolId && !insights.loading && !insights.error && !player)
+          return [];
+        return [{ ...athlete, player, key: athlete.displayName.toLocaleLowerCase() }];
+      })
+      .filter(
+        (row) =>
+          (!query || row.key.includes(query)) &&
+          (program === 'all' || row.player?.program === program) &&
+          (position === 'all' || position === 'FLEX' || row.player?.positions.includes(position)),
+      );
+    return rows.sort((left, right) => {
+      const a =
+        sort === 'next'
+          ? left.player?.nextProjection
+          : sort === 'season'
+            ? left.player?.seasonProjection
+            : left.player?.adp;
+      const b =
+        sort === 'next'
+          ? right.player?.nextProjection
+          : sort === 'season'
+            ? right.player?.seasonProjection
+            : right.player?.adp;
+      if (sort !== 'name') {
+        if (a == null && b != null) return 1;
+        if (a != null && b == null) return -1;
+        if (a != null && b != null && a !== b) return sort === 'adp' ? a - b : b - a;
+      }
+      return left.displayName.localeCompare(right.displayName);
+    });
+  }, [
+    transactions.freeAgents,
+    insights.byId,
+    insights.loading,
+    insights.error,
+    leagueData.league?.playerPoolId,
+    search,
+    program,
+    position,
+    sort,
+  ]);
   const myTeamId = leagueData.myTeamId;
   const myAssets = transactions.rosterAssets.filter((asset) => asset.fantasyTeamId === myTeamId);
   const otherTeams = leagueData.teams.filter((team) => team.id !== myTeamId);
@@ -150,26 +236,114 @@ export default function TransactionsScreen() {
 
       <SectionTitle
         title="Available athletes"
-        detail={`${transactions.freeAgents.length} unrostered`}
+        detail={`${available.length} shown · ${transactions.freeAgents.length} unrostered`}
       />
-      {transactions.freeAgents.length === 0 ? (
+      <Card style={{ gap: 12 }}>
+        <TextInput
+          accessibilityLabel="Search available athletes"
+          placeholder="Search by athlete name"
+          placeholderTextColor={colors.muted}
+          value={search}
+          onChangeText={setSearch}
+          style={uiStyles.input}
+        />
+        <Text style={uiStyles.label}>Program</Text>
+        <View style={styles.choices}>
+          {['all', ...programs].map((value) => (
+            <Choice
+              key={value}
+              label={value === 'all' ? 'All programs' : value}
+              selected={program === value}
+              onPress={() => setProgram(value)}
+            />
+          ))}
+        </View>
+        <Text style={uiStyles.label}>Eligible position</Text>
+        <View style={styles.choices}>
+          {['all', 'F', 'D', 'G', 'BC', 'FC', 'HT', 'L', 'S', 'FLEX'].map((value) => (
+            <Choice
+              key={value}
+              label={
+                value === 'all'
+                  ? 'All positions'
+                  : value === 'FLEX'
+                    ? 'FLEX · any athlete'
+                    : positionLabel(value)
+              }
+              selected={position === value}
+              onPress={() => setPosition(value)}
+            />
+          ))}
+        </View>
+        <Text style={uiStyles.label}>Sort</Text>
+        <View style={styles.choices}>
+          {(['next', 'season', 'adp', 'name'] as const).map((value) => (
+            <Choice
+              key={value}
+              label={
+                {
+                  next: 'Next-period projection',
+                  season: 'Season projection',
+                  adp: 'ADP',
+                  name: 'Name',
+                }[value]
+              }
+              selected={sort === value}
+              onPress={() => setSort(value)}
+            />
+          ))}
+        </View>
+        {insights.players[0]?.period ? (
+          <Text style={uiStyles.body}>
+            Next fantasy period {insights.players[0].period.number}:{' '}
+            {new Date(insights.players[0].period.startsAt).toLocaleDateString('en-CA', {
+              timeZone: 'America/Toronto',
+            })}{' '}
+            –{' '}
+            {new Date(insights.players[0].period.endsAt).toLocaleDateString('en-CA', {
+              timeZone: 'America/Toronto',
+            })}
+          </Text>
+        ) : null}
+        {insights.error ? (
+          <Text accessibilityRole="alert" style={uiStyles.body}>
+            {insights.error}
+          </Text>
+        ) : null}
+      </Card>
+      {available.length === 0 ? (
         <EmptyState
           title="No free agents"
           body="The active athlete pool is fully rostered or has not been imported."
         />
       ) : (
         <Card>
-          {transactions.freeAgents.map((athlete, index) => (
+          {available.map((athlete, index) => (
             <View
               key={athlete.id}
-              style={[
-                styles.assetRow,
-                index === transactions.freeAgents.length - 1 && uiStyles.lastRow,
-              ]}
+              style={[styles.assetRow, index === available.length - 1 && uiStyles.lastRow]}
             >
               <View style={styles.assetCopy}>
-                <Text style={styles.assetName}>{athlete.displayName}</Text>
-                <Text style={styles.assetMeta}>{athlete.position}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Insights for ${athlete.displayName}`}
+                  onPress={() => setAthleteId(athlete.id)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                >
+                  <DraftPlayerPhoto
+                    player={athlete.player ?? { displayName: athlete.displayName, bio: {} }}
+                  />
+                  <Text style={[styles.assetName, { flexShrink: 1 }]}>{athlete.displayName} ↗</Text>
+                </Pressable>
+                <Text style={styles.assetMeta}>
+                  {athlete.player?.program} · {positionLabel(athlete.position)}
+                </Text>
+                <Text style={styles.assetMeta}>
+                  Next period: {projectedPoints(athlete.player?.nextProjection)} · Season:{' '}
+                  {projectedPoints(athlete.player?.seasonProjection)} · ADP:{' '}
+                  {athlete.player?.adp?.toFixed(1) ?? 'Unavailable'}
+                </Text>
+                {athlete.player?.pending ? <PendingConfirmation /> : null}
               </View>
               {transactions.freeAgentsEnabled ? (
                 <ActionButton
@@ -327,6 +501,13 @@ export default function TransactionsScreen() {
           variant="ghost"
         />
       </View>
+      <PlayerInsightsPanel
+        athleteId={athleteId}
+        player={athleteId ? insights.byId.get(athleteId) : undefined}
+        loading={insights.loading}
+        error={insights.error}
+        onClose={() => setAthleteId(null)}
+      />
     </AppShell>
   );
 }
@@ -344,6 +525,7 @@ function Choice({
   return (
     <Pressable
       accessibilityRole="radio"
+      aria-checked={selected}
       accessibilityState={{ checked: selected }}
       onPress={onPress}
       style={[styles.choice, selected && styles.choiceSelected]}

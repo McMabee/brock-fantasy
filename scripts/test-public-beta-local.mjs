@@ -202,9 +202,70 @@ for (let i = 0; i < 80; i++) {
   const sqlSlots = slots.map(({ teamId, code, positions }) => ({ team: teamId, code, positions }));
   sql += `do $$ begin if (beta_private.complete_draft_graph(${q(sqlCandidates)},${q(sqlSlots)}) is not null)<>${result !== null} then raise exception 'Matching parity failed case ${i}'; end if;end $$;\n`;
 }
-sql += `rollback;select 'public-beta-rehearsal-passed';`;
+sql += `do $$ declare team uuid; owner uuid; league uuid; starter uuid; reserve uuid; version bigint; assignments jsonb; result jsonb; begin
+  for team,owner,league in select t.id,t.owner_id,t.league_id from public.fantasy_teams t loop
+    if not exists(select 1 from public.roster_entries where fantasy_team_id=team and slot_code='FLEX') then continue; end if;
+    perform pg_temp.fixture_actor(owner);
+    select athlete_id into starter from public.roster_entries where fantasy_team_id=team and slot_code='FLEX' and released_at is null;
+    select athlete_id into reserve from public.roster_entries where fantasy_team_id=team and slot_code='BN' and released_at is null order by athlete_id limit 1;
+    select state_version into version from public.leagues where id=league;
+    select jsonb_agg(jsonb_build_object('athlete_id',athlete_id,'slot_code',case when athlete_id=starter then 'BN' when athlete_id=reserve then 'FLEX' else slot_code end))
+      into assignments from public.roster_entries where fantasy_team_id=team and released_at is null;
+    result:=public.set_period_lineup(team,assignments,version,'full-lineup-'||team);
+    if result<>public.set_period_lineup(team,assignments,version,'full-lineup-'||team) then raise exception 'Full lineup retry changed response'; end if;
+    if not exists(select 1 from public.roster_entries where fantasy_team_id=team and athlete_id=reserve and slot_code='FLEX') then raise exception 'Full lineup swap did not persist'; end if;
+    begin
+      perform public.set_period_lineup(team,assignments,version,'stale-lineup-'||team);
+      raise exception 'Stale lineup unexpectedly succeeded';
+    exception when serialization_failure then null; end;
+  end loop;
+end $$;
+do $$ declare league uuid; first_team uuid; second_team uuid; first_athlete uuid; second_athlete uuid;
+  old_entry uuid; trade uuid; locked_athlete uuid; locked_slot text; comp uuid; brock uuid; opponent uuid;
+  live_game uuid; delayed_game uuid; before_trade timestamptz; result jsonb;
+begin
+  league:=current_setting('test.draft_4.league')::uuid;
+  if not exists(select 1 from public.roster_entries where league_id=league and slot_code='FLEX') then return; end if;
+  select id into first_team from public.fantasy_teams where league_id=league order by draft_position limit 1;
+  select id into second_team from public.fantasy_teams where league_id=league and id<>first_team order by draft_position limit 1;
+  select id,athlete_id into old_entry,first_athlete from public.roster_entries where fantasy_team_id=first_team and released_at is null and slot_code='HK_F';
+  select athlete_id into second_athlete from public.roster_entries where fantasy_team_id=second_team and released_at is null and slot_code='HK_F';
+  select r.athlete_id,r.slot_code,a.competition_id,a.team_id into locked_athlete,locked_slot,comp,brock
+    from public.roster_entries r join public.athletes a on a.id=r.athlete_id where r.fantasy_team_id=first_team and r.released_at is null and r.slot_code='BB_BC';
+  select id into opponent from public.teams where competition_id=comp and id<>brock order by id limit 1;
+  insert into public.games(competition_id,home_team_id,away_team_id,starts_at,status)
+    values(comp,brock,opponent,clock_timestamp()-interval '1 minute','in_progress') returning id into live_game;
+  if not beta_private.is_locked(league,locked_athlete) then raise exception 'Unrelated trade fixture must be locked'; end if;
+  before_trade:=clock_timestamp();
+  insert into public.trades(league_id,proposing_team_id,receiving_team_id,status,expires_at,review_ends_at,execution_status)
+    values(league,first_team,second_team,'accepted',clock_timestamp()+interval '1 day',clock_timestamp()-interval '1 minute','review') returning id into trade;
+  insert into public.trade_items(trade_id,from_team_id,to_team_id,athlete_id) values
+    (trade,first_team,second_team,first_athlete),(trade,second_team,first_team,second_athlete);
+  perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+  result:=public.process_due_trades(league);
+  if (result->>'completed')::int<>1 then raise exception 'Trade blocked by an unrelated active game: %',result; end if;
+  if not exists(select 1 from public.roster_entries where id=old_entry and fantasy_team_id=first_team and released_at is not null)
+    or not exists(select 1 from public.roster_entries where athlete_id=first_athlete and fantasy_team_id=second_team and released_at is null and acquired_at>before_trade) then raise exception 'Trade did not preserve ownership intervals'; end if;
+  if not exists(select 1 from public.roster_entries where athlete_id=locked_athlete and fantasy_team_id=first_team and released_at is null and slot_code=locked_slot) then raise exception 'Trade moved an unrelated locked athlete'; end if;
+  if exists(select fantasy_team_id from public.roster_entries where fantasy_team_id in(first_team,second_team) and released_at is null
+    group by fantasy_team_id having count(*)<>10 or count(*) filter(where status='starter')<>7 or count(*) filter(where slot_code='BN')<>3) then raise exception 'Trade broke FLEX roster capacities'; end if;
+  update public.games set status='final' where id=live_game;
+  update public.fantasy_periods set starts_at=before_trade-interval '1 hour' where number=1;
+  select competition_id,team_id into comp,brock from public.athletes where id=first_athlete;
+  select id into opponent from public.teams where competition_id=comp and id<>brock order by id limit 1;
+  insert into public.games(competition_id,home_team_id,away_team_id,starts_at,status)
+    values(comp,brock,opponent,before_trade,'final') returning id into delayed_game;
+  perform beta_private.snapshot_locks(league);
+  if not exists(select 1 from public.game_lineup_snapshots where game_id=delayed_game and athlete_id=first_athlete and fantasy_team_id=first_team)
+    or exists(select 1 from public.game_lineup_snapshots where game_id=delayed_game and athlete_id=first_athlete and fantasy_team_id=second_team) then raise exception 'Late fixture credited post-trade owner'; end if;
+end $$;
+rollback;select 'public-beta-rehearsal-passed';`;
 await mkdir('dev/tmp/public-beta-rehearsal', { recursive: true });
 await writeFile('dev/tmp/public-beta-rehearsal/rehearsal.sql', sql);
+if (process.env.BROCK_PUBLIC_BETA_EMIT_ONLY === '1') {
+  console.log('Generated rollback-only public beta rehearsal for an isolated migration runner');
+  process.exit(0);
+}
 const begin = performance.now();
 let output;
 try {

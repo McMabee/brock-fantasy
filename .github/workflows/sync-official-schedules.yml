@@ -1,0 +1,25 @@
+name: Sync official Brock schedules
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: official-brock-schedules
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: beta
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply official schedule changes with pending confirmation
+        env:
+          BROCK_SCHEDULE_SUPABASE_URL: ${{ secrets.BROCK_SCHEDULE_SUPABASE_URL }}
+          BROCK_SCHEDULE_SERVICE_ROLE_KEY: ${{ secrets.BROCK_SCHEDULE_SERVICE_ROLE_KEY }}
+        run: node scripts/sync-official-schedules.mjs

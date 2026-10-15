@@ -144,6 +144,9 @@ body {
 #root [role='heading'] {
   font-family: BarlowCondensed, sans-serif;
 }
+#root [role='heading'][data-bf-font='body'] {
+  font-family: Inter, system-ui, sans-serif;
+}
 * {
   box-sizing: border-box;
 }
