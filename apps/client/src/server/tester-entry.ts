@@ -1,4 +1,5 @@
 import { ASSOCIATION_INSTAGRAM_URL } from '../lib/association';
+import { emailDeliveryNotice } from './email-delivery-notice';
 
 const escape = (value: string) =>
   value.replace(
@@ -32,8 +33,9 @@ export function testerPage(
 <header><a class="auth-brand" href="https://www.brockfantasy.ca"><img src="/ui/logo-${theme}.png" width="38" height="44" alt="">BROCK FANTASY</a><span>2026–27 SEASON</span></header>
 <div class="auth-layout"><aside class="auth-intro"><p class="eyebrow">SIX PROGRAMS. ONE COMPETITION.</p><h2>Your season.<br>Your team.</h2><p>Draft Brock athletes. Build your lineup. Follow every point with your league.</p><div class="auth-sports"><span>HOCKEY</span><span>BASKETBALL</span><span>VOLLEYBALL</span></div></aside>
 <main>${view === 'activate' || view === 'sign-in' ? `<nav class="auth-tabs" aria-label="Account access"><a href="/auth?mode=sign-in${returnTo ? `&amp;next=${encodeURIComponent(returnTo)}` : ''}"${view === 'sign-in' ? ' aria-current="page"' : ''}>Sign in</a><a href="/auth?mode=sign-up${returnTo ? `&amp;next=${encodeURIComponent(returnTo)}` : ''}"${view === 'activate' ? ' aria-current="page"' : ''}>Create an account</a></nav>` : ''}<p class="eyebrow">Brock Multi-Sport Fantasy</p><h1>${heading}</h1>
-<p>${view === 'activate' ? 'Register for Brock Sports Fantasy, verify your email, and join your league.' : 'Sign in to join your leagues and manage your teams.'}</p>
+<p>${view === 'activate' ? 'Register for Brock Sports Fantasy, verify your email, and join your league.' : view === 'recover' ? 'Enter your account email to request password reset instructions. Open the newest reset link in the same browser you use here.' : view === 'reset' ? 'Choose a new password for your Brock Fantasy account.' : 'Sign in to join your leagues and manage your teams.'}</p>
 ${message ? `<p role="status" class="notice">${escape(message)}</p>` : ''}
+${view === 'activate' || view === 'recover' ? emailDeliveryNotice() : ''}
 <form method="post" action="/api/auth/${action}"><input type="hidden" name="csrf" value="${escape(csrf)}">
 ${view !== 'reset' ? '<label>Email<input name="email" type="email" autocomplete="email" maxlength="320" required></label>' : ''}
 ${view === 'activate' ? '<label>Display name<input name="displayName" maxlength="80" autocomplete="nickname" required></label><label class="honeypot" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>' : ''}

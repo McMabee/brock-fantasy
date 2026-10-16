@@ -7,6 +7,7 @@ import { betaCommand } from '@/lib/web-api';
 import { webRequest } from '@/lib/web-request';
 
 import { AdminAccess } from '@/components/admin-access';
+import { EmailDeliveryNotice } from '@/components/email-delivery-notice';
 import { inviteAdministrator } from '@/lib/admin-invitations';
 import { useAdminAccountManager } from '@/hooks/use-admin-account-manager';
 
@@ -99,6 +100,7 @@ export default function AdminAccountsScreen() {
           email to send an invitation. They will sign in and set up or verify their own
           authenticator using the email link. Their admin access activates after verification.
         </Text>
+        <EmailDeliveryNotice recipient />
         {!canManage ? (
           <Text style={uiStyles.body}>
             Only Ty can invite or manage administrators. Standard admins have access to all other

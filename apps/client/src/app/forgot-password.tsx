@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ActionButton, AppShell, Card, useUiStyles } from '@/components/ui';
+import { EmailDeliveryNotice } from '@/components/email-delivery-notice';
 import { useSession } from '@/providers/session-provider';
 
 export default function ForgotPasswordScreen() {
@@ -43,9 +44,9 @@ export default function ForgotPasswordScreen() {
             <Text accessibilityRole="alert" style={uiStyles.body}>
               If an account exists for that email, a password reset link is on its way.
             </Text>
+            <EmailDeliveryNotice />
             <Text style={uiStyles.body}>
-              Check your inbox and spam folder. Open the newest link in the same browser you used
-              here to choose a new password.
+              Open the newest link in the same browser you used here to choose a new password.
             </Text>
             <ActionButton
               label="Try another email"

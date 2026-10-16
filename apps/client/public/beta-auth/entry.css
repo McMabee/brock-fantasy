@@ -216,6 +216,27 @@ nav a {
 .notice {
   border-radius: 12px;
 }
+.email-delivery-notice {
+  margin: 24px 0;
+  padding: 18px;
+  border: 2px solid #b77900;
+  border-left-width: 6px;
+  border-radius: 12px;
+  background: #fff4d6;
+  color: #593800;
+}
+.email-delivery-notice h2 {
+  margin: 0 0 10px;
+  font:
+    700 16px/1.45 Inter,
+    system-ui,
+    sans-serif;
+}
+.email-delivery-notice p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
 body > main {
   margin: 32px auto;
 }
