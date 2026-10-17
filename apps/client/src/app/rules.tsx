@@ -133,7 +133,7 @@ export default function RulesScreen() {
             injured-reserve spot.
           </Paragraph>
           <Text style={styles.body}>
-            Example: a women’s hockey goalie can fill Hockey defence or goalie, FLEX, or Bench. A
+            Example: A women’s hockey goalie can fill Hockey defence or goalie, FLEX, or Bench. A
             men’s volleyball setter can fill Volleyball libero or setter, FLEX, or Bench.
           </Text>
           <RulesLink section="lineup" label="Learn when your lineup locks" />
@@ -298,7 +298,7 @@ export default function RulesScreen() {
             test drafts and automatic picks.
           </Paragraph>
           <Text style={styles.body}>
-            Example: a supplied ADP of 20 and completed-draft picks at 10 and 15 give an ADP of (20
+            Example: A supplied ADP of 20 and completed-draft picks at 10 and 15 give an ADP of (20
             + 10 + 15) ÷ 3 = 15. With no supplied value, ADP uses recorded completed picks alone.
             Picks from unfinished or voided drafts do not count.
           </Text>
