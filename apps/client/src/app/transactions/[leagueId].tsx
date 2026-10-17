@@ -10,6 +10,8 @@ import {
 } from '@/components/player-insights';
 import { DraftPlayerPhoto } from '@/components/draft-player-panel';
 import { positionLabel } from '@/lib/roster-guide';
+import { programNames } from '@/lib/player-program';
+import { useParticipation } from '@/hooks/use-participation';
 
 import {
   ActionButton,
@@ -48,6 +50,7 @@ export default function TransactionsScreen() {
   const router = useRouter();
   const leagueData = useLeague(leagueId);
   const insights = usePlayerInsights(leagueData.league?.playerPoolId);
+  const participation = useParticipation();
   const [athleteId, setAthleteId] = useState<string | null>(null);
   const [search, setSearch] = useState(q ?? '');
   const [program, setProgram] = useState(initialProgram ?? 'all');
@@ -73,8 +76,15 @@ export default function TransactionsScreen() {
   const [working, setWorking] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const programs = useMemo(
-    () => [...new Set(insights.players.map((player) => player.program))].sort(),
-    [insights.players],
+    () =>
+      [
+        ...new Set(
+          transactions.freeAgents.map(
+            (athlete) => insights.byId.get(athlete.id)?.program ?? athlete.program,
+          ),
+        ),
+      ].sort(),
+    [insights.byId, transactions.freeAgents],
   );
   const available = useMemo(() => {
     // - Cache joins and normalized search keys before filtering and sorting
@@ -89,8 +99,10 @@ export default function TransactionsScreen() {
       .filter(
         (row) =>
           (!query || row.key.includes(query)) &&
-          (program === 'all' || row.player?.program === program) &&
-          (position === 'all' || position === 'FLEX' || row.player?.positions.includes(position)),
+          (program === 'all' || (row.player?.program ?? row.program) === program) &&
+          (position === 'all' ||
+            position === 'FLEX' ||
+            (row.player?.positions ?? row.position.split(/\s*[/,;]\s*/u)).includes(position)),
       );
     return rows.sort((left, right) => {
       const a =
@@ -135,15 +147,22 @@ export default function TransactionsScreen() {
   }, [otherTeams, receivingTeamId]);
 
   const invoke = async (label: string, command: () => Promise<{ error: string | null }>) => {
+    if (working) return;
     setWorking(label);
     setMessage(null);
-    const result = await command();
-    if (result.error) setMessage(result.error);
-    else {
-      setMessage('Transaction committed.');
-      await Promise.all([transactions.reload(), leagueData.reload()]);
+    try {
+      const result = await command();
+      if (result.error) setMessage(result.error);
+      else {
+        setMessage('Transaction completed.');
+        setDropAthleteId(null);
+        await Promise.all([transactions.reload(), leagueData.reload(), insights.reload()]);
+      }
+    } catch {
+      setMessage('The transaction could not be completed. Please retry.');
+    } finally {
+      setWorking(null);
     }
-    setWorking(null);
   };
 
   const addOrClaim = async (athleteId: string, waiver: boolean) => {
@@ -201,12 +220,22 @@ export default function TransactionsScreen() {
     });
   };
 
-  const athleteName = (athleteId: string) =>
-    transactions.rosterAssets.find((asset) => asset.id === athleteId)?.displayName ??
-    transactions.freeAgents.find((athlete) => athlete.id === athleteId)?.displayName ??
-    'Unknown athlete';
-  const teamName = (teamId: string) =>
-    leagueData.teams.find((team) => team.id === teamId)?.name ?? 'Unknown team';
+  const athleteNames = useMemo(
+    () =>
+      new Map(
+        [...transactions.freeAgents, ...transactions.rosterAssets].map((athlete) => [
+          athlete.id,
+          athlete.displayName,
+        ]),
+      ),
+    [transactions.freeAgents, transactions.rosterAssets],
+  );
+  const teamNames = useMemo(
+    () => new Map(leagueData.teams.map((team) => [team.id, team.name])),
+    [leagueData.teams],
+  );
+  const athleteName = (athleteId: string) => athleteNames.get(athleteId) ?? 'Unknown athlete';
+  const teamName = (teamId: string) => teamNames.get(teamId) ?? 'Unknown team';
 
   if ((leagueData.loading || transactions.loading) && transactions.freeAgents.length === 0)
     return (
@@ -216,18 +245,35 @@ export default function TransactionsScreen() {
     );
   return (
     <AppShell eyebrow="Roster moves" title="Transactions">
-      {transactions.error || message ? (
+      {leagueData.error || transactions.error || message ? (
         <Text accessibilityRole="alert" style={styles.message}>
-          {transactions.error ?? message}
+          {leagueData.error ?? transactions.error ?? message}
         </Text>
       ) : null}
       <SectionTitle title="Drop choice" detail="Optional unless your roster is full" />
+      {participation.error ? (
+        <Card>
+          <Text accessibilityRole="alert" style={uiStyles.body}>
+            {participation.error}
+          </Text>
+          <ActionButton
+            label="Retry account participation"
+            onPress={() => void participation.reload()}
+            variant="secondary"
+          />
+        </Card>
+      ) : null}
+      {myAssets.length >= 10 && !dropAthleteId ? (
+        <Text style={uiStyles.body}>
+          Your roster is full. Select an athlete to replace before adding or claiming someone.
+        </Text>
+      ) : null}
       <View style={styles.choices}>
         <Choice label="No drop" selected={!dropAthleteId} onPress={() => setDropAthleteId(null)} />
         {myAssets.map((asset) => (
           <Choice
             key={asset.id}
-            label={`${asset.displayName} · ${asset.position}`}
+            label={`${asset.displayName} · ${positionLabel(asset.position)}`}
             selected={dropAthleteId === asset.id}
             onPress={() => setDropAthleteId(asset.id)}
           />
@@ -252,7 +298,7 @@ export default function TransactionsScreen() {
           {['all', ...programs].map((value) => (
             <Choice
               key={value}
-              label={value === 'all' ? 'All programs' : value}
+              label={value === 'all' ? 'All programs' : (programNames[value] ?? value)}
               selected={program === value}
               onPress={() => setProgram(value)}
             />
@@ -306,62 +352,97 @@ export default function TransactionsScreen() {
           </Text>
         ) : null}
         {insights.error ? (
-          <Text accessibilityRole="alert" style={uiStyles.body}>
-            {insights.error}
-          </Text>
+          <View style={{ gap: 10 }}>
+            <Text accessibilityRole="alert" style={uiStyles.body}>
+              {insights.error}
+            </Text>
+            <ActionButton
+              label="Retry athlete stats"
+              onPress={() => void insights.reload()}
+              variant="secondary"
+            />
+          </View>
         ) : null}
       </Card>
       {available.length === 0 ? (
         <EmptyState
           title="No free agents"
-          body="The active athlete pool is fully rostered or has not been imported."
+          body={
+            search || program !== 'all' || position !== 'all'
+              ? 'No athletes match these filters. Try another program, position or name.'
+              : 'No unrostered athletes are available in this league.'
+          }
         />
       ) : (
         <Card>
-          {available.map((athlete, index) => (
-            <View
-              key={athlete.id}
-              style={[styles.assetRow, index === available.length - 1 && uiStyles.lastRow]}
-            >
-              <View style={styles.assetCopy}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Insights for ${athlete.displayName}`}
-                  onPress={() => setAthleteId(athlete.id)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
-                >
-                  <DraftPlayerPhoto
-                    player={athlete.player ?? { displayName: athlete.displayName, bio: {} }}
+          {available.map((athlete, index) => {
+            const programCode =
+              athlete.player?.programCode ?? athlete.player?.bio.program ?? athlete.bio.program;
+            const restricted = Boolean(
+              participation.participation?.programs.some((program) => program === programCode),
+            );
+            const disabled =
+              Boolean(working) ||
+              !myTeamId ||
+              restricted ||
+              participation.loading ||
+              Boolean(participation.error) ||
+              (myAssets.length >= 10 && !dropAthleteId);
+            return (
+              <View
+                key={athlete.id}
+                style={[styles.assetRow, index === available.length - 1 && uiStyles.lastRow]}
+              >
+                <View style={styles.assetCopy}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Insights for ${athlete.displayName}`}
+                    onPress={() => setAthleteId(athlete.id)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+                  >
+                    <DraftPlayerPhoto player={athlete.player ?? athlete} size={56} />
+                    <Text style={[styles.assetName, { flexShrink: 1 }]}>
+                      {athlete.displayName} ↗
+                    </Text>
+                  </Pressable>
+                  <Text style={styles.assetMeta}>
+                    {programNames[athlete.player?.program ?? athlete.program] ??
+                      athlete.player?.program ??
+                      athlete.program}{' '}
+                    · {athlete.player?.team ?? athlete.team} · {positionLabel(athlete.position)}
+                  </Text>
+                  <Text style={styles.assetMeta}>
+                    Next period: {projectedPoints(athlete.player?.nextProjection)} · Season
+                    projection: {projectedPoints(athlete.player?.seasonProjection)} · ADP:{' '}
+                    {athlete.player?.adp?.toFixed(1) ?? 'Unavailable'}
+                  </Text>
+                  {athlete.player?.pending ? <PendingConfirmation /> : null}
+                  {restricted ? (
+                    <Text style={styles.assetMeta}>
+                      Your varsity program · unavailable to your account
+                    </Text>
+                  ) : null}
+                </View>
+                {transactions.freeAgentsEnabled ? (
+                  <ActionButton
+                    label="Add now"
+                    onPress={() => void addOrClaim(athlete.id, false)}
+                    loading={working === `add_free_agent:${athlete.id}`}
+                    variant="secondary"
+                    disabled={disabled}
                   />
-                  <Text style={[styles.assetName, { flexShrink: 1 }]}>{athlete.displayName} ↗</Text>
-                </Pressable>
-                <Text style={styles.assetMeta}>
-                  {athlete.player?.program} · {positionLabel(athlete.position)}
-                </Text>
-                <Text style={styles.assetMeta}>
-                  Next period: {projectedPoints(athlete.player?.nextProjection)} · Season:{' '}
-                  {projectedPoints(athlete.player?.seasonProjection)} · ADP:{' '}
-                  {athlete.player?.adp?.toFixed(1) ?? 'Unavailable'}
-                </Text>
-                {athlete.player?.pending ? <PendingConfirmation /> : null}
+                ) : null}
+                {transactions.waiversEnabled ? (
+                  <ActionButton
+                    label="Waiver claim"
+                    disabled={disabled}
+                    onPress={() => void addOrClaim(athlete.id, true)}
+                    loading={working === `request_waiver:${athlete.id}`}
+                  />
+                ) : null}
               </View>
-              {transactions.freeAgentsEnabled ? (
-                <ActionButton
-                  label="Add now"
-                  onPress={() => void addOrClaim(athlete.id, false)}
-                  loading={working === `add_free_agent:${athlete.id}`}
-                  variant="secondary"
-                />
-              ) : null}
-              {transactions.waiversEnabled ? (
-                <ActionButton
-                  label="Waiver claim"
-                  onPress={() => void addOrClaim(athlete.id, true)}
-                  loading={working === `request_waiver:${athlete.id}`}
-                />
-              ) : null}
-            </View>
-          ))}
+            );
+          })}
         </Card>
       )}
 
@@ -549,20 +630,26 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       backgroundColor: colors.canvasSoft,
     },
     choiceSelected: { borderColor: colors.red, backgroundColor: colors.canvasSoft },
-    choiceText: { fontFamily: 'Inter', color: colors.muted, fontSize: 10, fontWeight: '700' },
+    choiceText: { fontFamily: 'Inter', color: colors.muted, fontSize: 13, fontWeight: '700' },
     choiceTextSelected: { color: colors.text },
     assetRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       alignItems: 'center',
       gap: 9,
-      paddingVertical: 11,
+      paddingVertical: 18,
       borderBottomColor: colors.border,
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
     assetCopy: { flex: 1, minWidth: 190 },
-    assetName: { fontFamily: 'Inter', color: colors.text, fontSize: 12, fontWeight: '800' },
-    assetMeta: { fontFamily: 'Inter', color: colors.muted, fontSize: 9, marginTop: 4 },
+    assetName: { fontFamily: 'Inter', color: colors.text, fontSize: 16, fontWeight: '800' },
+    assetMeta: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 13,
+      lineHeight: 21,
+      marginTop: 6,
+    },
     tradeBuilder: { gap: 12 },
     tradeRow: {
       flexDirection: 'row',

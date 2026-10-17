@@ -292,3 +292,22 @@ body > main {
   border-color: var(--bf-red);
   color: #fff;
 }
+.participation,
+.varsity-programs {
+  border: 1px solid var(--bf-border);
+  border-radius: 10px;
+  padding: 16px;
+  margin: 0;
+  min-width: 0;
+}
+.participation legend,
+.varsity-programs legend {
+  font-weight: 700;
+  padding-inline: 4px;
+}
+.participation .check {
+  margin-block: 10px;
+}
+.participation:has(input[value='none']:checked) .varsity-programs {
+  display: none;
+}

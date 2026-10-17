@@ -38,6 +38,7 @@ interface BetaEntry {
   slot_code: string;
   status: 'starter' | 'bench';
   locked: boolean;
+  participation_conflict?: boolean;
   locks_at: string | null;
 }
 interface BetaLineup {
@@ -286,6 +287,24 @@ export default function BetaLineupScreen() {
         future games only; earned points remain.
       </Text>
       <RulesLink section="lineup" label="Lineup locks & eligible positions explained" />
+      {leagueData.league?.rosterFormat === 'varsity' ? (
+        <Text style={ui.body}>
+          Varsity format · any two hockey, two basketball and two volleyball athletes, plus FLEX
+        </Text>
+      ) : null}
+      {lineup?.entries.some((entry) => entry.participation_conflict) ? (
+        <Card>
+          <Text accessibilityRole="alert" style={ui.body}>
+            Replace these athletes from your own varsity program before saving your next lineup:{' '}
+            {lineup.entries
+              .filter((entry) => entry.participation_conflict)
+              .map((entry) => entry.display_name)
+              .join(', ')}
+            . They cannot score in games starting after your participation changed.
+          </Text>
+          <ActionButton label="Replace conflicting athletes" href={`/transactions/${leagueId}`} />
+        </Card>
+      ) : null}
       {message ? (
         <Text accessibilityRole="alert" style={ui.body}>
           {message}
@@ -333,14 +352,18 @@ export default function BetaLineupScreen() {
                       <DropZone key={guide.code} onDrop={(sourceId) => move(sourceId, guide.code)}>
                         <Card style={{ gap: 12 }}>
                           <Text accessibilityRole="header" style={ui.title}>
-                            {rosterSlotLabel(guide.code)} · {entries.length}/{slot.slot_count}
+                            {rosterSlotLabel(
+                              guide.code,
+                              leagueData.league?.rosterFormat === 'varsity',
+                            )}{' '}
+                            · {entries.length}/{slot.slot_count}
                           </Text>
                           <Text style={ui.body}>
                             {guide.code === 'BN'
                               ? 'Reserves do not score while benched'
                               : guide.code === 'FLEX'
                                 ? 'Any sport or position'
-                                : guide.label}
+                                : slot.label}
                           </Text>
                           {entries.map((entry) => {
                             const player = insights.byId.get(entry.athlete_id);

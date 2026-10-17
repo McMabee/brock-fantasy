@@ -110,6 +110,11 @@ export default function AdminScreen() {
         <View style={styles.side}>
           <SectionTitle title="Actions" />
           <Card style={styles.actions}>
+            <ActionButton
+              label="Varsity participant accounts"
+              href="/admin/participants"
+              variant="secondary"
+            />
             <Text style={styles.actionTitle}>Game scores and player statistics</Text>
             <Text style={uiStyles.body}>
               Select a scheduled game, enter individual player statistics, and review the scoring

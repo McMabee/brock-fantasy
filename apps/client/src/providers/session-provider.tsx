@@ -1,5 +1,10 @@
 import type { User } from '@supabase/supabase-js';
-import { ELIGIBILITY_POLICY_VERSION, registrationYearAt } from '@brock-fantasy/domain';
+import {
+  ELIGIBILITY_POLICY_VERSION,
+  registrationYearAt,
+  parseParticipation,
+  type Participation,
+} from '@brock-fantasy/domain';
 import * as Linking from 'expo-linking';
 import {
   createContext,
@@ -30,6 +35,7 @@ interface SessionContextValue {
     password: string,
     displayName: string,
     eligibilityAttested: boolean,
+    participation: Participation,
   ) => Promise<string | null>;
   requestPasswordReset: (email: string) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
@@ -159,13 +165,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const signUp = useCallback(
-    async (email: string, password: string, displayName: string, eligibilityAttested: boolean) => {
+    async (
+      email: string,
+      password: string,
+      displayName: string,
+      eligibilityAttested: boolean,
+      participation: Participation,
+    ) => {
+      if (!displayName.trim() || displayName.trim().length > 60)
+        return 'Enter your full name (up to 60 characters).';
+      if (!parseParticipation(participation?.role, participation?.programs))
+        return 'Select your varsity status and applicable programs.';
       if (!eligibilityAttested) return 'Confirm that you are 18 or turn 18 this calendar year.';
       if (Platform.OS === 'web') {
         await ensureCsrfToken();
         return (
           await webAuth('sign-up', {
-            body: { email, password, displayName, eligibilityAttested },
+            body: {
+              email,
+              password,
+              displayName,
+              eligibilityAttested,
+              varsityRole: participation.role,
+              varsityPrograms: participation.programs,
+            },
             csrf: false,
           })
         ).error;
@@ -177,6 +200,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         options: {
           data: {
             display_name: displayName,
+            varsity_role: participation.role,
+            varsity_programs: participation.programs,
             beta_age_eligible: true,
             beta_eligibility_year: registrationYearAt(),
             beta_eligibility_policy_version: ELIGIBILITY_POLICY_VERSION,

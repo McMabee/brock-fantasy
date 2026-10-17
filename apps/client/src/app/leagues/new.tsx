@@ -128,8 +128,9 @@ export default function NewLeagueScreen() {
         <View style={styles.ruleSummary}>
           <Pill label="HEAD-TO-HEAD · 10 ROUNDS" tone="info" />
           <Text style={styles.ruleText}>
-            Each roster has six cross-sport starters and four bench positions. Draft order is
-            randomized once, with two-minute snake-draft picks and server-side autopicks.
+            Each roster has seven starters, including FLEX, and three bench positions. Leagues with
+            a varsity athlete or coach use two starters of any position per sport, plus FLEX. Draft
+            order is randomized once, with two-minute snake-draft picks and server-side autopicks.
           </Text>
           <RulesLink label="Read the league rules before creating a team" />
         </View>

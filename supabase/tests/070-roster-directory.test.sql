@@ -2,7 +2,7 @@ begin;
 select plan(11);
 insert into beta_private.application_access(email,reason) values('roster-reader@example.test','Explicit isolated roster reader approval');
 insert into auth.users(id,email,email_confirmed_at,created_at,raw_user_meta_data) values
-('99000000-0000-4000-8000-000000000099','roster-reader@example.test',now(),now(),jsonb_build_object('display_name','Roster reader','beta_age_eligible',true,
+('99000000-0000-4000-8000-000000000099','roster-reader@example.test',now(),now(),jsonb_build_object('display_name','Roster reader','varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,
   'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::integer,'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1'));
 insert into auth.sessions(id,user_id,aal) values('99000000-0000-4000-8000-000000000099','99000000-0000-4000-8000-000000000099','aal1');
 insert into public.user_roles(user_id,role) values('99000000-0000-4000-8000-000000000099','admin');

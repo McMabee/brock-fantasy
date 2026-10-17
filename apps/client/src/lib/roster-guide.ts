@@ -49,7 +49,13 @@ const SLOT_LABELS = new Map(
   ROSTER_GUIDE.map((slot) => [slot.code, `${slot.icon} ${slot.shortLabel}`]),
 );
 
-export function rosterSlotLabel(code: string): string {
+export function rosterSlotLabel(code: string, varsity = false): string {
+  if (varsity && code.startsWith('HK_'))
+    return `🏒 Hockey ${code === 'HK_F' ? 1 : 2} · any position`;
+  if (varsity && code.startsWith('BB_'))
+    return `🏀 Basketball ${code === 'BB_BC' ? 1 : 2} · any position`;
+  if (varsity && code.startsWith('VB_'))
+    return `🏐 Volleyball ${code === 'VB_HT' ? 1 : 2} · any position`;
   return SLOT_LABELS.get(code as BetaSlot) ?? code.replaceAll('_', ' ');
 }
 
@@ -60,7 +66,10 @@ export function positionLabel(position: string): string {
     .join(' / ');
 }
 
-export function slotEligibility(code: BetaSlot): string {
+export function slotEligibility(code: BetaSlot, varsity = false): string {
+  if (varsity && code.startsWith('HK_')) return 'Forward, defence or goalie';
+  if (varsity && code.startsWith('BB_')) return 'Backcourt or frontcourt';
+  if (varsity && code.startsWith('VB_')) return 'Hitter, libero or setter';
   return code === 'BN' || code === 'FLEX'
     ? 'Any eligible athlete from the six programs'
     : BETA_SLOTS[code].map((position) => POSITION_LABELS[position]).join(' or ');

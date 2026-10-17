@@ -87,12 +87,32 @@ export default function RulesScreen() {
             matchups actually scheduled by your commissioner; a fantasy period is not always a
             calendar week.
           </Paragraph>
+          <Paragraph title="Eight-manager round robin">
+            An eight-manager league plays one round-robin cycle: seven rounds, with every team
+            facing each of its seven opponents once.
+          </Paragraph>
           <RulesLink section="roster" label="See all roster spots and eligible positions" />
         </Card>
       ) : null}
       {selected === 'roster' ? (
         <Card style={styles.article}>
           <RulesHeading title="Seven starters + three bench = ten athletes" />
+          <Paragraph title="Varsity participant format">
+            When a Brock varsity athlete or coach joins, the entire league adopts the varsity
+            format: any two hockey athletes (forward, defence or goalie), any two basketball
+            athletes (backcourt or frontcourt), any two volleyball athletes (hitter, libero or
+            setter), one any-sport FLEX starter, and three shared bench spots. FLEX is the seventh
+            starter. This format remains in place for the league’s season.
+          </Paragraph>
+          <Paragraph title="Your own varsity program">
+            Varsity athletes and coaches cannot draft, add, claim or receive athletes from any Brock
+            team they play for or coach. For example, a member of women’s volleyball cannot acquire
+            any women’s volleyball athlete. Declare every applicable program at signup; an
+            administrator can correct it. If your status changes after drafting, replace conflicting
+            athletes before saving your next lineup. They cannot earn points for games starting
+            after that change; points already earned remain.
+          </Paragraph>
+          <RulesHeading title="Standard participant format" />
           <Text style={styles.body}>
             Fill each starter spot with one eligible athlete. Men’s and women’s programs can fill
             the same sport’s spots. A player’s real position determines where they can play in your

@@ -83,6 +83,7 @@ export interface League {
   stateVersion?: number;
   draftScheduledFor?: string;
   draftScheduleVersion?: number;
+  rosterFormat?: 'standard' | 'varsity';
 }
 
 export interface FantasyTeam {
@@ -91,6 +92,8 @@ export interface FantasyTeam {
   ownerId: UUID;
   name: string;
   draftPosition: number;
+  ownerIsVarsity?: boolean;
+  ownerName?: string;
 }
 
 export interface RosterEntry {

@@ -1,5 +1,9 @@
 import type { RequestHandler } from 'expo-router/server';
-import { ELIGIBILITY_POLICY_VERSION, registrationYearAt } from '@brock-fantasy/domain';
+import {
+  ELIGIBILITY_POLICY_VERSION,
+  registrationYearAt,
+  parseParticipation,
+} from '@brock-fantasy/domain';
 import { limitAuthRequest } from '../../../server/auth-rate-limit';
 import { AppAccessUnavailable, canUseApp } from '../../../server/app-access';
 import { signupHandoff, handoffPage } from '../../../server/signup-handoff';
@@ -413,9 +417,18 @@ const post: RequestHandler = async (request, params) => {
         : authError(recovered.status);
     }
     const password = string(body.password, 512);
-    const displayName = string(body.displayName, 80)?.trim();
+    const displayName = string(body.displayName, 60)?.trim();
     if (!password || password.length < 8 || !displayName)
-      return response({ error: 'Display name and an 8+ character password are required.' }, 400);
+      return response({ error: 'Your full name and an 8+ character password are required.' }, 400);
+    const participation = parseParticipation(body.varsityRole, body.varsityPrograms);
+    if (!participation)
+      return response(
+        {
+          error:
+            'Select whether you are a varsity athlete or coach and choose your program(s) if applicable.',
+        },
+        400,
+      );
     if (body.eligibilityAttested !== true)
       return response({ error: 'Confirm that you are 18 or turn 18 this calendar year.' }, 400);
     const signedUp = await authFetch(`/signup?redirect_to=${encodeURIComponent(redirectTo)}`, {
@@ -426,6 +439,8 @@ const post: RequestHandler = async (request, params) => {
         password,
         data: {
           display_name: displayName,
+          varsity_role: participation.role,
+          varsity_programs: participation.programs,
           beta_age_eligible: true,
           beta_eligibility_year: registrationYearAt(),
           beta_eligibility_policy_version: ELIGIBILITY_POLICY_VERSION,
@@ -501,6 +516,8 @@ export const POST: RequestHandler = async (request, params) => {
         email: form.get('email'),
         password: form.get('password'),
         displayName: form.get('displayName'),
+        varsityRole: form.get('varsityRole'),
+        varsityPrograms: form.getAll('varsityPrograms'),
         eligibilityAttested: form.get('eligibilityAttested') === 'true',
         website: form.get('website') ?? '',
       }),

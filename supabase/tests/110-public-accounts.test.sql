@@ -5,7 +5,7 @@ select ok(not has_table_privilege('prelaunch_api','auth.users','SELECT'),'associ
 select ok(not has_table_privilege('prelaunch_api','registration_private.news_subscriptions','SELECT'),'association has no direct subscription-table privileges');
 select ok(not has_function_privilege('authenticated','public.issue_account_signup_handoff(uuid,text,text)','EXECUTE'),'only account backend can issue a handoff');
 insert into auth.users(id,email,raw_user_meta_data,created_at)
-values('95000000-0000-4000-8000-000000000001','news@example.test',jsonb_build_object('display_name','News test','beta_age_eligible',true,
+values('95000000-0000-4000-8000-000000000001','news@example.test',jsonb_build_object('display_name','News test','varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,
 'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::int,'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1'),now());
 select is((select count(*)::int from public.profiles where id='95000000-0000-4000-8000-000000000001'),1,'real account signup retains profile trigger');
 select is((select count(*)::int from public.user_roles where user_id='95000000-0000-4000-8000-000000000001'),0,'public signup creates no admin role');

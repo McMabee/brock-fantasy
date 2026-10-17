@@ -9,8 +9,8 @@ end $$;
 
 insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, created_at, updated_at)
 values
-  ('30000000-0000-4000-8000-000000000001', 'commissioner@example.test', jsonb_build_object('display_name', 'Test Commissioner', 'beta_age_eligible', true, 'beta_eligibility_year', extract(year from timezone('America/Toronto', now()))::integer, 'beta_eligibility_policy_version', 'brock-beta-eligibility-2026-10-06.1'), now(), now(), now()),
-  ('30000000-0000-4000-8000-000000000002', 'manager@example.test', jsonb_build_object('display_name', 'Test Manager', 'beta_age_eligible', true, 'beta_eligibility_year', extract(year from timezone('America/Toronto', now()))::integer, 'beta_eligibility_policy_version', 'brock-beta-eligibility-2026-10-06.1'), now(), now(), now());
+  ('30000000-0000-4000-8000-000000000001', 'commissioner@example.test', jsonb_build_object('display_name', 'Test Commissioner', 'varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true, 'beta_eligibility_year', extract(year from timezone('America/Toronto', now()))::integer, 'beta_eligibility_policy_version', 'brock-beta-eligibility-2026-10-06.1'), now(), now(), now()),
+  ('30000000-0000-4000-8000-000000000002', 'manager@example.test', jsonb_build_object('display_name', 'Test Manager', 'varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true, 'beta_eligibility_year', extract(year from timezone('America/Toronto', now()))::integer, 'beta_eligibility_policy_version', 'brock-beta-eligibility-2026-10-06.1'), now(), now(), now());
 
 select is(
   (select display_name from public.profiles where id = '30000000-0000-4000-8000-000000000001'),

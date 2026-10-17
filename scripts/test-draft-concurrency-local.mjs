@@ -47,7 +47,7 @@ const ids = (list) => list.map((id) => "'" + id + "'::uuid").join(',');
 const actor = (user) =>
   `select set_config('request.jwt.claim.sub','${user}',true);select set_config('request.jwt.claims','${JSON.stringify({ sub: user, role: 'authenticated', aal: 'aal1', session_id: user })}',true);`;
 const setup = `begin;
-insert into auth.users(id,email,email_confirmed_at,created_at,raw_user_meta_data)select id,id::text||'@example.test',now(),now(),jsonb_build_object('display_name','Concurrent local fixture','beta_age_eligible',true,'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::int,'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1')from unnest(array[${ids(users)}])id;
+insert into auth.users(id,email,email_confirmed_at,created_at,raw_user_meta_data)select id,id::text||'@example.test',now(),now(),jsonb_build_object('display_name','Concurrent local fixture','varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::int,'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1')from unnest(array[${ids(users)}])id;
 insert into auth.sessions(id,user_id,aal)select id,id,'aal1' from unnest(array[${ids(users)}])id;
 insert into public.fantasy_seasons(id,label,rule_version,trade_deadline)values('${season}','Concurrent local ${season}','fixture',now()+interval '1 year');
 insert into public.scoring_rulesets(id,name,version,status,approved_at)values('${rules}','Concurrent local fixture',1,'approved',now());

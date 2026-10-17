@@ -272,7 +272,7 @@ export default function DraftRoomScreen() {
               ? rosterSlotLabel('BN') +
                 ' ' +
                 (index - mySlots.filter((s) => s.code !== 'BN').length + 1)
-              : rosterSlotLabel(cell.slot.code);
+              : rosterSlotLabel(cell.slot.code, data.rosterFormat === 'varsity');
           return (
             <View key={index} style={[styles.rosterSlot, ghost ? styles.preview : null]}>
               <Text style={styles.slotLabel}>{name}</Text>

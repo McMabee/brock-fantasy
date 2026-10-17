@@ -36,7 +36,7 @@ select is(
 select is(
   (select count(*)::integer from public.roster_slot_rules where ruleset_id = 'b0000000-0000-4000-8000-000000000001'),
   7,
-  'six starters plus a four-place bench are configured'
+  'seven starters including FLEX plus three bench spots are configured'
 );
 
 select is(

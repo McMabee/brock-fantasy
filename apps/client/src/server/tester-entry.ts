@@ -1,5 +1,6 @@
 import { ASSOCIATION_INSTAGRAM_URL } from '../lib/association';
 import { emailDeliveryNotice } from './email-delivery-notice';
+import { VARSITY_PROGRAMS } from '@brock-fantasy/domain';
 
 const escape = (value: string) =>
   value.replace(
@@ -29,7 +30,7 @@ export function testerPage(
   const html = `<!doctype html>
 <html lang="en" data-brock-theme="${theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>${heading} | Brock Fantasy</title>
-<link rel="stylesheet" href="/beta-auth/entry.css"></head><body>
+<link rel="stylesheet" href="/beta-auth/entry.css">${view === 'activate' ? '<script src="/beta-auth/participation.js" defer></script>' : ''}</head><body>
 <header><a class="auth-brand" href="https://www.brockfantasy.ca"><img src="/ui/logo-${theme}.png" width="38" height="44" alt="">BROCK FANTASY</a><span>2026–27 SEASON</span></header>
 <div class="auth-layout"><aside class="auth-intro"><p class="eyebrow">SIX PROGRAMS. ONE COMPETITION.</p><h2>Your season.<br>Your team.</h2><p>Draft Brock athletes. Build your lineup. Follow every point with your league.</p><div class="auth-sports"><span>HOCKEY</span><span>BASKETBALL</span><span>VOLLEYBALL</span></div></aside>
 <main>${view === 'activate' || view === 'sign-in' ? `<nav class="auth-tabs" aria-label="Account access"><a href="/auth?mode=sign-in${returnTo ? `&amp;next=${encodeURIComponent(returnTo)}` : ''}"${view === 'sign-in' ? ' aria-current="page"' : ''}>Sign in</a><a href="/auth?mode=sign-up${returnTo ? `&amp;next=${encodeURIComponent(returnTo)}` : ''}"${view === 'activate' ? ' aria-current="page"' : ''}>Create an account</a></nav>` : ''}<p class="eyebrow">Brock Multi-Sport Fantasy</p><h1>${heading}</h1>
@@ -38,7 +39,24 @@ ${message ? `<p role="status" class="notice">${escape(message)}</p>` : ''}
 ${view === 'activate' || view === 'recover' ? emailDeliveryNotice() : ''}
 <form method="post" action="/api/auth/${action}"><input type="hidden" name="csrf" value="${escape(csrf)}">
 ${view !== 'reset' ? '<label>Email<input name="email" type="email" autocomplete="email" maxlength="320" required></label>' : ''}
-${view === 'activate' ? '<label>Display name<input name="displayName" maxlength="80" autocomplete="nickname" required></label><label class="honeypot" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>' : ''}
+${
+  view === 'activate'
+    ? `<label>Full name<input name="displayName" maxlength="60" autocomplete="name" required></label>
+<fieldset class="participation"><legend>Are you a Brock varsity athlete or coach?</legend>
+<label class="check"><input type="radio" name="varsityRole" value="none" required>No, I am neither</label>
+<label class="check"><input type="radio" name="varsityRole" value="athlete">Yes, varsity athlete</label>
+<label class="check"><input type="radio" name="varsityRole" value="coach">Yes, varsity coach</label>
+<label class="check"><input type="radio" name="varsityRole" value="athlete_coach">Yes, both athlete and coach</label>
+<fieldset class="varsity-programs"><legend>Your Brock varsity program(s)</legend><p>Select every team you play for or coach. You cannot draft or acquire athletes from these teams.</p>
+${Object.entries(VARSITY_PROGRAMS)
+  .map(
+    ([code, name]) =>
+      `<label class="check"><input type="checkbox" name="varsityPrograms" value="${code}">${escape(name)}</label>`,
+  )
+  .join('')}
+</fieldset></fieldset><label class="honeypot" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>`
+    : ''
+}
 ${view !== 'recover' ? `<label>Password<input name="password" type="password" minlength="8" maxlength="512" autocomplete="${view === 'sign-in' ? 'current-password' : 'new-password'}" required></label>` : ''}
 ${view === 'activate' || view === 'sign-in' || view === 'reset' ? `<label class="check"><input type="checkbox" name="eligibilityAttested" value="true" ${view === 'activate' ? 'required' : ''}>I am 18 or turn 18 this calendar year.</label>${view !== 'activate' ? '<p>Existing accounts only need this confirmation if eligibility has not been recorded yet.</p>' : ''}` : ''}
 ${view === 'activate' ? '<p>Read the application <a href="/policies/terms-of-use.html">terms</a> and <a href="/policies/privacy-notice.html">privacy notice</a> before activation. These policy drafts remain pending operator approval.</p>' : ''}
@@ -51,7 +69,7 @@ ${view === 'activate' ? '<p>Read the application <a href="/policies/terms-of-use
     'referrer-policy': 'strict-origin',
     'x-content-type-options': 'nosniff',
     'content-security-policy':
-      "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+      "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
   });
   cookies.forEach((value) => headers.append('set-cookie', value));
   return new Response(html, { status, headers });

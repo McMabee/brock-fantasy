@@ -4,6 +4,14 @@ import { AppAccessUnavailable, withAvailability } from '../../../server/app-acce
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const commands: Readonly<Record<string, readonly string[]>> = {
+  admin_set_participation: [
+    'p_user_id',
+    'p_role',
+    'p_programs',
+    'p_expected_revision',
+    'p_reason',
+    'p_idempotency_key',
+  ],
   admin_accept_invitation: ['p_invitation_id'],
   admin_set_account_role: ['p_user_id', 'p_enabled', 'p_reason', 'p_idempotency_key'],
   create_beta_league: ['p_name', 'p_team_name', 'p_pool_id', 'p_max_members', 'p_idempotency_key'],

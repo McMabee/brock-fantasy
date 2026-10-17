@@ -2,6 +2,7 @@ export interface DraftCandidate {
   id: string;
   positions: readonly string[];
   ownerId: string | null;
+  blockedTeamIds?: readonly string[];
 }
 export interface DraftSlot {
   teamId: string;
@@ -9,7 +10,7 @@ export interface DraftSlot {
   positions: readonly string[];
 }
 
-/** Mandatory owned athletes are matched first. Each BFS visits each slot once. */
+// - Match mandatory owned athletes first and visit each slot once per search
 export function completeDraftRoster(
   candidates: readonly DraftCandidate[],
   slots: readonly DraftSlot[],
@@ -21,6 +22,7 @@ export function completeDraftRoster(
   const edges = ordered.map((athlete) =>
     slots.flatMap((slot, index) =>
       (!athlete.ownerId || athlete.ownerId === slot.teamId) &&
+      !athlete.blockedTeamIds?.includes(slot.teamId) &&
       athlete.positions.some((position) => slot.positions.includes(position))
         ? [index]
         : [],
@@ -102,6 +104,7 @@ export function previewDraftQueue(
     for (let slot = 0; slot < emptySlots.length; slot++) {
       if (
         seen.has(slot) ||
+        candidate.blockedTeamIds?.includes(emptySlots[slot]!.teamId) ||
         !candidate.positions.some((p) => emptySlots[slot]!.positions.includes(p))
       )
         continue;

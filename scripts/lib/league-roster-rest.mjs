@@ -3,6 +3,7 @@ import { execFile } from 'node:child_process';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
 import { LEAGUE_ROSTER_SELECT } from '../../apps/client/src/lib/league-roster-query.ts';
+import { TRANSACTION_ATHLETE_SELECT } from '../../apps/client/src/lib/transaction-athlete-query.ts';
 
 const exec = promisify(execFile);
 
@@ -21,7 +22,7 @@ export async function verifyLeagueRosterRest({ database, databaseContainer, exec
   try {
     await executeSql(`
 insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data,created_at,updated_at)
-values('${ids.user}','roster-rest@example.test',now(),jsonb_build_object('display_name','REST fixture','beta_age_eligible',true,
+values('${ids.user}','roster-rest@example.test',now(),jsonb_build_object('display_name','REST fixture','varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,
  'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::integer,
  'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1'),now(),now());
 insert into auth.sessions(id,user_id,aal) values('${ids.session}','${ids.user}','aal1');
@@ -108,6 +109,36 @@ values('${ids.athlete}','2026-27','REST fixture','supplied_projection',100,20,12
     assert.equal(rows.length, 1);
     assert.equal(rows[0].athlete.display_name, 'REST athlete');
     assert.equal(rows[0].athlete.competition.name, "Brock Men's Hockey");
+    const transactions = await fetch(
+      `${origin}/athletes?${new URLSearchParams({ select: TRANSACTION_ATHLETE_SELECT, id: `eq.${ids.athlete}` })}`,
+      { headers },
+    );
+    assert.equal(
+      transactions.status,
+      200,
+      'Transactions use unambiguous program and team relationships',
+    );
+    const transactionPlayer = (await transactions.json())[0];
+    assert.equal(transactionPlayer.competition.name, "Brock Men's Hockey");
+    assert.equal(transactionPlayer.team.name, 'Brock');
+    const owner = await fetch(
+      `${origin}/fantasy_teams?${new URLSearchParams({ select: 'id,owner:profiles!fantasy_teams_owner_id_fkey(display_name,is_varsity)', id: `eq.${ids.fantasyTeam}` })}`,
+      { headers },
+    );
+    assert.equal(owner.status, 200);
+    assert.equal((await owner.json())[0].owner.is_varsity, false);
+    const anonymousInsights = await fetch(`${origin}/rpc/get_player_insights`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ p_pool_id: 'b0000000-0000-4000-8000-000000000003' }),
+    });
+    const anonymousError = await anonymousInsights.json();
+    console.log(
+      JSON.stringify({
+        knownInstalledInsightsAnonymousStatus: anonymousInsights.status,
+        code: anonymousError.code,
+      }),
+    );
     const metrics = await fetch(
       `${origin}/athletes?${new URLSearchParams({ select: 'id,summaries:athlete_season_summaries(*)', id: `eq.${ids.athlete}` })}`,
       { headers },

@@ -44,7 +44,7 @@ export interface DraftSnapshot {
     state_version: number;
     team_order: string[];
   };
-  league?: { id: string; name: string; pool_id: string };
+  league?: { id: string; name: string; pool_id: string; roster_format?: 'standard' | 'varsity' };
   teams?: {
     id: string;
     league_id: string;
@@ -86,6 +86,7 @@ export interface DraftSnapshot {
   legalAthleteIds?: string[];
 }
 export interface DraftViewState {
+  rosterFormat: 'standard' | 'varsity';
   draft: DraftState | null;
   leagueName: string;
   teams: readonly FantasyTeam[];

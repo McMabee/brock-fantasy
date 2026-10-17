@@ -1,3 +1,4 @@
+import { VarsityBadge } from '@/components/varsity-badge';
 import { formatFantasyPoints } from '@brock-fantasy/domain';
 import { useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
@@ -51,7 +52,12 @@ export default function LeagueTeamScreen() {
               team owner can change their lineup.
             </Text>
           </Card>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Text style={ui.body}>{team.ownerName ?? 'League member'}</Text>
+            <VarsityBadge visible={team.ownerIsVarsity} />
+          </View>
           <LeagueRoster
+            varsity={data.league?.rosterFormat === 'varsity'}
             entries={data.roster}
             poolId={data.league?.playerPoolId}
             editable={false}

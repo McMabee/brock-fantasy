@@ -12,7 +12,7 @@ select ok(not has_table_privilege('authenticated', 'beta_private.account_eligibi
 select lives_ok($test$
   insert into auth.users(id, email, raw_user_meta_data, created_at, updated_at)
   values('99000000-0000-4000-8000-000000000001', 'eligibility@example.test',
-    jsonb_build_object('display_name', 'Eligibility test', 'beta_age_eligible', true,
+    jsonb_build_object('display_name', 'Eligibility test', 'varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,
       'beta_eligibility_year', extract(year from timezone('America/Toronto', now()))::integer,
       'beta_eligibility_policy_version', 'brock-beta-eligibility-2026-10-06.1'), now(), now());
 $test$, 'valid calendar-year attestation creates a profile');
@@ -32,13 +32,13 @@ $test$, '22023', 'Calendar-year eligibility attestation required', 'false eligib
 select throws_ok($test$
   insert into auth.users(id, email, raw_user_meta_data, created_at, updated_at)
   values('99000000-0000-4000-8000-000000000004', 'stale@example.test',
-    jsonb_build_object('beta_age_eligible', true, 'beta_eligibility_year', 2025,
+    jsonb_build_object('varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true, 'beta_eligibility_year', 2025,
       'beta_eligibility_policy_version', 'brock-beta-eligibility-2026-10-06.1'), now(), now());
 $test$, '22023', 'Calendar-year eligibility attestation required', 'stale registration-year assertion is rejected');
 select throws_ok($test$
   insert into auth.users(id, email, raw_user_meta_data, created_at, updated_at)
   values('99000000-0000-4000-8000-000000000005', 'version@example.test',
-    jsonb_build_object('beta_age_eligible', true, 'beta_eligibility_year', extract(year from timezone('America/Toronto', now()))::integer,
+    jsonb_build_object('varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true, 'beta_eligibility_year', extract(year from timezone('America/Toronto', now()))::integer,
       'beta_eligibility_policy_version', 'old-version'), now(), now());
 $test$, '22023', 'Calendar-year eligibility attestation required', 'unrecognized policy version is rejected');
 

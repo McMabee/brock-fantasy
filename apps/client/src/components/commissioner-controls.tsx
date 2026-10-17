@@ -42,7 +42,7 @@ export function CommissionerControls({
   const [scheduleStart, setScheduleStart] = useState(
     new Date(Date.now() + 7 * 86_400_000).toISOString(),
   );
-  const [cycles, setCycles] = useState('2');
+  const [cycles, setCycles] = useState('1');
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [deletion, setDeletion] = useState<{
@@ -168,7 +168,7 @@ export function CommissionerControls({
       setMessage('Schedule generation is temporarily unavailable. Please try again shortly.');
       return;
     }
-    const parsedCycles = Number(cycles);
+    const parsedCycles = leagueData.teams.length === 8 ? 1 : Number(cycles);
     if (
       !Number.isInteger(parsedCycles) ||
       parsedCycles < 1 ||
@@ -377,7 +377,8 @@ export function CommissionerControls({
                 inputMode="numeric"
                 onChangeText={setCycles}
                 style={uiStyles.input}
-                value={cycles}
+                value={leagueData.teams.length === 8 ? '1' : cycles}
+                editable={leagueData.teams.length !== 8}
               />
             </View>
             <ActionButton

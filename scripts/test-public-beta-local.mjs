@@ -37,7 +37,7 @@ const psql = (sql) =>
   );
 let sql = `begin;
 insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data,created_at,updated_at)
-select id,id::text||'@example.test',now(),jsonb_build_object('display_name','Public beta fixture','beta_age_eligible',true,
+select id,id::text||'@example.test',now(),jsonb_build_object('display_name','Public beta fixture','varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,
 'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::int,'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1'),now(),now()
 from unnest(array[${[operator, ...users].map((id) => "'" + id + "'::uuid").join(',')}]) id;
 insert into auth.sessions(id,user_id,aal) select id,id,'aal1' from auth.users where id in (${[operator, ...users].map((id) => "'" + id + "'").join(',')});

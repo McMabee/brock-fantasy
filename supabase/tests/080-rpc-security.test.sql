@@ -4,7 +4,7 @@ select no_plan();
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'rpc_private' and p.proname not in ('can_use_app','require_app_access','is_admin_account_email','issue_account_signup_handoff')
-), 51, 'existing commands plus player insights and schedule review have private implementations');
+), 54, 'existing commands plus insights, schedule review and participation have private implementations');
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.prosecdef
@@ -70,7 +70,7 @@ select ok(exists (
 insert into beta_private.application_access(email,reason) values
 ('rpc-member@example.test','Explicit isolated RPC member approval'),('rpc-other@example.test','Explicit isolated RPC other approval');
 insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data, created_at, updated_at)
-select id, email, now(), jsonb_build_object('display_name', 'RPC test user', 'beta_age_eligible', true,
+select id, email, now(), jsonb_build_object('display_name', 'RPC test user', 'varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,
   'beta_eligibility_year', extract(year from timezone('America/Toronto', now()))::integer,
   'beta_eligibility_policy_version', 'brock-beta-eligibility-2026-10-06.1'), now(), now()
 from (values

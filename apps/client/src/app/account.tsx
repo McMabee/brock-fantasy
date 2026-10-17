@@ -9,6 +9,9 @@ import { webRequest } from '@/lib/web-request';
 import { useSession } from '@/providers/session-provider';
 import { heading } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
+import { useParticipation } from '@/hooks/use-participation';
+import { VarsityBadge } from '@/components/varsity-badge';
+import { VARSITY_PROGRAMS } from '@brock-fantasy/domain';
 
 export default function AccountScreen() {
   const styles = useThemedStyles(createStyles);
@@ -17,6 +20,7 @@ export default function AccountScreen() {
   useRequireUser();
   const router = useRouter();
   const { user, signOut } = useSession();
+  const { participation } = useParticipation();
   const [confirmation, setConfirmation] = useState('');
   const [message, setMessage] = useState<string | null>(null);
 
@@ -53,11 +57,22 @@ export default function AccountScreen() {
           </View>
           <View style={styles.profileCopy}>
             <Text style={styles.profileName}>
-              {user?.user_metadata?.display_name ?? 'Account holder'}
+              {participation?.displayName ?? user?.user_metadata?.display_name ?? 'Account holder'}
             </Text>
             <Text style={styles.profileEmail}>{user?.email ?? 'Email unavailable'}</Text>
+            {participation && participation.role !== 'none' ? (
+              <Text style={uiStyles.body}>
+                {participation.role === 'athlete_coach'
+                  ? 'Varsity athlete & coach'
+                  : `Varsity ${participation.role}`}{' '}
+                · {participation.programs.map((program) => VARSITY_PROGRAMS[program]).join(', ')}
+              </Text>
+            ) : null}
           </View>
           <Pill label="ACCOUNT" tone="positive" />
+          <VarsityBadge
+            visible={participation?.role !== undefined && participation.role !== 'none'}
+          />
         </Card>
         <ActionButton label="Sign out" onPress={() => void logout()} variant="secondary" />
         <ActionButton label="Authenticator security" href="/mfa" variant="ghost" />

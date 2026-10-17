@@ -28,6 +28,7 @@ interface LeagueRow {
   state_version: number;
   draft_scheduled_for: string | null;
   draft_schedule_version: number;
+  roster_format: 'standard' | 'varsity';
 }
 
 interface TeamRow {
@@ -36,6 +37,10 @@ interface TeamRow {
   owner_id: string | null;
   name: string;
   draft_position: number | null;
+  owner:
+    | { display_name: string; is_varsity: boolean }
+    | readonly { display_name: string; is_varsity: boolean }[]
+    | null;
 }
 
 interface StandingRow {
@@ -81,6 +86,7 @@ export interface LeagueChatMessage {
   id: string;
   authorId: string | null;
   author: string;
+  authorIsVarsity?: boolean;
   body: string;
   createdAt: string;
 }
@@ -129,7 +135,10 @@ interface MessageRow {
   author_id: string | null;
   body: string;
   created_at: string;
-  author: { display_name: string } | readonly { display_name: string }[] | null;
+  author:
+    | { display_name: string; is_varsity: boolean }
+    | readonly { display_name: string; is_varsity: boolean }[]
+    | null;
 }
 
 export function useLeague(leagueId: string | undefined, rosterTeamId?: string): LeagueData {
@@ -181,13 +190,15 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
         client
           .from('leagues')
           .select(
-            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version, draft_scheduled_for, draft_schedule_version',
+            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version, draft_scheduled_for, draft_schedule_version, roster_format',
           )
           .eq('id', leagueId)
           .single(),
         client
           .from('fantasy_teams')
-          .select('id, league_id, owner_id, name, draft_position')
+          .select(
+            'id, league_id, owner_id, name, draft_position, owner:profiles!fantasy_teams_owner_id_fkey(display_name,is_varsity)',
+          )
           .eq('league_id', leagueId)
           .order('draft_position'),
         client.rpc('get_league_standings', { p_league_id: leagueId }),
@@ -202,7 +213,7 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
         client
           .from('chat_messages')
           .select(
-            'id, author_id, body, created_at, author:profiles!chat_messages_author_id_fkey(display_name)',
+            'id, author_id, body, created_at, author:profiles!chat_messages_author_id_fkey(display_name,is_varsity)',
           )
           .eq('league_id', leagueId)
           .order('created_at')
@@ -233,6 +244,7 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
       rulesetId: row.ruleset_id,
       name: row.name,
       format: row.format,
+      rosterFormat: row.roster_format,
       status: row.status,
       maxMembers: row.max_members,
       inviteCode: row.invite_code,
@@ -247,6 +259,8 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
       ownerId: team.owner_id ?? '',
       name: team.name,
       draftPosition: team.draft_position ?? 0,
+      ownerIsVarsity: firstRelated(team.owner)?.is_varsity ?? false,
+      ownerName: firstRelated(team.owner)?.display_name ?? 'League member',
     }));
     const myTeamId = teamRows.find((team) => team.owner_id === user.id)?.id ?? null;
     const viewedTeamId =
@@ -316,6 +330,7 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
           id: message.id,
           authorId: message.author_id,
           author: author?.display_name ?? 'Deleted manager',
+          authorIsVarsity: author?.is_varsity ?? false,
           body: message.body,
           createdAt: message.created_at,
         };

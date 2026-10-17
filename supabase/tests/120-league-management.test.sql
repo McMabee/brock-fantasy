@@ -3,7 +3,7 @@ select no_plan();
 
 insert into auth.users(id, email, email_confirmed_at, raw_user_meta_data, created_at, updated_at)
 select id, email, now(), jsonb_build_object('display_name', 'League command fixture',
-  'beta_age_eligible', true,
+  'varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,
   'beta_eligibility_year', extract(year from timezone('America/Toronto', now()))::integer,
   'beta_eligibility_policy_version', 'brock-beta-eligibility-2026-10-06.1'), now(), now()
 from (values

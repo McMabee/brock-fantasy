@@ -1,8 +1,9 @@
+import { VarsityBadge } from '@/components/varsity-badge';
 import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { formatFantasyPoints } from '@brock-fantasy/domain';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
@@ -179,6 +180,7 @@ export default function LeagueScreen() {
             ))}
           </View>
           <Roster
+            varsity={league?.rosterFormat === 'varsity'}
             entries={leagueData.roster}
             poolId={league?.playerPoolId}
             editable={!viewedTeamId || viewedTeamId === leagueData.myTeamId}
@@ -322,8 +324,8 @@ function Standings({
 }) {
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
-  const nameFor = (teamId: string) =>
-    teams.find((team) => team.id === teamId)?.name ?? 'Unknown team';
+  const teamsById = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
+  const nameFor = (teamId: string) => teamsById.get(teamId)?.name ?? 'Unknown team';
   return (
     <View>
       <SectionTitle
@@ -354,6 +356,7 @@ function Standings({
               onPress={() => router.push(`/league/${league?.id}/teams/${row.fantasyTeamId}`)}
             >
               <Text style={styles.standingTeam}>{nameFor(row.fantasyTeamId)}</Text>
+              <VarsityBadge visible={teamsById.get(row.fantasyTeamId)?.ownerIsVarsity} />
             </Pressable>
             <Text style={styles.standingStat}>{row.wins}</Text>
             <Text style={styles.standingStat}>{row.losses}</Text>
@@ -391,6 +394,7 @@ function Chat({
           <View key={message.id} style={styles.message}>
             <View style={styles.messageHeader}>
               <Text style={styles.messageAuthor}>{message.author}</Text>
+              <VarsityBadge visible={message.authorIsVarsity} />
               <Text style={styles.messageTime}>
                 {new Date(message.createdAt).toLocaleTimeString([], {
                   hour: 'numeric',

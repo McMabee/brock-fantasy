@@ -218,7 +218,7 @@ try {
     upgrade,
     `
     insert into auth.users(id,email,email_confirmed_at,created_at,raw_user_meta_data)
-    select id,email,now(),now(),jsonb_build_object('display_name',name,'beta_age_eligible',true,
+    select id,email,now(),now(),jsonb_build_object('display_name',name,'varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,
       'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::int,
       'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1')
     from (values
@@ -239,6 +239,8 @@ try {
     'roles',(select json_agg(r order by user_id,role) from public.user_roles r where user_id<>'96000000-0000-4000-8000-000000000004'),
     'managers',(select json_agg(m order by user_id) from beta_private.admin_role_managers m));`;
   const before = JSON.parse((await sql(upgrade, snapshot)).trim());
+  // - Account flags default to non-varsity while existing identity and role data stay intact
+  before.profiles = before.profiles.map((profile) => ({ ...profile, is_varsity: false }));
   await migrate(upgrade, migrations.slice(boundary));
   assert.deepEqual(JSON.parse((await sql(upgrade, snapshot)).trim()), before);
   const binding = await sql(
@@ -286,6 +288,12 @@ try {
   console.log(
     "Upgrade preserved all four Auth IDs/profiles, Ethan/Tarik/Ty admin roles and Ty's manager record; granted Nicholas regular admin only.",
   );
+  const { verifyParticipationConcurrency } = await import('./lib/varsity-participation-local.mjs');
+  await verifyParticipationConcurrency({
+    database: db,
+    databaseContainer: container,
+    executeSql: (input) => sql(db, input),
+  });
 } finally {
   for (const db of created) {
     assert.ok(db.startsWith(`${prefix}_`) && /^bf_registration_[a-z0-9_]+$/u.test(db));

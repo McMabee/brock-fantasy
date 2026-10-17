@@ -4,7 +4,7 @@ select no_plan();
 insert into beta_private.application_access(email,reason) values
 ('game-member@example.test','Explicit isolated RPC member approval'),('game-other@example.test','Explicit isolated RPC other approval');
 insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data, created_at, updated_at)
-select id, email, now(), jsonb_build_object('display_name', 'RPC test user', 'beta_age_eligible', true,
+select id, email, now(), jsonb_build_object('display_name', 'RPC test user', 'varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,
   'beta_eligibility_year', extract(year from timezone('America/Toronto', now()))::integer,
   'beta_eligibility_policy_version', 'brock-beta-eligibility-2026-10-06.1'), now(), now()
 from (values
@@ -120,6 +120,7 @@ select set_config('request.jwt.claim.sub','98000000-0000-4000-8000-000000000001'
 select set_config('request.jwt.claims','{"sub":"98000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1","session_id":"98000000-0000-4000-8000-000000000001"}',true);
 set local role authenticated;
 select is(jsonb_array_length(public.get_player_insights('98000000-0000-4000-8000-000000000007')),2,'ordinary participants can read insights');
+select is((public.get_player_insights('98000000-0000-4000-8000-000000000007','98000000-0000-4000-8000-000000000020')->0->'seasonStats'->>'goals')::numeric,2::numeric,'insights aggregate published canonical statistics once per game');
 select throws_ok($$select public.get_schedule_review()$$,'42501','Administrator AAL2 access required','schedule review requires admin MFA');
 select throws_ok($$select public.apply_official_schedule(gen_random_uuid(),'[]')$$,'42501',null,'participants cannot run the schedule worker');
 select throws_ok($$insert into public.game_lineup_snapshots select * from public.game_lineup_snapshots$$,'42501',null,'snapshots cannot be forged by participants');

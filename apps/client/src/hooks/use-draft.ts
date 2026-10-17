@@ -8,6 +8,7 @@ import type { DraftSnapshot, DraftViewState } from '@/lib/draft-state';
 
 export type { DraftViewState } from '@/lib/draft-state';
 const initial: Omit<DraftViewState, 'reload'> = {
+  rosterFormat: 'standard',
   draft: null,
   leagueName: '',
   teams: [],
@@ -155,6 +156,7 @@ export function useDraft(draftId: string | undefined): DraftViewState {
               picks,
             },
             leagueName: snapshot.league!.name,
+            rosterFormat: snapshot.league!.roster_format ?? 'standard',
             teams: (snapshot.teams ?? []).map((t) => ({
               id: t.id,
               leagueId: t.league_id,

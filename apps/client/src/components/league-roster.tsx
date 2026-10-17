@@ -16,6 +16,7 @@ export function LeagueRoster({
   teamName,
   leagueId,
   betaLeague,
+  varsity = false,
 }: {
   entries: readonly LeagueRosterEntry[];
   poolId: string | undefined;
@@ -23,6 +24,7 @@ export function LeagueRoster({
   teamName: string;
   leagueId: string;
   betaLeague: boolean;
+  varsity?: boolean;
 }) {
   const insights = usePlayerInsights(poolId);
   const [athleteId, setAthleteId] = useState<string | null>(null);
@@ -52,6 +54,12 @@ export function LeagueRoster({
       {betaLeague ? (
         <>
           <Card style={{ gap: 8 }}>
+            {varsity ? (
+              <Text style={uiStyles.body}>
+                Varsity format · two athletes of any position per sport, one any-sport FLEX and
+                three shared bench spots
+              </Text>
+            ) : null}
             <Text style={uiStyles.body}>
               A ten-athlete team has seven starters and three bench spots. Starters earn matchup
               points; bench athletes are reserves. The owner can use Set lineup to move athletes
@@ -78,12 +86,14 @@ export function LeagueRoster({
                 >
                   <Text
                     accessibilityRole="header"
-                    accessibilityLabel={slot.label}
+                    accessibilityLabel={varsity ? rosterSlotLabel(slot.code, true) : slot.label}
                     style={styles.slotName}
                   >
-                    {rosterSlotLabel(slot.code)}
+                    {rosterSlotLabel(slot.code, varsity)}
                   </Text>
-                  <Text style={styles.rosterMeta}>Eligible: {slotEligibility(slot.code)}</Text>
+                  <Text style={styles.rosterMeta}>
+                    Eligible: {slotEligibility(slot.code, varsity)}
+                  </Text>
                   {athletes.length ? (
                     athletes.map((entry) => (
                       <RosterAthlete

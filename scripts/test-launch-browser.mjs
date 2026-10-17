@@ -61,7 +61,19 @@ try {
       'Create an account',
     );
     assert.equal(await page.locator('form').getAttribute('action'), '/api/auth/sign-up');
-    assert.equal(await page.getByLabel('Display name').count(), 1);
+    assert.equal(await page.getByLabel('Full name', { exact: true }).count(), 1);
+    assert.equal(await page.getByRole('radio').count(), 4);
+    await page.getByRole('radio', { name: 'Yes, varsity athlete', exact: true }).check();
+    assert.equal(
+      await page.getByRole('checkbox', { name: "Women's Volleyball", exact: true }).isEnabled(),
+      true,
+    );
+    await page.getByRole('checkbox', { name: "Women's Volleyball", exact: true }).check();
+    await page.getByRole('radio', { name: 'No, I am neither', exact: true }).check();
+    assert.equal(
+      await page.getByRole('checkbox', { name: "Women's Volleyball", exact: true }).count(),
+      0,
+    );
     assert.ok(!/\bbeta\b/iu.test(await page.locator('body').innerText()));
     await page.screenshot({
       path: `${output}/signup-${width}.png`,
@@ -72,7 +84,7 @@ try {
     await page.waitForURL('**/auth?mode=sign-in');
     assert.equal(await page.locator('.auth-tabs [aria-current="page"]').innerText(), 'Sign in');
     assert.equal(await page.locator('form').getAttribute('action'), '/api/auth/sign-in');
-    assert.equal(await page.getByLabel('Display name').count(), 0);
+    assert.equal(await page.getByLabel('Full name', { exact: true }).count(), 0);
     await page.screenshot({
       path: `${output}/signin-${width}.png`,
       fullPage: true,

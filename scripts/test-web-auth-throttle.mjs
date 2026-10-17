@@ -186,6 +186,8 @@ try {
       const body = JSON.parse(init.body);
       assert.equal(body.email, 'ordinary@example.test');
       assert.equal(body.data.beta_age_eligible, true);
+      assert.equal(body.data.varsity_role, 'none');
+      assert.deepEqual(body.data.varsity_programs, []);
       assert.equal(body.data.role, undefined);
       assert.equal(body.data.admin, undefined);
       return Response.json({
@@ -220,6 +222,34 @@ try {
       email_confirmed_at: '2026-10-08T00:00:00Z',
     });
   };
+  for (const invalid of [
+    { displayName: '   ', varsityRole: 'none', varsityPrograms: [] },
+    { displayName: 'Ordinary' },
+    { displayName: 'Ordinary', varsityRole: 'coach', varsityPrograms: [] },
+    { displayName: 'Ordinary', varsityRole: 'athlete', varsityPrograms: ['unknown'] },
+  ]) {
+    scenario = 'unapproved';
+    calls.length = 0;
+    const result = await networkFetch(`${url}/api/auth/sign-up`, {
+      method: 'POST',
+      headers: { ...headers, 'x-vercel-forwarded-for': '198.51.100.24' },
+      body: JSON.stringify({
+        email: 'ordinary@example.test',
+        password: 'private-password-fixture',
+        eligibilityAttested: true,
+        ...invalid,
+      }),
+    });
+    assert.equal(result.status, 400);
+    assert.equal(
+      calls.some((target) => target.includes('/auth/v1/signup?')),
+      false,
+    );
+  }
+  results.push({
+    scenario: 'signup requires name and explicit valid participation before contacting Auth',
+    status: 400,
+  });
   for (const [name, expected] of [
     ['success', 200],
     ['unapproved', 200],
@@ -299,6 +329,8 @@ try {
         email: 'ordinary@example.test',
         password: 'private-password-fixture',
         displayName: 'Ordinary',
+        varsityRole: 'none',
+        varsityPrograms: [],
         eligibilityAttested: true,
         admin: true,
         role: 'admin',
@@ -332,6 +364,7 @@ try {
       email: 'ordinary@example.test',
       password: 'private-password-fixture',
       displayName: 'Ordinary',
+      varsityRole: 'none',
       eligibilityAttested: 'true',
     }),
   });

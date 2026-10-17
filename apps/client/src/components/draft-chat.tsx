@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { ActionButton, useUiStyles } from './ui';
 import { supabase } from '@/lib/supabase';
 import { firstRelated } from '@/lib/relations';
+import { VarsityBadge } from './varsity-badge';
 import { betaCommand } from '@/lib/web-api';
 
 interface ChatRow {
@@ -11,7 +12,10 @@ interface ChatRow {
   author_id: string | null;
   body: string;
   created_at: string;
-  author: { display_name: string } | readonly { display_name: string }[] | null;
+  author:
+    | { display_name: string; is_varsity: boolean }
+    | readonly { display_name: string; is_varsity: boolean }[]
+    | null;
 }
 export function DraftChat({ leagueId }: { leagueId: string | undefined }) {
   const uiStyles = useUiStyles();
@@ -28,7 +32,7 @@ export function DraftChat({ leagueId }: { leagueId: string | undefined }) {
     const result = await supabase
       .from('chat_messages')
       .select(
-        'id,author_id,body,created_at,author:profiles!chat_messages_author_id_fkey(display_name)',
+        'id,author_id,body,created_at,author:profiles!chat_messages_author_id_fkey(display_name,is_varsity)',
       )
       .eq('league_id', leagueId)
       .order('created_at', { ascending: false })
@@ -95,6 +99,7 @@ export function DraftChat({ leagueId }: { leagueId: string | undefined }) {
             <Text style={{ color: colors.text, fontWeight: '700' }}>
               {firstRelated(row.author)?.display_name ?? 'League member'}
             </Text>
+            <VarsityBadge visible={firstRelated(row.author)?.is_varsity} />
             <Text style={{ color: colors.text }}>{row.body}</Text>
             <View style={{ flexDirection: 'row', gap: 16 }}>
               <Pressable

@@ -20,10 +20,12 @@ export interface PlayerInsight {
   position: string;
   positions: readonly string[];
   program: string;
+  programCode?: string;
   team: string;
   teamId: string;
   competitionId: string;
   seasonPoints: number;
+  seasonStats?: Readonly<Record<string, number>>;
   seasonProjection: number | null;
   nextProjection: number | null;
   projectedGames: number | null;

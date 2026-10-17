@@ -21,7 +21,7 @@ const metrics = rosterMetricsPlan(
 const json = (value) => "'" + JSON.stringify(value).replaceAll("'", "''") + "'::jsonb";
 const suppliedAdpCount = metrics.players.filter((player) => player.suppliedAdp !== null).length;
 let sql = `begin;
-insert into auth.users(id,email,email_confirmed_at,created_at,raw_user_meta_data) values('${operator}','height-fixture@example.test',now(),now(),jsonb_build_object('display_name','Height fixture','beta_age_eligible',true,'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::int,'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1'));
+insert into auth.users(id,email,email_confirmed_at,created_at,raw_user_meta_data) values('${operator}','height-fixture@example.test',now(),now(),jsonb_build_object('display_name','Height fixture','varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::int,'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1'));
 insert into public.user_roles(user_id,role) values('${operator}','admin');`;
 for (const item of roster.imports) {
   const id = sourceUuid(`height-test:${item.revisionHash}`);

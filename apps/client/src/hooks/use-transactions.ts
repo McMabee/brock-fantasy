@@ -2,11 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { firstRelated } from '@/lib/relations';
 import { supabase } from '@/lib/supabase';
+import { TRANSACTION_ATHLETE_SELECT } from '@/lib/transaction-athlete-query';
 
 export interface TransactionAthlete {
   id: string;
   displayName: string;
   position: string;
+  bio: Record<string, unknown>;
+  program: string;
+  team: string;
 }
 
 export interface RosterAsset extends TransactionAthlete {
@@ -45,14 +49,15 @@ interface AthleteRow {
   id: string;
   display_name: string;
   position: string;
+  bio?: Record<string, unknown>;
+  competition?: { name: string } | readonly { name: string }[];
+  team?: { name: string } | readonly { name: string }[];
 }
 
 interface RosterRow {
   fantasy_team_id: string;
   athlete_id: string;
-  athlete:
-    | { display_name: string; position: string }
-    | readonly { display_name: string; position: string }[];
+  athlete: AthleteRow | readonly AthleteRow[];
 }
 
 interface TradeRow {
@@ -104,17 +109,17 @@ export function useTransactions({
       playerPoolId
         ? client
             .from('pool_rankings')
-            .select('athlete:athletes!inner(id, display_name, position)')
+            .select(`athlete:athletes!inner(${TRANSACTION_ATHLETE_SELECT})`)
             .eq('pool_id', playerPoolId)
         : client
             .from('athletes')
-            .select('id, display_name, position')
+            .select(TRANSACTION_ATHLETE_SELECT)
             .eq('competition_id', competitionId!)
             .eq('status', 'active')
             .order('display_name'),
       client
         .from('roster_entries')
-        .select('fantasy_team_id, athlete_id, athlete:athletes!inner(display_name, position)')
+        .select(`fantasy_team_id,athlete_id,athlete:athletes!inner(${TRANSACTION_ATHLETE_SELECT})`)
         .eq('league_id', leagueId)
         .is('released_at', null),
       client
@@ -155,6 +160,13 @@ export function useTransactions({
     const rosteredIds = new Set(rosterRows.map((entry) => entry.athlete_id));
     const config = rulesetResult.data.transaction_config as Record<string, unknown>;
     const itemRows = itemResult.data as TradeItemRow[];
+    // - Group trade items once instead of rescanning every item for each trade
+    const itemsByTrade = new Map<string, TradeItemRow[]>();
+    for (const item of itemRows) {
+      const items = itemsByTrade.get(item.trade_id) ?? [];
+      items.push(item);
+      itemsByTrade.set(item.trade_id, items);
+    }
     setState({
       freeAgents: (playerPoolId
         ? (
@@ -170,6 +182,11 @@ export function useTransactions({
           id: athlete.id,
           displayName: athlete.display_name,
           position: athlete.position,
+          bio: athlete.bio ?? {},
+          program:
+            firstRelated(athlete.competition)?.name ??
+            (typeof athlete.bio?.program === 'string' ? athlete.bio.program : 'Brock varsity'),
+          team: firstRelated(athlete.team)?.name ?? 'Brock',
         })),
       rosterAssets: rosterRows.flatMap((entry) => {
         const athlete = firstRelated(entry.athlete);
@@ -180,6 +197,13 @@ export function useTransactions({
                 fantasyTeamId: entry.fantasy_team_id,
                 displayName: athlete.display_name,
                 position: athlete.position,
+                bio: athlete.bio ?? {},
+                program:
+                  firstRelated(athlete.competition)?.name ??
+                  (typeof athlete.bio?.program === 'string'
+                    ? athlete.bio.program
+                    : 'Brock varsity'),
+                team: firstRelated(athlete.team)?.name ?? 'Brock',
               },
             ]
           : [];
@@ -192,13 +216,11 @@ export function useTransactions({
         expiresAt: trade.expires_at,
         reviewEndsAt: trade.review_ends_at,
         executionStatus: trade.execution_status,
-        items: itemRows
-          .filter((item) => item.trade_id === trade.id)
-          .map((item) => ({
-            fromTeamId: item.from_team_id,
-            toTeamId: item.to_team_id,
-            athleteId: item.athlete_id,
-          })),
+        items: (itemsByTrade.get(trade.id) ?? []).map((item) => ({
+          fromTeamId: item.from_team_id,
+          toTeamId: item.to_team_id,
+          athleteId: item.athlete_id,
+        })),
       })),
       freeAgentsEnabled: config.freeAgentsEnabled === true,
       waiversEnabled: config.waiversEnabled === true,

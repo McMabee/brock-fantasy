@@ -383,6 +383,8 @@ try {
       if (url.pathname === '/api/data/supabase') {
         const dataPath = new URL(url.searchParams.get('path'), origin);
         const table = dataPath.pathname.split('/').at(-1);
+        if (table === 'get_my_participation')
+          return reply({ role: 'none', programs: [], revision: 1, displayName: 'Fixture Manager' });
         if (table === 'get_league_standings')
           return reply(
             teams.map((team, index) => ({
@@ -424,6 +426,7 @@ try {
                 teamId: 't',
                 competitionId: 'c',
                 seasonPoints: 7,
+                seasonStats: { assists: 4, digs: 12 },
                 seasonProjection:
                   player.summaries.find((item) => item.kind === 'supplied_projection')
                     ?.fantasy_points ?? null,

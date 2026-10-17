@@ -8,7 +8,7 @@ delete from beta_private.application_access where email in ('gt22me@brocku.ca','
 insert into beta_private.application_access(email,reason) values
 ('gt22me@brocku.ca','Explicit isolated existing Tarik fixture'),('ethan.greatorex1245@gmail.com','Explicit isolated existing Ethan fixture');
 insert into auth.users(id,email,email_confirmed_at,created_at,raw_user_meta_data)
-select id,email,now(),now(),jsonb_build_object('display_name',name,'beta_age_eligible',true,
+select id,email,now(),now(),jsonb_build_object('display_name',name,'varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,
 'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::int,'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1')
 from (values ('97000000-0000-4000-8000-000000000001'::uuid,'gt22me@brocku.ca','Tarik'),
 ('97000000-0000-4000-8000-000000000002'::uuid,'ethan.greatorex1245@gmail.com','Ethan'),

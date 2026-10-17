@@ -22,7 +22,7 @@ const year = Number(
 let fixture = `begin;
 insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data,created_at,updated_at)
 select id,id::text||'@example.test',now(),jsonb_build_object('display_name','Roster fixture',
-  'beta_age_eligible',true,'beta_eligibility_year',${year},
+  'varsity_role','none','varsity_programs','[]'::jsonb,'beta_age_eligible',true,'beta_eligibility_year',${year},
   'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1'),now(),now()
 from (values ('${operatorId}'::uuid),('${memberId}'::uuid)) fixture(id);
 insert into public.user_roles(user_id,role) values ('${operatorId}','admin');
