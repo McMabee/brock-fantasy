@@ -46,7 +46,7 @@ label {
   display: block;
   margin: 20px 0;
 }
-input:not([type='checkbox']) {
+input:not([type='checkbox']):not([type='radio']) {
   display: block;
   width: 100%;
   min-height: 48px;
@@ -179,7 +179,7 @@ main > p {
   font-size: 10px;
   letter-spacing: 1.5px;
 }
-input:not([type='checkbox']) {
+input:not([type='checkbox']):not([type='radio']) {
   border-radius: 12px;
   min-height: 52px;
 }
@@ -288,8 +288,8 @@ body > main {
   font-weight: 700;
 }
 .auth-tabs a[aria-current='page'] {
-  background: var(--bf-red);
-  border-color: var(--bf-red);
+  background: #df0012;
+  border-color: #df0012;
   color: #fff;
 }
 .participation,
