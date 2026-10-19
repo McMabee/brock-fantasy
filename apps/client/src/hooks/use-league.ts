@@ -120,6 +120,8 @@ interface RosterRow {
 }
 
 interface MatchupRow {
+  starts_at: string;
+  ends_at: string;
   id: string;
   league_id: string;
   period: number;
@@ -206,7 +208,7 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
         client
           .from('matchups')
           .select(
-            'id, league_id, period, home_team_id, away_team_id, home_points, away_points, status',
+            'id, league_id, period, home_team_id, away_team_id, home_points, away_points, status, starts_at, ends_at',
           )
           .eq('league_id', leagueId)
           .order('period', { ascending: false }),
@@ -316,6 +318,7 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
       }),
       matchups: (matchupResult.data as MatchupRow[]).map((matchup) => ({
         id: matchup.id,
+        ...(matchup.starts_at ? { startsAt: matchup.starts_at, endsAt: matchup.ends_at } : {}),
         leagueId: matchup.league_id,
         period: matchup.period,
         homeTeamId: matchup.home_team_id,

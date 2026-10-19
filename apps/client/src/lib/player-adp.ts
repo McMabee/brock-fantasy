@@ -18,6 +18,6 @@ export async function loadPlayerAdps(): Promise<PlayerAdps> {
 
 export function adpLabel(adp: PlayerAdp | undefined): string {
   if (!adp) return 'ADP unavailable';
-  if (!adp.samples) return adp.base === null ? 'No recorded picks yet' : 'Supplied starting value';
-  return `${adp.samples} recorded ${adp.samples === 1 ? 'pick' : 'picks'} across leagues${adp.base === null ? '' : ' · includes supplied starting value'}`;
+  if (!adp.samples) return 'No completed draft picks yet';
+  return `${adp.samples} recorded ${adp.samples === 1 ? 'pick' : 'picks'} across leagues`;
 }

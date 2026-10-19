@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { torontoDateFields, torontoDateTime } from '@brock-fantasy/domain';
 
+import { MatchupSetup } from './matchup-setup';
 import { ActionButton, Card, SectionTitle, useUiStyles } from '@/components/ui';
 import { useLeague } from '@/hooks/use-league';
 import { supabase } from '@/lib/supabase';
@@ -356,7 +357,21 @@ export function CommissionerControls({
         )}
       </Card>
 
-      {leagueData.league?.format === 'head_to_head' ? (
+      {leagueData.league?.playerPoolId ? (
+        leagueData.draftStatus === 'complete' && !leagueData.matchups.length ? (
+          <MatchupSetup
+            leagueId={leagueId}
+            teams={leagueData.teams}
+            onCreated={leagueData.reload}
+          />
+        ) : (
+          <Text style={uiStyles.body}>
+            {leagueData.matchups.length
+              ? 'Matchup schedule already created.'
+              : 'Complete the draft to preview and create matchups.'}
+          </Text>
+        )
+      ) : leagueData.league?.format === 'head_to_head' ? (
         <>
           <SectionTitle title="Matchup schedule" detail="Round-robin periods from approved rules" />
           <Card style={styles.card}>

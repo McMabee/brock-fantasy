@@ -482,6 +482,7 @@ export default function BetaLineupScreen() {
         </>
       )}
       <PlayerInsightsPanel
+        leagueId={leagueId}
         athleteId={athleteId}
         player={athleteId ? insights.byId.get(athleteId) : undefined}
         loading={insights.loading}

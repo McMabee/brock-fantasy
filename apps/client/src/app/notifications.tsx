@@ -8,7 +8,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { notificationTarget } from '@/lib/notification-target';
 
-type Category = 'all' | 'trade' | 'game' | 'draft';
+type Category = 'all' | 'trade' | 'waiver' | 'matchup' | 'game' | 'draft';
 export default function NotificationsScreen() {
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
@@ -24,7 +24,7 @@ export default function NotificationsScreen() {
       action={<Pill label={unreadCount + ' UNREAD'} tone="info" />}
     >
       <View style={styles.filters}>
-        {(['all', 'trade', 'game', 'draft'] as Category[]).map((c) => (
+        {(['all', 'trade', 'waiver', 'matchup', 'game', 'draft'] as Category[]).map((c) => (
           <Pressable
             key={c}
             accessibilityRole="button"
@@ -37,9 +37,13 @@ export default function NotificationsScreen() {
                 ? 'All updates'
                 : c === 'trade'
                   ? 'Trades'
-                  : c === 'game'
-                    ? 'Games'
-                    : 'Drafts'}
+                  : c === 'waiver'
+                    ? 'Waivers'
+                    : c === 'matchup'
+                      ? 'Matchups'
+                      : c === 'game'
+                        ? 'Games'
+                        : 'Drafts'}
             </Text>
           </Pressable>
         ))}

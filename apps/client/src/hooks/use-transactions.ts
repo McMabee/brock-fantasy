@@ -34,7 +34,16 @@ export interface TradeView {
   items: readonly TradeAsset[];
 }
 
+export interface WaiverClaim {
+  id: string;
+  athlete_in_id: string;
+  athlete_out_id: string | null;
+  status: string;
+  process_after: string;
+  outcome_reason: string | null;
+}
 interface TransactionState {
+  claims: readonly WaiverClaim[];
   freeAgents: readonly TransactionAthlete[];
   rosterAssets: readonly RosterAsset[];
   trades: readonly TradeView[];
@@ -79,16 +88,19 @@ interface TradeItemRow {
 
 export function useTransactions({
   leagueId,
+  myTeamId,
   competitionId,
   playerPoolId,
   rulesetId,
 }: {
   leagueId: string | undefined;
+  myTeamId: string | null;
   competitionId: string | null | undefined;
   playerPoolId?: string;
   rulesetId: string | undefined;
 }) {
   const [state, setState] = useState<TransactionState>({
+    claims: [],
     freeAgents: [],
     rosterAssets: [],
     trades: [],
@@ -102,41 +114,55 @@ export function useTransactions({
   const reload = useCallback(async () => {
     if (!supabase || !leagueId || (!competitionId && !playerPoolId) || !rulesetId) {
       setState((current) => ({ ...current, loading: false }));
-      return;
+      return false;
     }
     const client = supabase;
-    const [athleteResult, rosterResult, tradeResult, rulesetResult] = await Promise.all([
-      playerPoolId
-        ? client
-            .from('pool_rankings')
-            .select(`athlete:athletes!inner(${TRANSACTION_ATHLETE_SELECT})`)
-            .eq('pool_id', playerPoolId)
-        : client
-            .from('athletes')
-            .select(TRANSACTION_ATHLETE_SELECT)
-            .eq('competition_id', competitionId!)
-            .eq('status', 'active')
-            .order('display_name'),
-      client
-        .from('roster_entries')
-        .select(`fantasy_team_id,athlete_id,athlete:athletes!inner(${TRANSACTION_ATHLETE_SELECT})`)
-        .eq('league_id', leagueId)
-        .is('released_at', null),
-      client
-        .from('trades')
-        .select(
-          'id, proposing_team_id, receiving_team_id, status, expires_at, review_ends_at, execution_status',
-        )
-        .eq('league_id', leagueId)
-        .order('created_at', { ascending: false })
-        .limit(50),
-      client.from('scoring_rulesets').select('transaction_config').eq('id', rulesetId).single(),
-    ]);
+    const [athleteResult, rosterResult, tradeResult, rulesetResult, claimResult] =
+      await Promise.all([
+        playerPoolId
+          ? client
+              .from('pool_rankings')
+              .select(`athlete:athletes!inner(${TRANSACTION_ATHLETE_SELECT})`)
+              .eq('pool_id', playerPoolId)
+          : client
+              .from('athletes')
+              .select(TRANSACTION_ATHLETE_SELECT)
+              .eq('competition_id', competitionId!)
+              .eq('status', 'active')
+              .order('display_name'),
+        client
+          .from('roster_entries')
+          .select(
+            `fantasy_team_id,athlete_id,athlete:athletes!inner(${TRANSACTION_ATHLETE_SELECT})`,
+          )
+          .eq('league_id', leagueId)
+          .is('released_at', null),
+        client
+          .from('trades')
+          .select(
+            'id, proposing_team_id, receiving_team_id, status, expires_at, review_ends_at, execution_status',
+          )
+          .eq('league_id', leagueId)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        client.from('scoring_rulesets').select('transaction_config').eq('id', rulesetId).single(),
+        client
+          .from('waiver_claims')
+          .select('id,athlete_in_id,athlete_out_id,status,process_after,outcome_reason')
+          .eq('league_id', leagueId)
+          .eq('fantasy_team_id', myTeamId ?? '00000000-0000-0000-0000-000000000000')
+          .order('created_at', { ascending: false })
+          .limit(100),
+      ]);
     const error =
-      athleteResult.error ?? rosterResult.error ?? tradeResult.error ?? rulesetResult.error;
+      athleteResult.error ??
+      rosterResult.error ??
+      tradeResult.error ??
+      rulesetResult.error ??
+      claimResult.error;
     if (error) {
       setState((current) => ({ ...current, loading: false, error: error.message }));
-      return;
+      return false;
     }
     const tradeRows: TradeRow[] = tradeResult.data ?? [];
     const itemResult = tradeRows.length
@@ -150,11 +176,11 @@ export function useTransactions({
       : { data: [] as TradeItemRow[], error: null };
     if (itemResult.error) {
       setState((current) => ({ ...current, loading: false, error: itemResult.error.message }));
-      return;
+      return false;
     }
     if (!rulesetResult.data) {
       setState((current) => ({ ...current, loading: false, error: 'Ruleset not found.' }));
-      return;
+      return false;
     }
     const rosterRows = rosterResult.data as unknown as RosterRow[];
     const rosteredIds = new Set(rosterRows.map((entry) => entry.athlete_id));
@@ -168,6 +194,7 @@ export function useTransactions({
       itemsByTrade.set(item.trade_id, items);
     }
     setState({
+      claims: claimResult.data ?? [],
       freeAgents: (playerPoolId
         ? (
             athleteResult.data as unknown as { athlete: AthleteRow | readonly AthleteRow[] }[]
@@ -228,7 +255,8 @@ export function useTransactions({
       loading: false,
       error: null,
     });
-  }, [competitionId, leagueId, playerPoolId, rulesetId]);
+    return true;
+  }, [competitionId, leagueId, myTeamId, playerPoolId, rulesetId]);
 
   useEffect(() => {
     void reload();

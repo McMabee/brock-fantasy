@@ -126,6 +126,16 @@ export default function AdminScreen() {
               href="/admin/schedules"
               variant="secondary"
             />
+            <ActionButton
+              label="Review historical game logs"
+              href="/admin/history"
+              variant="secondary"
+            />
+            <ActionButton
+              label="Review preseason rankings"
+              href="/admin/rankings"
+              variant="secondary"
+            />
             <Text style={uiStyles.label}>Advanced tools</Text>
             <ActionButton
               label="Import provider snapshot"

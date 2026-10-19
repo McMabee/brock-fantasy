@@ -1,4 +1,4 @@
-import { formatFantasyPoints, playerMetrics } from '@brock-fantasy/domain';
+import { playerMetrics } from '@brock-fantasy/domain';
 import { Animated, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useEffect, useRef } from 'react';
 import { router } from 'expo-router';
@@ -10,20 +10,13 @@ import type { InsightGame, PlayerInsight } from '@/hooks/use-player-insights';
 import { useThemeColors } from '@/providers/theme-provider';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { motion } from '@/theme';
+import { PlayerTradeAction } from './player-trade-action';
+import { InfoButton } from './info-button';
+import { statDefinition } from '@/lib/stat-definitions';
 
-export function projectedPoints(value: number | null | undefined): string {
-  return value == null ? 'Unavailable' : `${formatFantasyPoints(value)} pts`;
-}
-export function gameTime(value: string): string {
-  return new Date(value).toLocaleString('en-CA', {
-    timeZone: 'America/Toronto',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  });
-}
+export { projectedPoints, gameTime } from '@/lib/player-format';
+import { projectedPoints, gameTime } from '@/lib/player-format';
+import { PlayerForecastPanel } from './player-forecast';
 export function PendingConfirmation() {
   return <Pill label="⚠ Pending confirmation" tone="warning" />;
 }
@@ -47,12 +40,14 @@ export function PlayerInsightsPanel({
   loading,
   error,
   onClose,
+  leagueId,
 }: {
   athleteId: string | null;
   player: PlayerInsight | undefined;
   loading: boolean;
   error: string | null;
   onClose: () => void;
+  leagueId?: string | undefined;
 }) {
   const ui = useUiStyles();
   const colors = useThemeColors();
@@ -158,6 +153,8 @@ export function PlayerInsightsPanel({
                       </Text>
                     ) : null,
                   )}
+                  <PlayerTradeAction athleteId={player.id} leagueId={leagueId} onSent={onClose} />
+                  <InfoButton topic="points" />
                   <Text style={ui.body}>Season points: {projectedPoints(player.seasonPoints)}</Text>
                   <Text style={[ui.body, { fontWeight: '700' }]}>Published season statistics</Text>
                   {Object.keys(player.seasonStats ?? {}).length ? (
@@ -173,7 +170,15 @@ export function PlayerInsightsPanel({
                             backgroundColor: colors.canvasSoft,
                           }}
                         >
-                          <Text style={ui.body}>{key.replaceAll('_', ' ')}</Text>
+                          <View
+                            style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}
+                          >
+                            <Text style={ui.body}>{key.replaceAll('_', ' ')}</Text>
+                            <InfoButton
+                              title={key.replaceAll('_', ' ')}
+                              body={statDefinition(key)}
+                            />
+                          </View>
                           <Text style={[ui.body, { fontSize: 20, fontWeight: '700' }]}>
                             {value.toLocaleString('en-CA', { maximumFractionDigits: 2 })}
                           </Text>
@@ -191,27 +196,19 @@ export function PlayerInsightsPanel({
                   <Text style={ui.body}>
                     Season projection: {projectedPoints(player.seasonProjection)}
                   </Text>
-                  <Text style={ui.body}>
-                    Next-period projection: {projectedPoints(player.nextProjection)}
-                  </Text>
-                  {player.period ? (
-                    <Text style={ui.body}>
-                      Period {player.period.number} · {gameTime(player.period.startsAt)} –{' '}
-                      {gameTime(player.period.endsAt)} · {player.scheduledGames} scheduled games
-                    </Text>
-                  ) : null}
-                  <Text style={ui.body}>
-                    Estimate: supplied season points ÷ projected games × scheduled games in the next
-                    fantasy period
-                  </Text>
-                  {player.pending ? <PendingConfirmation /> : null}
+                  <PlayerForecastPanel athleteId={player.id} compact />
                   <Text style={[ui.body, { fontWeight: '700' }]}>Next upcoming game</Text>
                   <NextGame game={player.nextGame} />
+                  <InfoButton topic="projection" />
+
                   <ActionButton
                     label="Full player profile →"
                     onPress={() => {
                       onClose();
-                      router.push(`/players/${player.id}`);
+                      router.push({
+                        pathname: '/players/[id]',
+                        params: { id: player.id, ...(leagueId ? { leagueId } : {}) },
+                      });
                     }}
                   />
                 </>

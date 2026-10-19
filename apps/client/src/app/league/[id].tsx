@@ -21,6 +21,11 @@ import { useLeague, type LeagueChatMessage } from '@/hooks/use-league';
 import { heading, radii } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { supabase } from '@/lib/supabase';
+import { selectMyMatchup } from '@/lib/matchup-selection';
+import { useActionFeedback } from '@/providers/action-feedback-provider';
+import { useSession } from '@/providers/session-provider';
+import { MatchupSetup } from '@/components/matchup-setup';
+import { Platform, Share } from 'react-native';
 import { betaCommand } from '@/lib/web-api';
 import { LeagueSettings } from '@/components/league-settings';
 import { LeagueRoster as Roster } from '@/components/league-roster';
@@ -44,6 +49,23 @@ export default function LeagueScreen() {
   const [viewedTeamId, setViewedTeamId] = useState<string | undefined>(teamId);
   const leagueData = useLeague(id, viewedTeamId);
   const { league, teams, standings, error: loadError } = leagueData;
+  const { user } = useSession();
+  const feedback = useActionFeedback();
+  const copyInvite = async () => {
+    if (!league) return;
+    const origin = process.env.EXPO_PUBLIC_APP_ORIGIN ?? 'https://play.brockfantasy.ca';
+    const url = `${origin}/leagues/join?code=${encodeURIComponent(league.inviteCode)}`;
+    try {
+      if (Platform.OS === 'web') await navigator.clipboard.writeText(url);
+      else await Share.share({ message: url });
+      feedback({
+        title: Platform.OS === 'web' ? 'Invite link copied' : 'Invite link ready',
+        tone: 'success',
+      });
+    } catch {
+      setActionError('Could not copy the invite link. You can still share the league code.');
+    }
+  };
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>(
     teamId ? 'roster' : (TABS.find((item) => item === requestedTab) ?? 'overview'),
@@ -140,6 +162,19 @@ export default function LeagueScreen() {
         </Text>
       </View>
 
+      {league?.commissionerId === user?.id ? (
+        <ActionButton
+          label="Copy invite link"
+          variant="secondary"
+          onPress={() => void copyInvite()}
+        />
+      ) : null}
+      {league?.commissionerId === user?.id &&
+      leagueData.draftStatus === 'complete' &&
+      !leagueData.matchups.length ? (
+        <MatchupSetup leagueId={id} teams={teams} onCreated={leagueData.reload} />
+      ) : null}
+      <ActionButton label="View matchups" href={`/matchups/${id}`} variant="secondary" />
       <View accessibilityRole="tablist" style={styles.tabs}>
         {TABS.map((item) => (
           <Pressable
@@ -163,6 +198,7 @@ export default function LeagueScreen() {
           draftId={leagueData.draftId}
           draftStatus={leagueData.draftStatus}
           matchups={leagueData.matchups}
+          myTeamId={leagueData.myTeamId}
         />
       ) : null}
       {tab === 'roster' ? (
@@ -216,6 +252,7 @@ function Overview({
   draftId,
   draftStatus,
   matchups,
+  myTeamId,
 }: {
   wide: boolean;
   league: League | null;
@@ -223,10 +260,11 @@ function Overview({
   draftId: string | null;
   draftStatus: ReturnType<typeof useLeague>['draftStatus'];
   matchups: readonly MatchupResult[];
+  myTeamId: string | null;
 }) {
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
-  const matchup = matchups.find((item) => item.status === 'active') ?? matchups[0];
+  const matchup = selectMyMatchup(matchups, myTeamId);
   const homeName = teams.find((team) => team.id === matchup?.homeTeamId)?.name ?? 'Home team';
   const awayName = teams.find((team) => team.id === matchup?.awayTeamId)?.name ?? 'Away team';
   const draftOpen = Boolean(

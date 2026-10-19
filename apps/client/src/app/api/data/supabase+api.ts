@@ -31,6 +31,7 @@ const tables = new Set([
   'trade_items',
   'trades',
   'weekly_projections',
+  'waiver_claims',
 ]);
 const readRpc = new Set([
   'get_athlete_adp',
@@ -38,6 +39,13 @@ const readRpc = new Set([
   'get_draft_results',
   'get_beta_lineup',
   'get_player_insights',
+  'get_player_trade_options',
+  'get_matchup_preview',
+  'get_matchup_detail',
+  'get_player_forecast',
+  'get_historical_game_logs',
+  'get_preseason_rankings',
+  'preview_preseason_rankings',
   'get_my_participation',
   'admin_find_participants',
   'get_league_standings',

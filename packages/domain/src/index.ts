@@ -12,3 +12,4 @@ export * from './types';
 export * from './beta';
 export * from './player-metrics';
 export * from './participation';
+export * from './forecasts';

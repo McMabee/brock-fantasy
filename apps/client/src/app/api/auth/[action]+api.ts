@@ -7,6 +7,7 @@ import {
 import { limitAuthRequest } from '../../../server/auth-rate-limit';
 import { AppAccessUnavailable, canUseApp } from '../../../server/app-access';
 import { signupHandoff, handoffPage } from '../../../server/signup-handoff';
+import { invitationReturnPath, invitationCookie } from '../../../server/auth-invitation';
 import { testerPage } from '../../../server/tester-entry';
 import { authReturnPath } from '../../../lib/admin-navigation';
 
@@ -525,8 +526,9 @@ export const POST: RequestHandler = async (request, params) => {
     params,
   );
   const cookies = result.headers.getSetCookie();
-  const query = new URL(request.url).searchParams;
-  const returnTo = query.get('returnTo') ?? query.get('next');
+  const returnTo = invitationReturnPath(request);
+  const savedInvitation = invitationCookie(returnTo);
+  if (savedInvitation) cookies.push(savedInvitation);
   if (result.ok && (action === 'sign-in' || action === 'update-password')) {
     const redirectHeaders = new Headers({
       location: returnTo ? authReturnPath(returnTo) : '/dashboard',

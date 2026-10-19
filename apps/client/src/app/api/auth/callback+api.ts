@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'expo-router/server';
+import { invitationReturnPath } from '../../../server/auth-invitation';
 import { canUseApp } from '../../../server/app-access';
 import { signupHandoff, handoffPage } from '../../../server/signup-handoff';
 
@@ -114,14 +115,20 @@ export const GET: RequestHandler = async (request) => {
       },
     );
   }
-  return redirect(new URL(flow === 'recover' ? '/reset-password' : '/dashboard', requestUrl), [
-    sessionCookie(
-      ACCESS_COOKIE,
-      tokens.access_token,
-      typeof tokens.expires_in === 'number' ? tokens.expires_in : 3_600,
+  return redirect(
+    new URL(
+      flow === 'recover' ? '/reset-password' : invitationReturnPath(request) || '/dashboard',
+      requestUrl,
     ),
-    sessionCookie(REFRESH_COOKIE, tokens.refresh_token, 60 * 60 * 24 * 30),
-    clearPkce(),
-    clearFlow(),
-  ]);
+    [
+      sessionCookie(
+        ACCESS_COOKIE,
+        tokens.access_token,
+        typeof tokens.expires_in === 'number' ? tokens.expires_in : 3_600,
+      ),
+      sessionCookie(REFRESH_COOKIE, tokens.refresh_token, 60 * 60 * 24 * 30),
+      clearPkce(),
+      clearFlow(),
+    ],
+  );
 };

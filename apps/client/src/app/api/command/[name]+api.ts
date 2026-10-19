@@ -36,6 +36,10 @@ const commands: Readonly<Record<string, readonly string[]>> = {
   set_period_lineup: ['p_fantasy_team_id', 'p_entries', 'p_expected_version', 'p_idempotency_key'],
   add_free_agent: ['p_fantasy_team_id', 'p_athlete_in_id', 'p_athlete_out_id', 'p_idempotency_key'],
   request_waiver: ['p_fantasy_team_id', 'p_athlete_in_id', 'p_athlete_out_id', 'p_idempotency_key'],
+  stage_historical_game_logs: ['p_records'],
+  publish_historical_game_logs: ['p_batch_id', 'p_expected_hash', 'p_reason', 'p_idempotency_key'],
+  publish_preseason_rankings: ['p_pool_id', 'p_expected_hash', 'p_reason', 'p_idempotency_key'],
+  confirm_matchup_schedule: ['p_league_id', 'p_expected_signature', 'p_idempotency_key'],
   generate_matchup_schedule: ['p_league_id', 'p_starts_at', 'p_cycles', 'p_idempotency_key'],
   get_beta_lineup: ['p_fantasy_team_id'],
   get_schedule_review: [],
@@ -161,7 +165,13 @@ const handle: RequestHandler = async (request, params) => {
         : 'The command could not be completed.';
     return json({ error: message }, result.status === 401 || result.status === 403 ? 403 : 400);
   }
-  return json(response);
+  const confirmed = json(response);
+  if (name === 'join_league')
+    confirmed.headers.append(
+      'set-cookie',
+      `bf_auth_next=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
+    );
+  return confirmed;
 };
 
 export const POST = withAvailability(handle);

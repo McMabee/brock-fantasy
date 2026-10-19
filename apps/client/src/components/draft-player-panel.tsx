@@ -8,7 +8,7 @@ import type { DraftPlayer } from '@/lib/draft-state';
 
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { adpLabel } from '@/lib/player-adp';
-import { RulesLink } from './rules-link';
+import { InfoButton } from './info-button';
 import { router } from 'expo-router';
 import { usePlayerInsights } from '@/hooks/use-player-insights';
 import { NextGame, PendingConfirmation, projectedPoints } from './player-insights';
@@ -98,12 +98,12 @@ export function DraftPlayerPanel({
                       {player.adp?.average?.toFixed(1) ?? metrics?.suppliedAdp?.toFixed(1) ?? '—'}
                     </Text>
                     <Text style={uiStyles.body}>{adpLabel(player.adp)}</Text>
-                    <Text style={uiStyles.body}>
-                      Supplied ADP: {player.adp?.base ?? metrics?.suppliedAdp ?? '—'}
-                    </Text>
                   </View>
                 </View>
-                <RulesLink section="stats" label="How projected points and ADP work" />
+                <View style={{ flexDirection: 'row' }}>
+                  <InfoButton topic="projection" />
+                  <InfoButton topic="adp" />
+                </View>
                 {(['eligibility', 'major', 'hometown'] as const).map((key) =>
                   typeof player.bio[key] === 'string' ? (
                     <Text key={key} style={uiStyles.body}>

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import handler from '../api/index.js';
 
@@ -151,6 +151,18 @@ try {
       athlete: row(player),
     }));
     const commands = [];
+    let scheduled = false;
+    const inbox = [
+      {
+        id: 'historical-inbox',
+        kind: 'trade_proposed',
+        title: 'Old trade notification',
+        body: 'Historical event',
+        data: { league_id: leagueId },
+        read_at: null,
+        created_at: '2026-01-01T00:00:00Z',
+      },
+    ];
     await context.route('https://gobadgers.ca/images/**', (route) =>
       route.fulfill({
         contentType: 'image/png',
@@ -162,6 +174,7 @@ try {
     );
     await context.route('**/api/**', (route) => {
       const url = new URL(route.request().url());
+      if (process.env.BROCK_BROWSER_DEBUG) console.log(url.pathname, url.searchParams.get('path'));
       const reply = (body) =>
         route.fulfill({
           status: 200,
@@ -181,6 +194,8 @@ try {
         const payload = route.request().postDataJSON();
         const name = url.pathname.split('/').at(-1);
         commands.push({ name, payload });
+        if (name === 'confirm_matchup_schedule') scheduled = true;
+        if (name === 'join_league') return reply({ league_id: leagueId });
         if (name === 'admin_set_participation')
           participant = {
             ...participant,
@@ -194,7 +209,11 @@ try {
           if (target >= 0 && athlete)
             roster[target] = { ...roster[target], athlete_id: athlete.id, athlete: row(athlete) };
         }
-        return reply({ revision: participant.revision });
+        return reply(
+          name === 'propose_trade'
+            ? { trade_id: `fixture-trade-${commands.length}` }
+            : { revision: participant.revision },
+        );
       }
       if (url.pathname === '/api/data/supabase') {
         const data = new URL(url.searchParams.get('path'), origin);
@@ -208,6 +227,153 @@ try {
           });
         if (table === 'admin_find_participants') return reply([participant]);
         if (table === 'get_player_insights') return reply(players);
+        if (table === 'notifications') return reply(inbox);
+        if (table === 'get_player_forecast')
+          return reply({
+            projectedSeasonPoints: 200,
+            projectedGames: 20,
+            knownSchedule: true,
+            periods: [
+              {
+                id: 'forecast-period',
+                number: 1,
+                startsAt: '2026-10-24T04:00:00Z',
+                endsAt: '2026-11-01T04:00:00Z',
+              },
+            ],
+            games: [
+              {
+                id: 'forecast-game',
+                startsAt: '2026-10-25T23:00:00Z',
+                status: 'scheduled',
+                opponent: 'Fixture opponents',
+                pending: false,
+                complete: false,
+                actualPoints: null,
+              },
+            ],
+          });
+        if (table === 'get_player_trade_options')
+          return reply([
+            {
+              league_id: leagueId,
+              league_name: 'Varsity League',
+              proposing_team_id: teamId,
+              receiving_team_id: 'opponent-team',
+              receiving_team_name: 'Other Badgers',
+              athlete_name: 'Zulu Free Guard',
+              offered: [{ id: 'athlete-7', name: 'Hotel Guard' }],
+            },
+          ]);
+        if (table === 'get_preseason_rankings')
+          return reply({
+            publication: { version: 1, published_at: '2026-10-19T12:00:00Z' },
+            rows: [
+              {
+                athlete_id: 'athlete-10',
+                name: 'Zulu Free Guard',
+                position: 'BC',
+                program: 'womens_basketball',
+                position_group: 'BB_BC',
+                projected_points: 190,
+                position_rank: 1,
+              },
+              {
+                athlete_id: 'athlete-13',
+                name: 'Missing Projection',
+                position: 'F',
+                program: 'mens_hockey',
+                position_group: 'HK_F',
+                projected_points: null,
+                position_rank: null,
+              },
+            ],
+          });
+        if (table === 'get_historical_game_logs')
+          return reply([
+            {
+              source_game_id: '1',
+              played_at: '2025-11-01T23:00:00Z',
+              opponent: 'Archive opponents',
+              phase: 'regular',
+              result: 'W, 3-1',
+              stats: { goals: 1, assists: 0 },
+              complete: false,
+              fantasy_points: null,
+              missing_stats: ['power_play_goals'],
+              source_url:
+                'https://gobadgers.ca/sports/mens-ice-hockey/stats/2025-26/fixture/boxscore/1',
+              scoring_version: 'brock-2026.2',
+            },
+          ]);
+        if (table === 'athletes')
+          return reply(
+            data.searchParams.has('id')
+              ? { ...row(players[10]), jersey_number: '11', status: 'active' }
+              : players.map((player) => ({
+                  ...row(player),
+                  jersey_number: player.jerseyNumber,
+                  summaries: [],
+                })),
+          );
+        if (table === 'get_matchup_preview')
+          return reply({
+            signature: 'fixture-schedule-signature',
+            shortened: true,
+            can_generate: true,
+            periods: [
+              { number: 1, starts_at: '2026-10-24T04:00:00Z', ends_at: '2026-11-01T04:00:00Z' },
+            ],
+            pairings: [{ period: 1, home_team_id: teamId, away_team_id: 'opponent-team' }],
+          });
+        if (table === 'matchups')
+          return reply(
+            scheduled
+              ? [
+                  {
+                    id: '44444444-4444-4444-8444-444444444444',
+                    league_id: leagueId,
+                    period: 1,
+                    home_team_id: teamId,
+                    away_team_id: 'opponent-team',
+                    home_points: 12,
+                    away_points: 9,
+                    status: 'scheduled',
+                    starts_at: '2026-10-24T04:00:00Z',
+                    ends_at: '2026-11-01T04:00:00Z',
+                  },
+                ]
+              : [],
+          );
+        if (table === 'get_matchup_detail')
+          return reply({
+            teams: [
+              {
+                id: teamId,
+                name: 'Varsity Badgers',
+                contributors: [
+                  { athlete_id: 'athlete-8', name: 'Former Contributor', points: 12, games: 1 },
+                ],
+                roster: [
+                  {
+                    athlete_id: 'athlete-10',
+                    name: 'Current Starter',
+                    slot: 'FLEX',
+                    status: 'starter',
+                  },
+                ],
+              },
+              {
+                id: 'opponent-team',
+                name: 'Other Badgers',
+                contributors: [
+                  { athlete_id: 'athlete-9', name: 'Other Contributor', points: 9, games: 1 },
+                ],
+                roster: [],
+              },
+            ],
+          });
+        if (table === 'leagues' && data.searchParams.has('invite_code')) return reply(null);
         if (table === 'leagues')
           return reply({
             id: leagueId,
@@ -225,6 +391,14 @@ try {
           });
         if (table === 'fantasy_teams')
           return reply([
+            {
+              id: 'opponent-team',
+              league_id: leagueId,
+              owner_id: 'other-owner',
+              name: 'Other Badgers',
+              draft_position: 2,
+              owner: { display_name: 'Other Manager', is_varsity: false },
+            },
             {
               id: teamId,
               league_id: leagueId,
@@ -272,8 +446,8 @@ try {
     const page = await context.newPage();
     lastPage = page;
     page.on('pageerror', (error) => report.errors.push(error.message));
-    for (const width of [390, 1440]) {
-      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: width < 800 ? 844 : 1000 });
       await page.goto(`${origin}/transactions/${leagueId}`);
       const buttons = page.getByRole('button', { name: /^Insights for / });
       await buttons.first().waitFor();
@@ -301,6 +475,26 @@ try {
         .getByText('Your varsity program · unavailable to your account', { exact: true })
         .waitFor();
       await page.getByRole('radio', { name: 'All programs', exact: true }).click();
+      const bug = page.getByRole('link', { name: 'Report a bug or suggestion', exact: true });
+      const beforeBug = await bug.boundingBox();
+      await page.evaluate(() =>
+        document.querySelectorAll('div').forEach((element) => {
+          if (element.scrollHeight > element.clientHeight + 100) element.scrollTop = 500;
+        }),
+      );
+      const afterBug = await bug.boundingBox();
+      assert.equal(
+        Math.round(beforeBug.y),
+        Math.round(afterBug.y),
+        'Feedback button stays fixed after scrolling',
+      );
+      assert.equal(Math.round(afterBug.width), 52);
+      assert.ok(afterBug.x + afterBug.width <= width);
+      await page.evaluate(() =>
+        document.querySelectorAll('div').forEach((element) => {
+          if (element.scrollTop) element.scrollTop = 0;
+        }),
+      );
       const first = buttons.first();
       assert.equal(await first.getByRole('img').count(), 1);
       const font = await first
@@ -340,20 +534,41 @@ try {
       const image = `insights-${theme}-${width}.png`;
       await page.screenshot({ path: path.join(output, image) });
       report.screenshots.push(image);
-      await page.getByRole('button', { name: 'Close athlete insights', exact: true }).click();
+      assert.equal(
+        await page.getByText('Old trade notification', { exact: true }).count(),
+        0,
+        'Historical notifications are not replayed on login',
+      );
+      await panel.getByRole('button', { name: 'Trade', exact: true }).click();
+      await page.getByText('Request Zulu Free Guard from Other Badgers', { exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Hotel Guard', exact: true }).click();
+      await page.getByRole('button', { name: 'Send trade proposal', exact: true }).click();
+      await page
+        .getByText(/Trade proposal sent$/u)
+        .first()
+        .waitFor();
+      await page.getByRole('button', { name: 'Dismiss notification', exact: true }).first().click();
+      const definition = page
+        .getByRole('button', { name: 'About Waiver claims', exact: true })
+        .first();
+      await definition.focus();
+      await page.getByText('Waiver claims', { exact: true }).waitFor();
+      await page.keyboard.press('Escape');
+      await page.getByText('Waiver claims', { exact: true }).waitFor({ state: 'hidden' });
       assert.ok(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       );
       const listImage = `transactions-${theme}-${width}.png`;
       await page.screenshot({ path: path.join(output, listImage), fullPage: true });
       report.screenshots.push(listImage);
+      console.log(`Verified transactions ${theme} ${width}`);
       report.checks.push(
         `Transactions ${theme} ${width}: filters, immediate sorting, photos, team names, program restriction, typography, centered animated statistics`,
       );
     }
     await page.getByRole('radio', { name: 'Hotel Guard · Guard / backcourt', exact: true }).click();
     await page.getByRole('button', { name: 'Add now', exact: true }).first().click();
-    await page.getByText('Transaction completed.', { exact: true }).waitFor();
+    await page.getByText('Athlete added to your roster.', { exact: true }).first().waitFor();
     const acquisition = commands.find((command) => command.name === 'add_free_agent');
     assert.equal(acquisition.payload.p_athlete_in_id, 'athlete-10');
     assert.equal(acquisition.payload.p_athlete_out_id, 'athlete-7');
@@ -364,6 +579,94 @@ try {
     report.checks.push(
       `Acquisition ${theme}: explicit drop, atomic add request, refreshed available athletes`,
     );
+    await page.goto(origin + '/players');
+    await page.getByRole('button', { name: 'Preseason rankings', exact: true }).click();
+    await page.getByText('Reviewed snapshot v1', { exact: false }).waitFor();
+    await page.getByText('Unranked · Projection unavailable', { exact: true }).waitFor();
+    await page
+      .getByRole('textbox', { name: 'Search preseason rankings', exact: true })
+      .fill('Zulu');
+    assert.equal(
+      await page.getByText('Unranked · Projection unavailable', { exact: true }).count(),
+      0,
+    );
+    await page.goto(origin + '/players/athlete-10');
+    await page.getByText('2025–26 Brock game logs', { exact: true }).waitFor();
+    await page
+      .getByText('Required statistics missing: power play goals', { exact: true })
+      .waitFor();
+    await page.getByText('Estimated finish: 10.0 pts', { exact: true }).waitFor();
+    await page.goto(origin + '/league/' + leagueId);
+    await page.getByRole('button', { name: 'Preview matchup schedule', exact: true }).click();
+    await page.getByText('Shortened season:', { exact: false }).waitFor();
+    await page.getByRole('button', { name: 'Confirm matchup schedule', exact: true }).click();
+    assert.ok(
+      commands.some(
+        (command) =>
+          command.name === 'confirm_matchup_schedule' &&
+          command.payload.p_expected_signature === 'fixture-schedule-signature',
+      ),
+    );
+    report.checks.push(
+      `Backlog ${theme}: profile trade, inline definitions, forecast, historical missing statistics, reviewed rankings, shortened schedule confirmation, fixed feedback at 320–1440px`,
+    );
+    await page.goto(origin + '/matchups/' + leagueId);
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const sections = page.getByText('Earned contributions this period', { exact: true });
+      await sections.nth(1).waitFor();
+      await page.getByRole('link', { name: 'Former Contributor', exact: true }).waitFor();
+      await expect
+        .poll(
+          async () => {
+            const first = await sections.nth(0).boundingBox(),
+              second = await sections.nth(1).boundingBox();
+            return width === 320
+              ? Math.abs(first.x - second.x) < 2 && second.y > first.y
+              : second.x > first.x + 100;
+          },
+          { message: 'Matchup rosters stack on phones and align beside each other on desktop' },
+        )
+        .toBe(true);
+      const firstCard = await sections.nth(0).locator('..').boundingBox();
+      const benchLabel = await page
+        .getByText('Current saved bench · bench games do not score', { exact: true })
+        .first()
+        .boundingBox();
+      assert.ok(
+        benchLabel.y + benchLabel.height <= firstCard.y + firstCard.height - 12,
+        'Wrapped roster labels remain inside their card',
+      );
+      await page.screenshot({
+        path: path.join(output, `matchups-${theme}-${width}.png`),
+        fullPage: true,
+      });
+    }
+    inbox.unshift({
+      id: 'fresh-waiver',
+      kind: 'waiver_result',
+      title: 'Fresh waiver outcome',
+      body: 'Your fixture claim succeeded',
+      data: { league_id: leagueId },
+      read_at: null,
+      created_at: new Date().toISOString(),
+    });
+    const popup = page.getByText(/Fresh waiver outcome$/u);
+    await popup.waitFor();
+    await popup.hover();
+    await page.waitForTimeout(6500);
+    assert.ok(await popup.isVisible(), 'Hover pauses the six-second dismissal');
+    await page.getByRole('button', { name: 'Dismiss notification', exact: true }).first().click();
+    assert.ok(
+      !commands.some((command) => command.name === 'mark_notification_read'),
+      'Dismissing a popup does not mark the inbox read',
+    );
+    await page.waitForTimeout(5200);
+    assert.equal(await popup.count(), 0, 'Polling does not replay a dismissed event');
+    await page.screenshot({
+      path: path.join(output, `backlog-league-${theme}.png`),
+      fullPage: true,
+    });
     await page.goto(origin + '/admin/participants');
     await page
       .getByRole('textbox', { name: 'Find participant by name or email', exact: true })
@@ -404,6 +707,35 @@ try {
     await page.getByText('🏒 Hockey 1 · any position · 1/1', { exact: true }).waitFor();
     report.checks.push(
       `Participation ${theme}: admin correction payload, account badge, varsity lineup labels`,
+    );
+    await page.goto(origin + '/auth?next=' + encodeURIComponent('/leagues/join?code=AB12CD34'));
+    assert.ok(
+      (await context.cookies()).some(
+        (cookie) =>
+          cookie.name === 'bf_auth_next' &&
+          decodeURIComponent(cookie.value) === '/leagues/join?code=AB12CD34',
+      ),
+      'Owned auth entry preserves a validated invitation in an HttpOnly cookie',
+    );
+    await page.goto(origin + '/leagues/join?code=AB12CD34');
+    const invite = page.getByRole('textbox', { name: 'League invite code', exact: true });
+    await invite.waitFor();
+    assert.equal(await invite.inputValue(), 'AB12CD34');
+    assert.ok(
+      !commands.some((command) => command.name === 'join_league'),
+      'Invitation does not automatically enroll',
+    );
+    await page
+      .getByRole('textbox', { name: 'Fantasy team name', exact: true })
+      .fill('Invited Badgers');
+    await page.getByRole('button', { name: 'Join league', exact: true }).click();
+    await page.waitForURL('**/league/' + leagueId);
+    assert.equal(
+      commands.find((command) => command.name === 'join_league').payload.p_invite_code,
+      'AB12CD34',
+    );
+    report.checks.push(
+      `Invitations ${theme}: auth handoff cookie, code prefill and explicit membership confirmation`,
     );
     await context.close();
   }

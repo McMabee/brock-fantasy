@@ -15,6 +15,7 @@ import {
   SectionTitle,
   useUiStyles,
 } from '@/components/ui';
+import { PreseasonRankings } from '@/components/preseason-rankings';
 import { DraftPlayerPhoto } from '@/components/draft-player-panel';
 import { supabase } from '@/lib/supabase';
 import { loadPlayerAdps, type PlayerAdps } from '@/lib/player-adp';
@@ -39,6 +40,7 @@ interface PlayerRow {
 }
 
 export default function PlayerDirectoryScreen() {
+  const [view, setView] = useState<'directory' | 'rankings'>('directory');
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
   const colors = useThemeColors();
@@ -156,131 +158,151 @@ export default function PlayerDirectoryScreen() {
       title="Players"
       action={<Pill label={loading ? 'LOADING' : `${players.length} PLAYERS`} tone="info" />}
     >
-      <SectionTitle
-        title="Explore the Brock rosters"
-        detail="Search by name, position, program or jersey number"
-      />
-      <TextInput
-        accessibilityLabel="Search players"
-        onChangeText={setQuery}
-        placeholder="Search players"
-        placeholderTextColor={colors.muted}
-        style={[uiStyles.input, styles.search]}
-        value={query}
-      />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filters}
-      >
-        {Object.entries({ all: 'All programs', ...programs }).map(([value, label]) => (
-          <Pressable
-            key={value}
-            accessibilityRole="button"
-            accessibilityState={{ selected: program === value }}
-            onPress={() => setProgram(value)}
-            style={[styles.filter, program === value && styles.selected]}
-          >
-            <Text style={[styles.filterText, program === value && styles.selectedText]}>
-              {label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-      <View style={styles.toolbar}>
-        <Text style={uiStyles.body}>{visible.length} shown</Text>
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
         <ActionButton
-          label="Refresh"
-          onPress={() => setReload((value) => value + 1)}
-          loading={loading}
-          variant="ghost"
+          label="Player directory"
+          variant={view === 'directory' ? 'primary' : 'secondary'}
+          onPress={() => setView('directory')}
+        />
+        <ActionButton
+          label="Preseason rankings"
+          variant={view === 'rankings' ? 'primary' : 'secondary'}
+          onPress={() => setView('rankings')}
         />
       </View>
-      <View style={styles.toolbar}>
-        <Text style={uiStyles.body}>Sort by</Text>
-        {(
-          [
-            { value: 'name', label: 'Name' },
-            { value: 'projection', label: 'Projected FP' },
-            { value: 'adp', label: 'ADP' },
-          ] as const
-        ).map((option) => (
-          <Pressable
-            key={option.value}
-            accessibilityRole="button"
-            accessibilityLabel={`Sort by ${option.label}`}
-            aria-pressed={sort === option.value}
-            accessibilityState={{ selected: sort === option.value }}
-            onPress={() => setSort(option.value)}
-            style={[styles.filter, sort === option.value && styles.selected]}
-          >
-            <Text style={[styles.filterText, sort === option.value && styles.selectedText]}>
-              {option.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      {error && players.length > 0 ? (
-        <ErrorState
-          message={`${error} Showing your last loaded roster.`}
-          onRetry={() => setReload((value) => value + 1)}
-        />
-      ) : null}
-      {adpError && players.length > 0 ? (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {adpError}
-        </Text>
-      ) : null}
-      {!access.allowed || (loading && players.length === 0) ? (
-        <LoadingState label="Loading the current Brock rosters" rows={5} />
-      ) : error && players.length === 0 ? (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {error}
-        </Text>
-      ) : !visible.length ? (
-        <EmptyState
-          title={players.length ? 'No matching players' : 'No player records yet'}
-          body={
-            players.length
-              ? 'Try another name, position or program.'
-              : 'The current roster has not been published.'
-          }
-        />
+      {view === 'rankings' ? (
+        <PreseasonRankings />
       ) : (
-        <Card style={styles.list}>
-          {visible.map((player, index) => {
-            const metrics = directoryData.get(player.id)!.metrics;
-            return (
+        <>
+          <SectionTitle
+            title="Explore the Brock rosters"
+            detail="Search by name, position, program or jersey number"
+          />
+          <TextInput
+            accessibilityLabel="Search players"
+            onChangeText={setQuery}
+            placeholder="Search players"
+            placeholderTextColor={colors.muted}
+            style={[uiStyles.input, styles.search]}
+            value={query}
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filters}
+          >
+            {Object.entries({ all: 'All programs', ...programs }).map(([value, label]) => (
               <Pressable
-                accessibilityRole="link"
-                key={player.id}
-                onPress={() => router.push(`/players/${player.id}`)}
-                style={[styles.row, index === visible.length - 1 && uiStyles.lastRow]}
+                key={value}
+                accessibilityRole="button"
+                accessibilityState={{ selected: program === value }}
+                onPress={() => setProgram(value)}
+                style={[styles.filter, program === value && styles.selected]}
               >
-                <DraftPlayerPhoto
-                  player={{ displayName: player.display_name, bio: player.bio }}
-                  size={44}
-                />
-                <View style={styles.copy}>
-                  <Text style={styles.name}>{player.display_name}</Text>
-                  <Text style={styles.meta}>
-                    {programs[player.bio.program ?? ''] ?? 'Brock Badgers'} ·{' '}
-                    {player.bio.sourcePosition ?? player.position}
-                    {player.jersey_number !== null ? ` · #${player.jersey_number}` : ''}
-                  </Text>
-                  <Text style={styles.meta}>
-                    Height {metrics.heightLabel} · ADP{' '}
-                    {adps[player.id]?.average?.toFixed(1) ?? metrics.suppliedAdp?.toFixed(1) ?? '—'}
-                  </Text>
-                </View>
-                <View style={styles.projection}>
-                  <Text style={styles.points}>{metrics.projectedPoints ?? '—'}</Text>
-                  <Text style={styles.meta}>Projected FP</Text>
-                </View>
+                <Text style={[styles.filterText, program === value && styles.selectedText]}>
+                  {label}
+                </Text>
               </Pressable>
-            );
-          })}
-        </Card>
+            ))}
+          </ScrollView>
+          <View style={styles.toolbar}>
+            <Text style={uiStyles.body}>{visible.length} shown</Text>
+            <ActionButton
+              label="Refresh"
+              onPress={() => setReload((value) => value + 1)}
+              loading={loading}
+              variant="ghost"
+            />
+          </View>
+          <View style={styles.toolbar}>
+            <Text style={uiStyles.body}>Sort by</Text>
+            {(
+              [
+                { value: 'name', label: 'Name' },
+                { value: 'projection', label: 'Projected FP' },
+                { value: 'adp', label: 'ADP' },
+              ] as const
+            ).map((option) => (
+              <Pressable
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityLabel={`Sort by ${option.label}`}
+                aria-pressed={sort === option.value}
+                accessibilityState={{ selected: sort === option.value }}
+                onPress={() => setSort(option.value)}
+                style={[styles.filter, sort === option.value && styles.selected]}
+              >
+                <Text style={[styles.filterText, sort === option.value && styles.selectedText]}>
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {error && players.length > 0 ? (
+            <ErrorState
+              message={`${error} Showing your last loaded roster.`}
+              onRetry={() => setReload((value) => value + 1)}
+            />
+          ) : null}
+          {adpError && players.length > 0 ? (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {adpError}
+            </Text>
+          ) : null}
+          {!access.allowed || (loading && players.length === 0) ? (
+            <LoadingState label="Loading the current Brock rosters" rows={5} />
+          ) : error && players.length === 0 ? (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {error}
+            </Text>
+          ) : !visible.length ? (
+            <EmptyState
+              title={players.length ? 'No matching players' : 'No player records yet'}
+              body={
+                players.length
+                  ? 'Try another name, position or program.'
+                  : 'The current roster has not been published.'
+              }
+            />
+          ) : (
+            <Card style={styles.list}>
+              {visible.map((player, index) => {
+                const metrics = directoryData.get(player.id)!.metrics;
+                return (
+                  <Pressable
+                    accessibilityRole="link"
+                    key={player.id}
+                    onPress={() => router.push(`/players/${player.id}`)}
+                    style={[styles.row, index === visible.length - 1 && uiStyles.lastRow]}
+                  >
+                    <DraftPlayerPhoto
+                      player={{ displayName: player.display_name, bio: player.bio }}
+                      size={44}
+                    />
+                    <View style={styles.copy}>
+                      <Text style={styles.name}>{player.display_name}</Text>
+                      <Text style={styles.meta}>
+                        {programs[player.bio.program ?? ''] ?? 'Brock Badgers'} ·{' '}
+                        {player.bio.sourcePosition ?? player.position}
+                        {player.jersey_number !== null ? ` · #${player.jersey_number}` : ''}
+                      </Text>
+                      <Text style={styles.meta}>
+                        Height {metrics.heightLabel} · ADP{' '}
+                        {adps[player.id]?.average?.toFixed(1) ??
+                          metrics.suppliedAdp?.toFixed(1) ??
+                          '—'}
+                      </Text>
+                    </View>
+                    <View style={styles.projection}>
+                      <Text style={styles.points}>{metrics.projectedPoints ?? '—'}</Text>
+                      <Text style={styles.meta}>Projected FP</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </Card>
+          )}
+        </>
       )}
     </AppShell>
   );

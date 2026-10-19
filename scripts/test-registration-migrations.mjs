@@ -294,6 +294,12 @@ try {
     databaseContainer: container,
     executeSql: (input) => sql(db, input),
   });
+  const { verifyMatchupConcurrency } = await import('./lib/backlog-concurrency-local.mjs');
+  await verifyMatchupConcurrency({
+    database: db,
+    databaseContainer: container,
+    executeSql: (input) => sql(db, input),
+  });
 } finally {
   for (const db of created) {
     assert.ok(db.startsWith(`${prefix}_`) && /^bf_registration_[a-z0-9_]+$/u.test(db));

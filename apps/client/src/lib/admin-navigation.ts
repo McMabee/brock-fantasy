@@ -1,4 +1,11 @@
-export const adminRoutes = ['/admin', '/admin/games', '/admin/import', '/admin/accounts'] as const;
+export const adminRoutes = [
+  '/admin',
+  '/admin/games',
+  '/admin/import',
+  '/admin/accounts',
+  '/admin/rankings',
+  '/admin/history',
+] as const;
 
 export function adminReturnPath(value: unknown): (typeof adminRoutes)[number] {
   return adminRoutes.find((route) => route === value) ?? '/admin';
@@ -6,6 +13,8 @@ export function adminReturnPath(value: unknown): (typeof adminRoutes)[number] {
 
 export function authReturnPath(value: unknown): string {
   if (typeof value !== 'string') return '/dashboard';
+  const invitation = /^\/leagues\/join\?code=([A-Z0-9]{8}|[A-Z0-9]{12})$/iu.exec(value);
+  if (invitation) return `/leagues/join?code=${invitation[1]!.toUpperCase()}`;
   if (
     [
       '/dashboard',
@@ -19,7 +28,7 @@ export function authReturnPath(value: unknown): string {
   )
     return value;
   if (
-    /^\/(?:draft|league|commissioner|lineup-beta|lineup-multisport|lineup|transactions|players)\/[0-9a-f-]{36}$/iu.test(
+    /^\/(?:draft|league|matchups|commissioner|lineup-beta|lineup-multisport|lineup|transactions|players)\/[0-9a-f-]{36}$/iu.test(
       value,
     )
   )

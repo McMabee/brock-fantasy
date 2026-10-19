@@ -9,10 +9,11 @@ import {
   StyleSheet,
   Text,
   View,
+  Platform,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import darkLogo from '../../assets/brock-fantasy-logo.png';
 import lightLogo from '../../assets/brock-fantasy-logo-light.png';
@@ -52,6 +53,7 @@ export function AppShell({
       document.title = title ? `${title} | Brock Fantasy` : 'Brock Fantasy';
   }, [title]);
   const wide = width >= 1024;
+  const insets = useSafeAreaInsets();
   const navigation = [
     {
       label: 'Home',
@@ -60,7 +62,7 @@ export function AppShell({
       active:
         pathname === '/dashboard' ||
         pathname === '/' ||
-        /^\/(league|draft|draft-results|lineup|lineup-multisport|transactions|commissioner|leagues)\//u.test(
+        /^\/(league|matchups|draft|draft-results|lineup|lineup-multisport|transactions|commissioner|leagues)\//u.test(
           pathname,
         ),
     },
@@ -231,9 +233,6 @@ export function AppShell({
                   >
                     <Text style={styles.footerLink}>Delete account</Text>
                   </Pressable>
-                  <Link href="/feedback" accessibilityRole="link" style={styles.footerLink}>
-                    Report Bugs/Suggestions
-                  </Link>
                   <Link
                     href={ASSOCIATION_INSTAGRAM_URL}
                     target="_blank"
@@ -251,6 +250,32 @@ export function AppShell({
         </View>
       </View>
       {!wide ? <View style={styles.bottomNav}>{navItems}</View> : null}
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel="Report a bug or suggestion"
+        onPress={() => router.push('/feedback')}
+        {...(Platform.OS === 'web' ? { title: 'Report a bug or suggestion' } : {})}
+        dataSet={{ bfFeedback: 'true' }}
+        style={{
+          position: Platform.OS === 'web' ? ('fixed' as 'absolute') : 'absolute',
+          right: wide ? 20 : 16,
+          bottom: wide ? 20 : 92 + insets.bottom,
+          width: 52,
+          height: 52,
+          borderRadius: 26,
+          backgroundColor: '#B00020',
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100,
+          boxShadow: '0 4px 14px #0005',
+        }}
+      >
+        <Text accessible={false} style={{ color: '#FFFFFF', fontSize: 25 }}>
+          {'\u{1F41E}'}
+        </Text>
+      </Pressable>
     </SafeAreaView>
   );
 }

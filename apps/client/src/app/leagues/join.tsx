@@ -1,10 +1,11 @@
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
-import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
 import { betaCommand } from '@/lib/web-api';
+import { supabase } from '@/lib/supabase';
 import { heading } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 
@@ -12,9 +13,34 @@ export default function JoinLeagueScreen() {
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
   const colors = useThemeColors();
-  const { allowed, loading: sessionLoading } = useRequireUser('/leagues/join');
+  const { code } = useLocalSearchParams<{ code?: string }>();
+  const suppliedCode =
+    typeof code === 'string' && /^(?:[A-Z0-9]{8}|[A-Z0-9]{12})$/iu.test(code)
+      ? code.toUpperCase()
+      : '';
+  const { allowed, loading: sessionLoading } = useRequireUser(
+    suppliedCode ? `/leagues/join?code=${suppliedCode}` : '/leagues/join',
+  );
   const router = useRouter();
-  const [inviteCode, setInviteCode] = useState('');
+  const [inviteCode, setInviteCode] = useState(suppliedCode);
+  useEffect(() => {
+    if (suppliedCode) setInviteCode(suppliedCode);
+  }, [suppliedCode]);
+  useEffect(() => {
+    let active = true;
+    if (allowed && suppliedCode && supabase)
+      void supabase
+        .from('leagues')
+        .select('id')
+        .eq('invite_code', suppliedCode)
+        .maybeSingle()
+        .then((result) => {
+          if (active && result.data?.id) router.replace(`/league/${result.data.id}`);
+        });
+    return () => {
+      active = false;
+    };
+  }, [allowed, suppliedCode, router]);
   const [teamName, setTeamName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

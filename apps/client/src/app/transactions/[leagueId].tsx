@@ -1,6 +1,6 @@
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { usePlayerInsights } from '@/hooks/use-player-insights';
 import {
@@ -27,6 +27,8 @@ import { useLeague } from '@/hooks/use-league';
 import { useTransactions } from '@/hooks/use-transactions';
 import { betaCommand } from '@/lib/web-api';
 
+import { useActionFeedback } from '@/providers/action-feedback-provider';
+import { InfoButton } from '@/components/info-button';
 import { useRequireUser } from '@/hooks/use-route-access';
 
 export default function TransactionsScreen() {
@@ -65,6 +67,7 @@ export default function TransactionsScreen() {
   }, [search, program, position, sort, router]);
   const transactions = useTransactions({
     leagueId,
+    myTeamId: leagueData.myTeamId,
     competitionId: leagueData.league?.competitionId,
     ...(leagueData.league?.playerPoolId ? { playerPoolId: leagueData.league.playerPoolId } : {}),
     rulesetId: leagueData.league?.rulesetId,
@@ -74,6 +77,17 @@ export default function TransactionsScreen() {
   const [offeredAthleteId, setOfferedAthleteId] = useState('');
   const [requestedAthleteId, setRequestedAthleteId] = useState('');
   const [working, setWorking] = useState<string | null>(null);
+  const actionKeys = useRef(new Map<string, string>());
+  const actionBusy = useRef(false);
+  const showFeedback = useActionFeedback();
+  const actionKey = (label: string) => {
+    let key = actionKeys.current.get(label);
+    if (!key) {
+      key = `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      actionKeys.current.set(label, key);
+    }
+    return key;
+  };
   const [message, setMessage] = useState<string | null>(null);
   const programs = useMemo(
     () =>
@@ -147,20 +161,59 @@ export default function TransactionsScreen() {
   }, [otherTeams, receivingTeamId]);
 
   const invoke = async (label: string, command: () => Promise<{ error: string | null }>) => {
-    if (working) return;
+    if (actionBusy.current) return;
+    actionBusy.current = true;
     setWorking(label);
     setMessage(null);
     try {
       const result = await command();
-      if (result.error) setMessage(result.error);
-      else {
-        setMessage('Transaction completed.');
+      if (result.error) {
+        setMessage(result.error);
+        showFeedback({ title: result.error, tone: 'error' });
+      } else {
+        actionKeys.current.clear();
+        const receipt = (
+          result as { data?: { process_after?: string; trade_id?: string; status?: string } }
+        ).data;
+        const text = label.startsWith('request_waiver')
+          ? `Waiver claim submitted${receipt?.process_after ? ' — processes ' + new Date(receipt.process_after).toLocaleString('en-CA', { timeZone: 'America/Toronto' }) : ''}. Check My claims for the outcome.`
+          : label.startsWith('add_free_agent')
+            ? 'Athlete added to your roster.'
+            : label === 'propose-trade'
+              ? 'Trade proposal sent.'
+              : label.startsWith('trade-response')
+                ? 'Trade response saved. Accepted trades enter review before athletes move.'
+                : label.startsWith('trade-cancel')
+                  ? 'Trade proposal cancelled.'
+                  : 'Trade veto vote recorded.';
+        setMessage(text);
+        showFeedback({
+          title: text,
+          tone: 'success',
+          ...(receipt?.trade_id && (label === 'propose-trade' || label.startsWith('trade-response'))
+            ? { eventKey: `trade:${receipt.trade_id}:${receipt.status ?? 'proposed'}` }
+            : label.startsWith('trade-cancel:')
+              ? { eventKey: `trade:${label.slice('trade-cancel:'.length)}:cancelled` }
+              : {}),
+        });
         setDropAthleteId(null);
-        await Promise.all([transactions.reload(), leagueData.reload(), insights.reload()]);
+        const refreshed = await Promise.allSettled([
+          transactions.reload(),
+          leagueData.reload(),
+          insights.reload(),
+        ]);
+        if (refreshed.some((result) => result.status === 'rejected' || result.value === false))
+          setMessage(
+            'Your transaction was saved, but the latest lists could not load. Refresh to see the result.',
+          );
       }
     } catch {
-      setMessage('The transaction could not be completed. Please retry.');
+      const error =
+        'The transaction result could not be confirmed. Retry to safely check the same request.';
+      setMessage(error);
+      showFeedback({ title: error, tone: 'error' });
     } finally {
+      actionBusy.current = false;
       setWorking(null);
     }
   };
@@ -173,7 +226,7 @@ export default function TransactionsScreen() {
         p_fantasy_team_id: myTeamId,
         p_athlete_in_id: athleteId,
         p_athlete_out_id: dropAthleteId,
-        p_idempotency_key: `${command}-${Date.now()}-${athleteId}`,
+        p_idempotency_key: actionKey(`${command}:${athleteId}:${dropAthleteId ?? 'none'}`),
       });
     });
   };
@@ -187,7 +240,9 @@ export default function TransactionsScreen() {
         p_offered_athlete_ids: [offeredAthleteId],
         p_requested_athlete_ids: [requestedAthleteId],
         p_expires_at: new Date(Date.now() + 2 * 86_400_000).toISOString(),
-        p_idempotency_key: `trade-${Date.now()}`,
+        p_idempotency_key: actionKey(
+          `trade:${receivingTeamId}:${offeredAthleteId}:${requestedAthleteId}`,
+        ),
       });
     });
   };
@@ -197,7 +252,7 @@ export default function TransactionsScreen() {
       return betaCommand('respond_to_trade', {
         p_trade_id: tradeId,
         p_accept: accept,
-        p_idempotency_key: `trade-response-${Date.now()}`,
+        p_idempotency_key: actionKey(`response:${tradeId}:${accept}`),
       });
     });
   };
@@ -206,7 +261,7 @@ export default function TransactionsScreen() {
     await invoke(`trade-cancel:${tradeId}`, async () => {
       return betaCommand('cancel_trade', {
         p_trade_id: tradeId,
-        p_idempotency_key: `trade-cancel-${Date.now()}`,
+        p_idempotency_key: actionKey(`cancel:${tradeId}`),
       });
     });
   };
@@ -499,7 +554,43 @@ export default function TransactionsScreen() {
         </>
       ) : null}
 
+      <SectionTitle title="My claims" />
+      <InfoButton topic="waivers" />
+      <Card>
+        {transactions.claims.length ? (
+          transactions.claims.map((claim) => (
+            <View key={claim.id} style={{ gap: 6, paddingVertical: 12 }}>
+              <Text style={uiStyles.body}>
+                {athleteName(claim.athlete_in_id)}
+                {claim.athlete_out_id
+                  ? ` · conditional drop: ${athleteName(claim.athlete_out_id)}`
+                  : ''}
+              </Text>
+              <Pill
+                label={
+                  claim.status === 'pending'
+                    ? 'PENDING · NOT YET ACQUIRED'
+                    : claim.status.toUpperCase()
+                }
+                tone={claim.status === 'successful' ? 'positive' : 'info'}
+              />
+              <Text style={uiStyles.body}>
+                Processes{' '}
+                {new Date(claim.process_after).toLocaleString('en-CA', {
+                  timeZone: 'America/Toronto',
+                })}
+              </Text>
+              {claim.outcome_reason ? (
+                <Text style={uiStyles.body}>{claim.outcome_reason}</Text>
+              ) : null}
+            </View>
+          ))
+        ) : (
+          <Text style={uiStyles.body}>No waiver claims submitted.</Text>
+        )}
+      </Card>
       <SectionTitle title="Trade history" />
+      <InfoButton topic="trades" />
       {transactions.trades.length === 0 ? (
         <EmptyState
           title="No trades"
@@ -583,6 +674,7 @@ export default function TransactionsScreen() {
         />
       </View>
       <PlayerInsightsPanel
+        leagueId={leagueId}
         athleteId={athleteId}
         player={athleteId ? insights.byId.get(athleteId) : undefined}
         loading={insights.loading}

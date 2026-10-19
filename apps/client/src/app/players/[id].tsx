@@ -1,10 +1,11 @@
+import { HistoricalGameLogs } from '@/components/historical-game-logs';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { formatFantasyPoints } from '@brock-fantasy/domain';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { BETA_SEASON, playerMetrics } from '@brock-fantasy/domain';
+import { BETA_SEASON, gameProjection, playerMetrics } from '@brock-fantasy/domain';
 import {
   ActionButton,
   AppShell,
@@ -23,8 +24,9 @@ import { useRequireUser } from '@/hooks/use-route-access';
 import { useSession } from '@/providers/session-provider';
 import { loadPlayerAdps, adpLabel, type PlayerAdp } from '@/lib/player-adp';
 import { programNames } from '@/lib/player-program';
-import { RulesLink } from '@/components/rules-link';
-import { usePlayerInsights } from '@/hooks/use-player-insights';
+import { InfoButton } from '@/components/info-button';
+import { PlayerForecastPanel } from '@/components/player-forecast';
+import { PlayerTradeAction } from '@/components/player-trade-action';
 import { PendingConfirmation, gameTime, projectedPoints } from '@/components/player-insights';
 
 interface AthleteRow {
@@ -84,9 +86,7 @@ export default function PlayerScreen() {
   const uiStyles = useUiStyles();
   const access = useRequireUser();
   const { user } = useSession();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const insights = usePlayerInsights(undefined, id);
-  const insight = insights.byId.get(id);
+  const { id, leagueId } = useLocalSearchParams<{ id: string; leagueId?: string }>();
   const [athlete, setAthlete] = useState<AthleteRow | null>(null);
   const [memberships, setMemberships] = useState<readonly MembershipRow[]>([]);
   const [stats, setStats] = useState<readonly StatRow[]>([]);
@@ -236,6 +236,7 @@ export default function PlayerScreen() {
   const total = logs.reduce((sum, line) => sum + (line.scored ?? 0), 0);
   const lastUpdated = stats[0]?.updated_at;
   const metrics = playerMetrics(athlete?.bio ?? {}, history, BETA_SEASON);
+  const baseline = gameProjection(metrics.projectedPoints, metrics.projectedGames);
   const visibleHistory = useMemo(
     () => history.filter((item) => !season || item.season_label === season),
     [history, season],
@@ -309,21 +310,23 @@ export default function PlayerScreen() {
                 {adp?.average?.toFixed(1) ?? metrics.suppliedAdp?.toFixed(1) ?? '—'}
               </Text>
               <Text style={styles.note}>{adpError ?? adpLabel(adp)}</Text>
-              <Text style={styles.note}>
-                Supplied ADP: {adp?.base ?? metrics.suppliedAdp ?? '—'}
-              </Text>
             </Card>
             <Card style={styles.metric}>
               <Text style={styles.metricLabel}>NEXT GAME / LOCK</Text>
               <Text style={styles.next}>
-                {nextGame ? new Date(nextGame.starts_at).toLocaleString() : 'No scheduled game'}
+                {nextGame ? gameTime(nextGame.starts_at) : 'No scheduled game'}
               </Text>
               <Text style={styles.note}>
                 Locks at scheduled game start and unlocks when that game is marked finished.
               </Text>
             </Card>
           </View>
-          <RulesLink section="stats" label="How projected points and ADP work" />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <InfoButton topic="projection" />
+            <InfoButton topic="adp" />
+            <InfoButton topic="locks" />
+          </View>
+          <PlayerTradeAction athleteId={id} leagueId={leagueId} />
           <SectionTitle
             title="Season schedule and game log"
             detail={`${memberships.flatMap((membership) => membership.positions).join(' / ') || athlete.position} · ${lastUpdated ? `updated ${new Date(lastUpdated).toLocaleString()}` : 'No current statistics'}`}
@@ -372,11 +375,11 @@ export default function PlayerScreen() {
                   <Text style={styles.points}>
                     {line.complete && line.scored !== null
                       ? `${formatFantasyPoints(line.scored)} pts`
-                      : line.game.status === 'final'
-                        ? 'Stats pending'
-                        : line.game.status === 'scheduled'
-                          ? 'Upcoming'
-                          : line.game.status}
+                      : ['cancelled', 'postponed'].includes(line.game.status)
+                        ? line.game.status
+                        : Date.parse(line.game.starts_at) <= Date.now()
+                          ? `Stats pending · estimate ${projectedPoints(baseline)}`
+                          : `Projected: ${projectedPoints(baseline)}`}
                   </Text>
                 </View>
               ))}
@@ -443,20 +446,8 @@ export default function PlayerScreen() {
               </Text>
             ) : null}
           </Card>
-          <SectionTitle title="Next-period forecast" />
-          <Card>
-            <Text style={uiStyles.body}>{projectedPoints(insight?.nextProjection)}</Text>
-            {insight?.period ? (
-              <Text style={uiStyles.body}>
-                Period {insight.period.number} · {gameTime(insight.period.startsAt)} –{' '}
-                {gameTime(insight.period.endsAt)} · {insight.scheduledGames} games
-              </Text>
-            ) : null}
-            <Text style={uiStyles.body}>
-              Supplied season points ÷ projected games × scheduled games in the next fantasy period
-            </Text>
-            {insight?.pending ? <PendingConfirmation /> : null}
-          </Card>
+          <PlayerForecastPanel athleteId={id} />
+          <HistoricalGameLogs athleteId={id} />
         </>
       )}
       <View style={styles.backToPlayers}>

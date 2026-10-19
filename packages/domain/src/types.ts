@@ -172,6 +172,8 @@ export interface FantasyPointEvent {
 }
 
 export interface MatchupResult {
+  startsAt?: string;
+  endsAt?: string;
   id: UUID;
   leagueId: UUID;
   period: number;
