@@ -86,8 +86,8 @@ export default function NotificationsScreen() {
                     {new Date(String(n.data.starts_at ?? n.data.scheduled_for)).toLocaleString(
                       'en-CA',
                       { timeZone: 'America/Toronto' },
-                    )}{' '}
-                    · Toronto time
+                    )}
+                    , Toronto time
                   </Text>
                 ) : null}
                 <Text style={styles.time}>

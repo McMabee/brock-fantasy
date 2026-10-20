@@ -154,7 +154,7 @@ export default function PlayerDirectoryScreen() {
 
   return (
     <AppShell
-      eyebrow={`Brock six-program pool · ${BETA_SEASON}`}
+      eyebrow={`Brock six-program pool, ${BETA_SEASON}`}
       title="Players"
       action={<Pill label={loading ? 'LOADING' : `${players.length} PLAYERS`} tone="info" />}
     >
@@ -282,12 +282,12 @@ export default function PlayerDirectoryScreen() {
                     <View style={styles.copy}>
                       <Text style={styles.name}>{player.display_name}</Text>
                       <Text style={styles.meta}>
-                        {programs[player.bio.program ?? ''] ?? 'Brock Badgers'} ·{' '}
+                        {programs[player.bio.program ?? ''] ?? 'Brock Badgers'},{' '}
                         {player.bio.sourcePosition ?? player.position}
-                        {player.jersey_number !== null ? ` · #${player.jersey_number}` : ''}
+                        {player.jersey_number !== null ? `, #${player.jersey_number}` : ''}
                       </Text>
                       <Text style={styles.meta}>
-                        Height {metrics.heightLabel} · ADP{' '}
+                        Height {metrics.heightLabel}, ADP{' '}
                         {adps[player.id]?.average?.toFixed(1) ??
                           metrics.suppliedAdp?.toFixed(1) ??
                           '—'}

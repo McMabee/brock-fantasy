@@ -126,11 +126,13 @@ export default function NewLeagueScreen() {
         </View>
 
         <View style={styles.ruleSummary}>
-          <Pill label="HEAD-TO-HEAD · 10 ROUNDS" tone="info" />
+          <Pill label="HEAD-TO-HEAD, 10 ROUNDS" tone="info" />
           <Text style={styles.ruleText}>
             Each roster has seven starters, including FLEX, and three bench positions. Leagues with
             a varsity athlete or coach use two starters of any position per sport, plus FLEX. Draft
-            order is randomized once, with two-minute snake-draft picks and server-side autopicks.
+            order is randomized once, with snake-draft picks and server-side autopicks. Each pick
+            defaults to two minutes; commissioners can change the timer before starting the draft,
+            with a minimum of 20 seconds.
           </Text>
           <RulesLink label="Read the league rules before creating a team" />
         </View>

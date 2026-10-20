@@ -79,36 +79,44 @@ export function LeagueSettings({ data }: { data: ReturnType<typeof useLeague> })
           <RulesLink label="League rules & how to play" />
         </View>
       </Card>
-      <SectionTitle title="Draft" />
-      <Card style={{ gap: 14 }}>
-        {data.draftStatus === 'complete' && data.draftId ? (
-          <ActionButton
-            label="View draft results"
-            href={`/draft-results/${data.draftId}`}
-            variant="secondary"
-          />
-        ) : (
-          <>
-            <Text style={styles.body}>
-              {data.draftId
-                ? 'Draft results will be available when the draft finishes.'
-                : 'The commissioner will set up your draft.'}
-            </Text>
-            {data.draftId &&
-            data.draftStatus &&
-            ['active', 'paused', 'scheduled'].includes(data.draftStatus) ? (
+      {data.league.commissionerId !== user?.id ? (
+        <>
+          <SectionTitle title="Draft" />
+          <Card style={{ gap: 14 }}>
+            {data.draftStatus === 'complete' && data.draftId ? (
               <ActionButton
-                label="Open draft room"
-                href={`/draft/${data.draftId}`}
+                label="View draft results"
+                href={`/draft-results/${data.draftId}`}
                 variant="secondary"
               />
-            ) : null}
-          </>
-        )}
-      </Card>
+            ) : (
+              <>
+                <Text style={styles.body}>
+                  {data.draftId
+                    ? 'Draft results will be available when the draft finishes.'
+                    : 'The commissioner will set up your draft.'}
+                </Text>
+                {data.draftId &&
+                data.draftStatus &&
+                ['active', 'paused', 'scheduled'].includes(data.draftStatus) ? (
+                  <ActionButton
+                    label="Open draft room"
+                    href={`/draft/${data.draftId}`}
+                    variant="secondary"
+                  />
+                ) : null}
+              </>
+            )}
+          </Card>
+        </>
+      ) : null}
       {data.league.commissionerId === user?.id ? (
         <>
-          <SectionTitle title="Commissioner settings" detail="Only visible to you" />
+          <SectionTitle title="Commissioner controls" />
+          <Text style={styles.body}>
+            Manage draft timing, matchup setup and league deletion below. Draft timing is locked
+            after the draft starts.
+          </Text>
           <CommissionerControls leagueId={data.league.id} leagueData={data} />
         </>
       ) : null}

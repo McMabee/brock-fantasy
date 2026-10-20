@@ -40,6 +40,7 @@ export function CommissionerControls({
   const router = useRouter();
   const { user } = useSession();
   const [config, setConfig] = useState<DraftConfig | null>(null);
+  const [pickDuration, setPickDuration] = useState('');
   const [scheduleStart, setScheduleStart] = useState(
     new Date(Date.now() + 7 * 86_400_000).toISOString(),
   );
@@ -90,21 +91,18 @@ export function CommissionerControls({
   const deletePending = useRef(false);
   const authorized = Boolean(user && leagueData.league?.commissionerId === user.id);
 
+  const rulesetId = leagueData.league?.rulesetId;
+  const savedPickSeconds = leagueData.league?.draftPickSeconds;
   useEffect(() => {
-    if (!supabase || !leagueData.league) return;
+    if (!supabase || !rulesetId) return;
+    let active = true;
     const client = supabase;
     const load = async () => {
       const [rulesetResult, slotsResult] = await Promise.all([
-        client
-          .from('scoring_rulesets')
-          .select('draft_config')
-          .eq('id', leagueData.league?.rulesetId ?? '')
-          .single(),
-        client
-          .from('roster_slot_rules')
-          .select('slot_count')
-          .eq('ruleset_id', leagueData.league?.rulesetId ?? ''),
+        client.from('scoring_rulesets').select('draft_config').eq('id', rulesetId).single(),
+        client.from('roster_slot_rules').select('slot_count').eq('ruleset_id', rulesetId),
       ]);
+      if (!active) return;
       const error = rulesetResult.error ?? slotsResult.error;
       if (error) {
         setMessage(error.message);
@@ -115,7 +113,7 @@ export function CommissionerControls({
         return;
       }
       const ruleset: RulesetRow = rulesetResult.data;
-      const seconds = ruleset.draft_config.pickSeconds;
+      const seconds = savedPickSeconds ?? ruleset.draft_config.pickSeconds;
       const rounds = (slotsResult.data as SlotCountRow[]).reduce(
         (total, slot) => total + slot.slot_count,
         0,
@@ -125,9 +123,37 @@ export function CommissionerControls({
         return;
       }
       setConfig({ rounds, pickSeconds: seconds });
+      setPickDuration(String(seconds));
     };
     void load();
-  }, [leagueData.league]);
+    return () => {
+      active = false;
+    };
+  }, [leagueId, rulesetId, savedPickSeconds]);
+
+  const validPickDuration =
+    /^\d+$/.test(pickDuration) && Number(pickDuration) >= 20 && Number(pickDuration) <= 86400;
+  const savePickDuration = async () => {
+    if (!leagueData.league || !validPickDuration || working) return;
+    setWorking(true);
+    try {
+      const result = await betaCommand('set_league_pick_duration', {
+        p_league_id: leagueId,
+        p_pick_seconds: Number(pickDuration),
+        p_expected_version: leagueData.league.stateVersion,
+        p_idempotency_key: crypto.randomUUID(),
+      });
+      if (result.error) setMessage(result.error);
+      else {
+        setMessage('Pick timer saved. Autodraft takes over when this time expires.');
+        await leagueData.reload();
+      }
+    } catch {
+      setMessage('Unable to save the pick timer. Refresh and try again.');
+    } finally {
+      setWorking(false);
+    }
+  };
 
   const startDraft = async () => {
     if (!config || !leagueId) return;
@@ -237,7 +263,7 @@ export function CommissionerControls({
   }
 
   return (
-    <>
+    <View style={{ gap: 18 }}>
       {message ? (
         <Text accessibilityRole="alert" style={styles.message}>
           {message}
@@ -312,14 +338,54 @@ export function CommissionerControls({
         <Text style={styles.title}>{leagueData.league?.name ?? 'Loading league…'}</Text>
         <Text style={uiStyles.body}>
           {config
-            ? `${config.rounds} rounds · ${config.pickSeconds} seconds per pick · snake order`
+            ? `${config.rounds} rounds, ${config.pickSeconds} seconds per pick, snake order`
             : 'Loading approved rules…'}
         </Text>
+        {!leagueData.draftId && leagueData.league?.status === 'setup' ? (
+          <View style={styles.field}>
+            <Text style={uiStyles.label}>Seconds per pick</Text>
+            <Text style={uiStyles.body}>
+              Set how long each manager has to pick before autodraft takes over. Choose a whole
+              number from 20 to 86,400 seconds.
+            </Text>
+            <TextInput
+              accessibilityLabel="Seconds per draft pick"
+              inputMode="numeric"
+              value={pickDuration}
+              onChangeText={setPickDuration}
+              editable={!working && !deleting}
+              maxLength={5}
+              style={uiStyles.input}
+            />
+            {pickDuration && !validPickDuration ? (
+              <Text accessibilityRole="alert" style={uiStyles.body}>
+                Enter a whole number from 20 to 86,400 seconds.
+              </Text>
+            ) : null}
+            <ActionButton
+              label="Save pick timer"
+              onPress={() => void savePickDuration()}
+              disabled={
+                !config ||
+                !validPickDuration ||
+                Number(pickDuration) === config.pickSeconds ||
+                working ||
+                deleting
+              }
+              variant="secondary"
+            />
+          </View>
+        ) : null}
         {!leagueData.draftId ? (
           <ActionButton
             label="Start draft"
             onPress={() => void startDraft()}
-            disabled={!config || leagueData.teams.length < 2 || deleting}
+            disabled={
+              !config ||
+              Number(pickDuration) !== config.pickSeconds ||
+              leagueData.teams.length < 2 ||
+              deleting
+            }
             loading={working}
           />
         ) : (
@@ -412,8 +478,10 @@ export function CommissionerControls({
       ) : null}
       {authorized && leagueData.league ? (
         <>
-          <SectionTitle title="Delete league" detail="Commissioner only" />
           <Card style={styles.card}>
+            <Text accessibilityRole="header" style={styles.title}>
+              Delete league
+            </Text>
             <Text style={uiStyles.body}>
               Permanently delete {leagueData.league.name} and every manager’s fantasy team, draft,
               roster, matchups, and league chat. This cannot be undone.
@@ -484,14 +552,14 @@ export function CommissionerControls({
           disabled={deleting}
         />
       </View>
-    </>
+    </View>
   );
 }
 
 const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
   StyleSheet.create({
     message: { fontFamily: 'Inter', color: colors.text, fontSize: 12, marginBottom: 10 },
-    card: { maxWidth: 720, gap: 14 },
+    card: { width: '100%', gap: 14 },
     title: { ...heading, fontSize: 20, color: colors.text },
     actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
     field: { gap: 7 },

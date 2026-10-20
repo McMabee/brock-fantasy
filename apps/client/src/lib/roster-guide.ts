@@ -42,7 +42,7 @@ export const ROSTER_GUIDE: readonly {
     shortLabel: 'Libero / setter',
     count: 1,
   },
-  { code: 'FLEX', label: 'FLEX · any sport or position', icon: '⭐', shortLabel: 'FLEX', count: 1 },
+  { code: 'FLEX', label: 'FLEX, any sport or position', icon: '⭐', shortLabel: 'FLEX', count: 1 },
   { code: 'BN', label: 'Bench', icon: '🪑', shortLabel: 'Bench', count: 3 },
 ];
 const SLOT_LABELS = new Map(
@@ -51,11 +51,11 @@ const SLOT_LABELS = new Map(
 
 export function rosterSlotLabel(code: string, varsity = false): string {
   if (varsity && code.startsWith('HK_'))
-    return `🏒 Hockey ${code === 'HK_F' ? 1 : 2} · any position`;
+    return `🏒 Hockey ${code === 'HK_F' ? 1 : 2}, any position`;
   if (varsity && code.startsWith('BB_'))
-    return `🏀 Basketball ${code === 'BB_BC' ? 1 : 2} · any position`;
+    return `🏀 Basketball ${code === 'BB_BC' ? 1 : 2}, any position`;
   if (varsity && code.startsWith('VB_'))
-    return `🏐 Volleyball ${code === 'VB_HT' ? 1 : 2} · any position`;
+    return `🏐 Volleyball ${code === 'VB_HT' ? 1 : 2}, any position`;
   return SLOT_LABELS.get(code as BetaSlot) ?? code.replaceAll('_', ' ');
 }
 

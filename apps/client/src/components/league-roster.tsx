@@ -48,7 +48,7 @@ export function LeagueRoster({
       <SectionTitle
         title={teamName}
         detail={
-          betaLeague ? `${starters.length}/7 starters · ${bench.length}/3 bench` : 'Your athletes'
+          betaLeague ? `${starters.length}/7 starters, ${bench.length}/3 bench` : 'Your athletes'
         }
       />
       {betaLeague ? (
@@ -56,8 +56,8 @@ export function LeagueRoster({
           <Card style={{ gap: 8 }}>
             {varsity ? (
               <Text style={uiStyles.body}>
-                Varsity format · two athletes of any position per sport, one any-sport FLEX and
-                three shared bench spots
+                Varsity format, two athletes of any position per sport, one any-sport FLEX and three
+                shared bench spots
               </Text>
             ) : null}
             <Text style={uiStyles.body}>
@@ -105,7 +105,7 @@ export function LeagueRoster({
                     ))
                   ) : (
                     <Text style={styles.emptySlot}>
-                      Empty spot · add an eligible athlete or update your lineup
+                      Empty spot, add an eligible athlete or update your lineup
                     </Text>
                   )}
                 </View>
@@ -113,8 +113,8 @@ export function LeagueRoster({
             })}
           </Card>
           <SectionTitle
-            title={`${rosterSlotLabel('BN')} · ${bench.length}/3`}
-            detail="Reserves · points do not count toward your matchup"
+            title={`${rosterSlotLabel('BN')}, ${bench.length}/3`}
+            detail="Reserves, points do not count toward your matchup"
           />
           <Card>
             {bench.length ? (
@@ -200,11 +200,11 @@ function RosterAthlete({
         <Text style={styles.rosterName}>{entry.displayName}</Text>
         <Text style={styles.rosterMeta}>
           {entry.programName.replace(/^Brock /u, '')}
-          {entry.jerseyNumber !== null ? ` · #${entry.jerseyNumber}` : ''}
+          {entry.jerseyNumber !== null ? `, #${entry.jerseyNumber}` : ''}
         </Text>
         <Text style={styles.rosterMeta}>
           Player position: {betaLeague ? positionLabel(entry.position) : entry.position}
-          {!betaLeague ? ` · Assigned to ${rosterSlotLabel(entry.slotCode)} · ${entry.status}` : ''}
+          {!betaLeague ? `, Assigned to ${rosterSlotLabel(entry.slotCode)}, ${entry.status}` : ''}
         </Text>
       </View>
     </Pressable>

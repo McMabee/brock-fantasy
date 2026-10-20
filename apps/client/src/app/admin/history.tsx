@@ -79,89 +79,91 @@ export default function HistoricalPublicationScreen() {
   if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
     <AppShell title="Review historical game logs">
-      <Card style={{ gap: 14 }}>
-        <Text style={ui.body}>
-          Use the official-source research output. The server validates current participation,
-          career identity evidence and archival dates, then calculates points using the current
-          rules. This archive is isolated from live scoring.
-        </Text>
-        <TextInput
-          accessibilityLabel="Historical appearance records JSON"
-          value={input}
-          onChangeText={(value) => {
-            setInput(value);
-            setBatch(null);
-          }}
-          multiline
-          maxLength={10000000}
-          style={[ui.input, { minHeight: 160 }]}
-        />
-        <ActionButton
-          label="Validate and preview historical batch"
-          onPress={() => void stage()}
-          loading={busy}
-          disabled={!input.trim() || busy}
-        />
-        <Text accessibilityLiveRegion="polite" style={ui.body}>
-          {message}
-        </Text>
-        {batch ? (
-          <>
-            <Text style={ui.title}>
-              {batch.rows.length} appearances · {batch.rows.filter((row) => row.complete).length}{' '}
-              with complete scoring inputs
-            </Text>
-            {batch.rows.slice(page * 50, (page + 1) * 50).map((row) => (
-              <View
-                key={`${row.athlete_id}:${row.source_url}`}
-                style={{ gap: 4, paddingVertical: 8 }}
-              >
-                <Text style={ui.body}>
-                  {row.athlete_name} · {row.played_at} · {row.opponent}
-                </Text>
-                <Text style={ui.body}>
-                  {row.complete
-                    ? `${row.fantasy_points} FP under current rules`
-                    : `Incomplete: ${row.missing_stats.join(', ')}`}
-                </Text>
-                <Text selectable style={ui.body}>
-                  {row.source_url}
-                </Text>
+      <View style={{ gap: 20 }}>
+        <Card style={{ gap: 14 }}>
+          <Text style={ui.body}>
+            Use the official-source research output. The server validates current participation,
+            career identity evidence and archival dates, then calculates points using the current
+            rules. This archive is isolated from live scoring.
+          </Text>
+          <TextInput
+            accessibilityLabel="Historical appearance records JSON"
+            value={input}
+            onChangeText={(value) => {
+              setInput(value);
+              setBatch(null);
+            }}
+            multiline
+            maxLength={10000000}
+            style={[ui.input, { minHeight: 160 }]}
+          />
+          <ActionButton
+            label="Validate and preview historical batch"
+            onPress={() => void stage()}
+            loading={busy}
+            disabled={!input.trim() || busy}
+          />
+          <Text accessibilityLiveRegion="polite" style={ui.body}>
+            {message}
+          </Text>
+          {batch ? (
+            <>
+              <Text style={ui.title}>
+                {batch.rows.length} appearances, {batch.rows.filter((row) => row.complete).length}{' '}
+                with complete scoring inputs
+              </Text>
+              {batch.rows.slice(page * 50, (page + 1) * 50).map((row) => (
+                <View
+                  key={`${row.athlete_id}:${row.source_url}`}
+                  style={{ gap: 4, paddingVertical: 8 }}
+                >
+                  <Text style={ui.body}>
+                    {row.athlete_name}, {row.played_at}, {row.opponent}
+                  </Text>
+                  <Text style={ui.body}>
+                    {row.complete
+                      ? `${row.fantasy_points} FP under current rules`
+                      : `Incomplete: ${row.missing_stats.join(', ')}`}
+                  </Text>
+                  <Text selectable style={ui.body}>
+                    {row.source_url}
+                  </Text>
+                </View>
+              ))}
+              <Text style={ui.body}>
+                Page {page + 1} of {Math.ceil(batch.rows.length / 50)}, 50 appearances per page
+              </Text>
+              <View style={{ gap: 10 }}>
+                <ActionButton
+                  label="Previous historical appearances"
+                  onPress={() => setPage((value) => value - 1)}
+                  disabled={page === 0}
+                  variant="secondary"
+                />
+                <ActionButton
+                  label="Next historical appearances"
+                  onPress={() => setPage((value) => value + 1)}
+                  disabled={(page + 1) * 50 >= batch.rows.length}
+                  variant="secondary"
+                />
               </View>
-            ))}
-            <Text style={ui.body}>
-              Page {page + 1} of {Math.ceil(batch.rows.length / 50)} · 50 appearances per page
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <ActionButton
-                label="Previous historical appearances"
-                onPress={() => setPage((value) => value - 1)}
-                disabled={page === 0}
-                variant="secondary"
+              <TextInput
+                accessibilityLabel="Historical publication review reason"
+                value={reason}
+                onChangeText={setReason}
+                maxLength={500}
+                style={ui.input}
               />
               <ActionButton
-                label="Next historical appearances"
-                onPress={() => setPage((value) => value + 1)}
-                disabled={(page + 1) * 50 >= batch.rows.length}
-                variant="secondary"
+                label="Publish reviewed historical batch"
+                onPress={() => void publish()}
+                disabled={reason.trim().length < 5 || busy}
               />
-            </View>
-            <TextInput
-              accessibilityLabel="Historical publication review reason"
-              value={reason}
-              onChangeText={setReason}
-              maxLength={500}
-              style={ui.input}
-            />
-            <ActionButton
-              label="Publish reviewed historical batch"
-              onPress={() => void publish()}
-              disabled={reason.trim().length < 5 || busy}
-            />
-          </>
-        ) : null}
-      </Card>
-      <ActionButton label="Back to admin" href="/admin" variant="secondary" />
+            </>
+          ) : null}
+        </Card>
+        <ActionButton label="Back to admin" href="/admin" variant="secondary" />
+      </View>
     </AppShell>
   );
 }

@@ -51,8 +51,10 @@ export function useMyLeagues() {
         const { data, error } = await client
           .from('leagues')
           .select(
-            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version',
+            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version, league_members!inner(user_id)',
           )
+          // - Keep personal membership separate from an MFA administrator's oversight access
+          .eq('league_members.user_id', userId)
           .order('created_at', { ascending: false });
         if (!active) return;
         if (error) throw error;

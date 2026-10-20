@@ -22,7 +22,7 @@ import { supabase } from '@/lib/supabase';
 
 import { useRequireUser } from '@/hooks/use-route-access';
 import { useSession } from '@/providers/session-provider';
-import { loadPlayerAdps, adpLabel, type PlayerAdp } from '@/lib/player-adp';
+import { loadPlayerAdps, type PlayerAdp } from '@/lib/player-adp';
 import { programNames } from '@/lib/player-program';
 import { InfoButton } from '@/components/info-button';
 import { PlayerForecastPanel } from '@/components/player-forecast';
@@ -279,40 +279,53 @@ export default function PlayerScreen() {
             />
             <View style={{ flex: 1, minWidth: 150, gap: 8 }}>
               <Text style={uiStyles.body}>
-                {programNames[String(athlete.bio.program)] ?? 'Brock athlete'} ·{' '}
+                {programNames[String(athlete.bio.program)] ?? 'Brock athlete'},{' '}
                 {athlete.bio.sourcePosition ?? athlete.position}
-                {athlete.jersey_number !== null ? ` · #${athlete.jersey_number}` : ''}
-                {athlete.bio.eligibility ? ` · ${athlete.bio.eligibility}` : ''}
+                {athlete.jersey_number !== null ? `, #${athlete.jersey_number}` : ''}
+                {athlete.bio.eligibility ? `, ${athlete.bio.eligibility}` : ''}
               </Text>
               {athlete.bio.major || athlete.bio.hometown ? (
                 <Text style={uiStyles.body}>
-                  {[athlete.bio.major, athlete.bio.hometown].filter(Boolean).join(' · ')}
+                  {[athlete.bio.major, athlete.bio.hometown].filter(Boolean).join(', ')}
                 </Text>
               ) : null}
-              <Text style={uiStyles.body}>Height · {metrics.heightLabel}</Text>
+              <Text style={uiStyles.body}>Height, {metrics.heightLabel}</Text>
             </View>
           </Card>
           <View style={styles.summary}>
             <Card style={styles.metric}>
-              <Text style={styles.metricLabel}>{BETA_SEASON} PROJECTED FP</Text>
+              <View style={styles.metricHeading}>
+                <Text style={styles.metricLabel}>{BETA_SEASON} PROJECTED FP</Text>
+                <InfoButton topic="projection" />
+              </View>
               <Text style={styles.metricValue}>{metrics.projectedPoints ?? '—'}</Text>
-              <Text style={styles.note}>
-                {metrics.projectedGames ?? '—'} projected games · supplied season projection
-              </Text>
             </Card>
             <Card style={styles.metric}>
-              <Text style={styles.metricLabel}>CURRENT POINTS</Text>
+              <View style={styles.metricHeading}>
+                <Text style={styles.metricLabel}>CURRENT POINTS</Text>
+                <InfoButton topic="points" />
+              </View>
               <Text style={styles.metricValue}>{formatFantasyPoints(total)}</Text>
             </Card>
             <Card style={styles.metric}>
-              <Text style={styles.metricLabel}>ADP</Text>
+              <View style={styles.metricHeading}>
+                <Text style={styles.metricLabel}>ADP</Text>
+                <InfoButton topic="adp" />
+              </View>
               <Text style={styles.metricValue}>
                 {adp?.average?.toFixed(1) ?? metrics.suppliedAdp?.toFixed(1) ?? '—'}
               </Text>
-              <Text style={styles.note}>{adpError ?? adpLabel(adp)}</Text>
+              {adpError ? (
+                <Text accessibilityRole="alert" style={styles.note}>
+                  {adpError}
+                </Text>
+              ) : null}
             </Card>
             <Card style={styles.metric}>
-              <Text style={styles.metricLabel}>NEXT GAME / LOCK</Text>
+              <View style={styles.metricHeading}>
+                <Text style={styles.metricLabel}>NEXT GAME / LOCK</Text>
+                <InfoButton topic="locks" />
+              </View>
               <Text style={styles.next}>
                 {nextGame ? gameTime(nextGame.starts_at) : 'No scheduled game'}
               </Text>
@@ -321,15 +334,10 @@ export default function PlayerScreen() {
               </Text>
             </Card>
           </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <InfoButton topic="projection" />
-            <InfoButton topic="adp" />
-            <InfoButton topic="locks" />
-          </View>
           <PlayerTradeAction athleteId={id} leagueId={leagueId} />
           <SectionTitle
             title="Season schedule and game log"
-            detail={`${memberships.flatMap((membership) => membership.positions).join(' / ') || athlete.position} · ${lastUpdated ? `updated ${new Date(lastUpdated).toLocaleString()}` : 'No current statistics'}`}
+            detail={`${memberships.flatMap((membership) => membership.positions).join(' / ') || athlete.position}, ${lastUpdated ? `updated ${new Date(lastUpdated).toLocaleString()}` : 'No current statistics'}`}
           />
           {!logs.length ? (
             <EmptyState
@@ -347,7 +355,7 @@ export default function PlayerScreen() {
                     <Text style={styles.logDate}>{gameTime(line.game.starts_at)}</Text>
                     <Text style={styles.note}>
                       {line.game.neutral_site
-                        ? 'Neutral · vs '
+                        ? 'Neutral, vs '
                         : line.game.home_team_id &&
                             memberships.some(
                               (membership) => membership.team_id === line.game.home_team_id,
@@ -360,15 +368,15 @@ export default function PlayerScreen() {
                         )
                           ? line.game.away
                           : line.game.home,
-                      )?.name ?? 'Opponent pending'}{' '}
-                      · {line.game.status}
+                      )?.name ?? 'Opponent pending'}
+                      , {line.game.status}
                     </Text>
                     {line.game.schedule_confirmed === false ? <PendingConfirmation /> : null}
                     {Object.keys(line.stats).length ? (
                       <Text style={styles.note}>
                         {Object.entries(line.stats)
                           .map(([key, value]) => `${key.replaceAll('_', ' ')}: ${value ?? '—'}`)
-                          .join(' · ')}
+                          .join(', ')}
                       </Text>
                     ) : null}
                   </View>
@@ -378,7 +386,7 @@ export default function PlayerScreen() {
                       : ['cancelled', 'postponed'].includes(line.game.status)
                         ? line.game.status
                         : Date.parse(line.game.starts_at) <= Date.now()
-                          ? `Stats pending · estimate ${projectedPoints(baseline)}`
+                          ? `Stats pending, estimate ${projectedPoints(baseline)}`
                           : `Projected: ${projectedPoints(baseline)}`}
                   </Text>
                 </View>
@@ -431,11 +439,9 @@ export default function PlayerScreen() {
               >
                 <View>
                   <Text style={styles.logDate}>
-                    {item.season_label} · {item.kind.replaceAll('_', ' ')}
+                    {item.season_label}, {item.kind.replaceAll('_', ' ')}
                   </Text>
-                  <Text style={styles.note}>
-                    {item.games_played ?? '—'} games · supplied record
-                  </Text>
+                  <Text style={styles.note}>{item.games_played ?? '—'} games, supplied record</Text>
                 </View>
                 <Text style={styles.points}>{item.fantasy_points ?? '—'}</Text>
               </View>
@@ -470,6 +476,12 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     error: { fontFamily: 'Inter', color: colors.text, fontSize: 12, marginBottom: 12 },
     summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 22 },
     metric: { flex: 1, minWidth: 190, gap: 5 },
+    metricHeading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
     metricLabel: {
       fontFamily: 'Inter',
       color: colors.muted,

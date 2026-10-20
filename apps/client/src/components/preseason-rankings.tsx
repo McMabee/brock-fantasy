@@ -85,7 +85,7 @@ export function PreseasonRankings() {
       </Text>
       {state.data?.publication ? (
         <Text style={ui.body}>
-          Reviewed snapshot v{state.data.publication.version} ·{' '}
+          Reviewed snapshot v{state.data.publication.version},{' '}
           {new Date(state.data.publication.published_at).toLocaleDateString('en-CA', {
             timeZone: 'America/Toronto',
           })}
@@ -137,7 +137,7 @@ export function PreseasonRankings() {
             .map((row) => (
               <View key={row.athlete_id} style={{ paddingVertical: 10, gap: 4 }}>
                 <Text style={ui.label}>
-                  {row.position_rank == null ? 'Unranked' : `#${row.position_rank}`} ·{' '}
+                  {row.position_rank == null ? 'Unranked' : `#${row.position_rank}`},{' '}
                   {row.projected_points == null
                     ? 'Projection unavailable'
                     : `${row.projected_points} projected FP`}
@@ -148,7 +148,7 @@ export function PreseasonRankings() {
                   variant="ghost"
                 />
                 <Text style={ui.body}>
-                  {programNames[row.program] ?? row.program} · {positionLabel(row.position)}
+                  {programNames[row.program] ?? row.program}, {positionLabel(row.position)}
                 </Text>
               </View>
             ))}

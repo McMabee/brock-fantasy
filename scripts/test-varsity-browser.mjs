@@ -123,6 +123,46 @@ const report = {
   errors: [],
   accessibility: [],
 };
+const cardBounds = (locator) =>
+  locator.evaluate((element) => {
+    for (let node = element; node; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (parseFloat(style.paddingLeft) >= 18 && parseFloat(style.borderTopWidth) > 0) {
+        const box = node.getBoundingClientRect();
+        return { x: box.x, y: box.y, width: box.width, height: box.height };
+      }
+    }
+    throw new Error('Expected a padded card');
+  });
+const assertNoOverflow = async (page) => {
+  await page.waitForTimeout(250);
+  const overflow = await page.locator('[data-bf-page]').evaluate((element) => ({
+    width: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    left: element.getBoundingClientRect().left,
+  }));
+  if (overflow.scrollWidth > overflow.width + 1 || overflow.left < 0)
+    console.error(
+      await page.locator('[data-bf-page]').evaluate((element) =>
+        [...element.querySelectorAll('*')]
+          .filter(
+            (node) =>
+              node.getBoundingClientRect().right > element.getBoundingClientRect().right + 1,
+          )
+          .slice(0, 12)
+          .map((node) => ({
+            tag: node.tagName,
+            text: node.textContent.slice(0, 100),
+            width: node.getBoundingClientRect().width,
+            minWidth: getComputedStyle(node).minWidth,
+          })),
+      ),
+    );
+  assert.ok(
+    overflow.scrollWidth <= overflow.width + 1 && overflow.left >= 0,
+    `Page content fits the viewport: ${JSON.stringify(overflow)}`,
+  );
+};
 let lastPage;
 try {
   for (const theme of ['dark', 'light']) {
@@ -152,6 +192,9 @@ try {
     }));
     const commands = [];
     let scheduled = false;
+    let preDraft = false;
+    let pickSeconds = null;
+    let leagueVersion = 1;
     const inbox = [
       {
         id: 'historical-inbox',
@@ -194,6 +237,59 @@ try {
         const payload = route.request().postDataJSON();
         const name = url.pathname.split('/').at(-1);
         commands.push({ name, payload });
+        if (name === 'set_league_pick_duration') {
+          pickSeconds = payload.p_pick_seconds;
+          leagueVersion++;
+          return reply({
+            league_id: leagueId,
+            pick_seconds: pickSeconds,
+            state_version: leagueVersion,
+          });
+        }
+        if (name === 'get_schedule_review')
+          return reply({
+            sources: [
+              { id: 'source', program: 'mens_hockey', last_synced_at: null, last_error: null },
+            ],
+            alerts: [],
+            games: [
+              {
+                id: 'review-game',
+                program: 'mens_hockey',
+                home: 'Brock',
+                away: 'Fixture opponents',
+                starts_at: '2026-11-01T23:00:00Z',
+                status: 'scheduled',
+                schedule_kind: 'regular',
+                neutral_site: false,
+                home_is_brock: true,
+                schedule_confirmed: false,
+                schedule_override: false,
+                schedule_revision: 1,
+                source_url: null,
+                schedule_change: {},
+              },
+            ],
+          });
+        if (name === 'stage_historical_game_logs')
+          return reply({
+            batch_id: 'history-batch',
+            input_hash: 'history-hash',
+            rows: [
+              {
+                athlete_id: 'athlete-10',
+                athlete_name: 'Zulu Free Guard',
+                identity_evidence: { historical_player_id: 'archive-player' },
+                opponent: 'Archive opponents',
+                played_at: '2025-11-01T23:00:00Z',
+                complete: false,
+                missing_stats: ['power_play_goals'],
+                fantasy_points: null,
+                source_url:
+                  'https://gobadgers.ca/sports/mens-ice-hockey/stats/2025-26/fixture/boxscore/1',
+              },
+            ],
+          });
         if (name === 'confirm_matchup_schedule') scheduled = true;
         if (name === 'join_league') return reply({ league_id: leagueId });
         if (name === 'admin_set_participation')
@@ -226,6 +322,19 @@ try {
             displayName: participant.display_name,
           });
         if (table === 'admin_find_participants') return reply([participant]);
+        if (table === 'preview_preseason_rankings')
+          return reply({
+            input_hash: 'ranking-hash',
+            rows: [
+              {
+                athlete_id: 'athlete-10',
+                name: 'Zulu Free Guard',
+                position_group: 'BB_BC',
+                position_rank: 1,
+                projected_points: 190,
+              },
+            ],
+          });
         if (table === 'get_player_insights') return reply(players);
         if (table === 'notifications') return reply(inbox);
         if (table === 'get_player_forecast')
@@ -374,8 +483,8 @@ try {
             ],
           });
         if (table === 'leagues' && data.searchParams.has('invite_code')) return reply(null);
-        if (table === 'leagues')
-          return reply({
+        if (table === 'leagues') {
+          const league = {
             id: leagueId,
             competition_id: null,
             pool_id: poolId,
@@ -383,12 +492,30 @@ try {
             ruleset_id: 'fixture-rules',
             name: 'Varsity League',
             format: 'head_to_head',
-            status: 'active',
+            status: preDraft ? 'setup' : 'active',
             max_members: 8,
             invite_code: 'FIXTURE',
-            state_version: 1,
+            state_version: leagueVersion,
+            draft_pick_seconds: pickSeconds,
             roster_format: 'varsity',
-          });
+          };
+          if (data.searchParams.has('id')) return reply(league);
+          const membershipOnly =
+            data.searchParams.get('select')?.includes('league_members!inner(user_id)') &&
+            data.searchParams.get('league_members.user_id') === `eq.${userId}`;
+          return reply(
+            membershipOnly
+              ? [league]
+              : [
+                  league,
+                  {
+                    ...league,
+                    id: 'oversight-league',
+                    name: 'Oversight only league',
+                  },
+                ],
+          );
+        }
         if (table === 'fantasy_teams')
           return reply([
             {
@@ -411,12 +538,17 @@ try {
               },
             },
           ]);
-        if (table === 'drafts') return reply({ id: 'fixture-draft', status: 'complete' });
+        if (table === 'drafts') {
+          if (preDraft) return reply(null);
+          const draft = { id: 'fixture-draft', status: 'complete', league_id: leagueId };
+          return reply(data.searchParams.get('league_id')?.startsWith('in.') ? [draft] : draft);
+        }
         if (table === 'roster_entries') return reply(roster);
         if (table === 'pool_rankings')
           return reply(players.map((player) => ({ athlete: row(player) })));
         if (table === 'scoring_rulesets')
           return reply({
+            draft_config: { pickSeconds: 120 },
             transaction_config: {
               freeAgentsEnabled: true,
               waiversEnabled: true,
@@ -446,6 +578,13 @@ try {
     const page = await context.newPage();
     lastPage = page;
     page.on('pageerror', (error) => report.errors.push(error.message));
+    await page.goto(origin + '/dashboard');
+    await page.getByText('Varsity League', { exact: true }).waitFor();
+    assert.equal(
+      await page.getByText('Oversight only league', { exact: true }).count(),
+      0,
+      'An MFA administrator sees only actual memberships in Your leagues',
+    );
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: width < 800 ? 844 : 1000 });
       await page.goto(`${origin}/transactions/${leagueId}`);
@@ -472,7 +611,7 @@ try {
         true,
       );
       await page
-        .getByText('Your varsity program · unavailable to your account', { exact: true })
+        .getByText('Your varsity program, unavailable to your account', { exact: true })
         .waitFor();
       await page.getByRole('radio', { name: 'All programs', exact: true }).click();
       const bug = page.getByRole('link', { name: 'Report a bug or suggestion', exact: true });
@@ -566,7 +705,7 @@ try {
         `Transactions ${theme} ${width}: filters, immediate sorting, photos, team names, program restriction, typography, centered animated statistics`,
       );
     }
-    await page.getByRole('radio', { name: 'Hotel Guard · Guard / backcourt', exact: true }).click();
+    await page.getByRole('radio', { name: 'Hotel Guard, Guard / backcourt', exact: true }).click();
     await page.getByRole('button', { name: 'Add now', exact: true }).first().click();
     await page.getByText('Athlete added to your roster.', { exact: true }).first().waitFor();
     const acquisition = commands.find((command) => command.name === 'add_free_agent');
@@ -582,12 +721,12 @@ try {
     await page.goto(origin + '/players');
     await page.getByRole('button', { name: 'Preseason rankings', exact: true }).click();
     await page.getByText('Reviewed snapshot v1', { exact: false }).waitFor();
-    await page.getByText('Unranked · Projection unavailable', { exact: true }).waitFor();
+    await page.getByText('Unranked, Projection unavailable', { exact: true }).waitFor();
     await page
       .getByRole('textbox', { name: 'Search preseason rankings', exact: true })
       .fill('Zulu');
     assert.equal(
-      await page.getByText('Unranked · Projection unavailable', { exact: true }).count(),
+      await page.getByText('Unranked, Projection unavailable', { exact: true }).count(),
       0,
     );
     await page.goto(origin + '/players/athlete-10');
@@ -596,7 +735,60 @@ try {
       .getByText('Required statistics missing: power play goals', { exact: true })
       .waitFor();
     await page.getByText('Estimated finish: 10.0 pts', { exact: true }).waitFor();
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const [label, topic] of [
+        ['2026-27 PROJECTED FP', 'Projected fantasy points'],
+        ['CURRENT POINTS', 'Fantasy points'],
+        ['ADP', 'Average draft position'],
+        ['NEXT GAME / LOCK', 'Game locks'],
+      ]) {
+        const heading = page.getByText(label, { exact: true });
+        const info = heading
+          .locator('..')
+          .getByRole('button', { name: `About ${topic}`, exact: true });
+        assert.equal(await info.count(), 1, 'Each definition stays beside its metric label');
+        await info.scrollIntoViewIfNeeded();
+        const box = await heading.boundingBox(),
+          anchor = await info.boundingBox();
+        assert.ok(
+          Math.abs(box.y + box.height / 2 - anchor.y - anchor.height / 2) < 3,
+          `${label} and its definition align vertically`,
+        );
+      }
+      assert.doesNotMatch(
+        await page.locator('body').innerText(),
+        /supplied season projection|recorded pick across leagues|\u00b7/iu,
+      );
+      await assertNoOverflow(page);
+      await page.screenshot({
+        path: path.join(output, `profile-fixes-${theme}-${width}.png`),
+        fullPage: true,
+      });
+    }
     await page.goto(origin + '/league/' + leagueId);
+    const inviteAction = page.getByRole('button', { name: 'Copy invite link', exact: true });
+    await inviteAction.waitFor();
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const first = await inviteAction.boundingBox();
+      const setup = await cardBounds(page.getByText('Set up matchups', { exact: true }));
+      const view = await page
+        .getByRole('link', { name: 'View matchups', exact: true })
+        .boundingBox();
+      assert.ok(setup.y - first.y - first.height >= 15, 'Invitation and matchup setup have a gap');
+      assert.ok(view.y - setup.y - setup.height >= 15, 'Matchup actions have a gap');
+      assert.ok(
+        !(await page.locator('body').innerText()).includes(leagueId),
+        'Internal league UUID is hidden',
+      );
+      await assertNoOverflow(page);
+      await page.screenshot({
+        path: path.join(output, `league-fixes-${theme}-${width}.png`),
+        fullPage: true,
+      });
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByRole('button', { name: 'Preview matchup schedule', exact: true }).click();
     await page.getByText('Shortened season:', { exact: false }).waitFor();
     await page.getByRole('button', { name: 'Confirm matchup schedule', exact: true }).click();
@@ -630,7 +822,7 @@ try {
         .toBe(true);
       const firstCard = await sections.nth(0).locator('..').boundingBox();
       const benchLabel = await page
-        .getByText('Current saved bench · bench games do not score', { exact: true })
+        .getByText('Current saved bench, bench games do not score', { exact: true })
         .first()
         .boundingBox();
       assert.ok(
@@ -667,6 +859,68 @@ try {
       path: path.join(output, `backlog-league-${theme}.png`),
       fullPage: true,
     });
+    await page.goto(origin + '/league/' + leagueId + '?tab=settings');
+    const summary = page.getByText('10 rounds, 120 seconds per pick, snake order', { exact: true });
+    await summary.waitFor();
+    assert.equal(await page.getByText('Only visible to you', { exact: true }).count(), 0);
+    assert.equal(
+      await page.getByRole('textbox', { name: 'Seconds per draft pick', exact: true }).count(),
+      0,
+      'A completed draft cannot change its timer',
+    );
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const draftCard = await cardBounds(summary);
+      const deletionCard = await cardBounds(
+        page.getByText('Delete league', { exact: true }).first(),
+      );
+      assert.ok(Math.abs(draftCard.width - deletionCard.width) < 2, 'Commissioner cards align');
+      await assertNoOverflow(page);
+      await page.getByText('Delete league', { exact: true }).first().scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: path.join(output, `commissioner-fixes-${theme}-${width}.png`),
+        fullPage: true,
+      });
+    }
+    await page.goto(`${origin}/league/${leagueId}/teams/${teamId}`);
+    const backToStandings = page.getByRole('link', {
+      name: 'Back to league standings',
+      exact: true,
+    });
+    await backToStandings.waitFor();
+    const benchCard = await cardBounds(page.getByText('Juliet Defence', { exact: true }));
+    const backBox = await backToStandings.boundingBox();
+    assert.ok(
+      backBox.y - benchCard.y - benchCard.height >= 23,
+      'Return to standings clears the bench card',
+    );
+    preDraft = true;
+    await page.goto(origin + '/league/' + leagueId + '?tab=settings');
+    const timer = page.getByRole('textbox', { name: 'Seconds per draft pick', exact: true });
+    await expect(timer).toHaveValue('120');
+    await timer.fill('19');
+    await expect(page.getByRole('button', { name: 'Save pick timer', exact: true })).toBeDisabled();
+    await timer.fill('20');
+    await page.waitForTimeout(5500);
+    await expect(timer).toHaveValue('20');
+    await page.getByRole('button', { name: 'Save pick timer', exact: true }).click();
+    await page
+      .getByText('Pick timer saved. Autodraft takes over when this time expires.', { exact: true })
+      .waitFor();
+    await page.getByText('10 rounds, 20 seconds per pick, snake order', { exact: true }).waitFor();
+    await page.reload();
+    await expect(timer).toHaveValue('20');
+    await timer.scrollIntoViewIfNeeded();
+    assert.equal(
+      commands.find((command) => command.name === 'set_league_pick_duration').payload
+        .p_pick_seconds,
+      20,
+    );
+    await page.screenshot({
+      path: path.join(output, `commissioner-timer-${theme}.png`),
+      fullPage: true,
+    });
+    preDraft = false;
     await page.goto(origin + '/admin/participants');
     await page
       .getByRole('textbox', { name: 'Find participant by name or email', exact: true })
@@ -676,6 +930,27 @@ try {
       .getByRole('button', { name: 'Edit participation for Varsity Manager', exact: true })
       .click();
     await page.getByRole('radio', { name: 'Varsity athlete', exact: true }).click();
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const searchCard = await cardBounds(
+        page.getByRole('button', { name: 'Find accounts', exact: true }),
+      );
+      const resultCard = await cardBounds(
+        page
+          .getByRole('button', { name: 'Edit participation for Varsity Manager', exact: true })
+          .getByText('Varsity Manager', { exact: true }),
+      );
+      const editCard = await cardBounds(
+        page.getByRole('radio', { name: 'Varsity athlete', exact: true }),
+      );
+      assert.ok(resultCard.y - searchCard.y - searchCard.height >= 19);
+      assert.ok(editCard.y - resultCard.y - resultCard.height >= 19);
+      await assertNoOverflow(page);
+      await page.screenshot({
+        path: path.join(output, `participants-fixes-${theme}-${width}.png`),
+        fullPage: true,
+      });
+    }
     await page
       .getByRole('textbox', { name: 'Reason for participation correction', exact: true })
       .fill('Confirmed membership with the participant');
@@ -692,6 +967,53 @@ try {
     await page.screenshot({ path: path.join(output, `participants-${theme}.png`), fullPage: true });
     const adminAxe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
     report.accessibility.push({ page: 'participants', theme, violations: adminAxe.violations });
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(origin + '/admin/schedules');
+      const refresh = page.getByRole('button', { name: 'Refresh schedule reviews', exact: true });
+      const sourceHeading = page.getByText('Official source health', { exact: true });
+      await sourceHeading.waitFor();
+      await page
+        .getByRole('textbox', { name: 'Override opponent for review-game', exact: true })
+        .waitFor();
+      const refreshBox = await refresh.boundingBox(),
+        sourceBox = await sourceHeading.boundingBox();
+      assert.ok(sourceBox.y - refreshBox.y - refreshBox.height >= 19);
+      await assertNoOverflow(page);
+      await page.screenshot({
+        path: path.join(output, `schedules-fixes-${theme}-${width}.png`),
+        fullPage: true,
+      });
+      await page.goto(origin + '/admin/rankings');
+      await page.getByRole('button', { name: 'Preview preseason rankings', exact: true }).click();
+      await page.getByText('1 position entries', { exact: true }).waitFor();
+      await page
+        .getByRole('textbox', { name: 'Ranking publication review reason', exact: true })
+        .waitFor();
+      await assertNoOverflow(page);
+      await page.screenshot({
+        path: path.join(output, `rankings-fixes-${theme}-${width}.png`),
+        fullPage: true,
+      });
+      await page.goto(origin + '/admin/history');
+      await page
+        .getByRole('textbox', { name: 'Historical appearance records JSON', exact: true })
+        .fill('[{}]');
+      await page
+        .getByRole('button', { name: 'Validate and preview historical batch', exact: true })
+        .click();
+      await page
+        .getByRole('textbox', { name: 'Historical publication review reason', exact: true })
+        .waitFor();
+      await assertNoOverflow(page);
+      await page.screenshot({
+        path: path.join(output, `history-fixes-${theme}-${width}.png`),
+        fullPage: true,
+      });
+    }
+    report.checks.push(
+      `Review fixes ${theme}: membership-only dashboard, inline metric definitions, spaced league actions and admin review forms at 320 and 1440px`,
+    );
     await page.goto(origin + '/account');
     await page.getByText('Varsity Manager', { exact: true }).waitFor();
     assert.ok(
@@ -700,11 +1022,11 @@ try {
     await page.goto(origin + '/lineup-multisport/' + leagueId);
     await page
       .getByText(
-        'Varsity format · any two hockey, two basketball and two volleyball athletes, plus FLEX',
+        'Varsity format, any two hockey, two basketball and two volleyball athletes, plus FLEX',
         { exact: true },
       )
       .waitFor();
-    await page.getByText('🏒 Hockey 1 · any position · 1/1', { exact: true }).waitFor();
+    await page.getByText('🏒 Hockey 1, any position, 1/1', { exact: true }).waitFor();
     report.checks.push(
       `Participation ${theme}: admin correction payload, account badge, varsity lineup labels`,
     );

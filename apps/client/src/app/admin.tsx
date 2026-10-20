@@ -30,7 +30,7 @@ export default function AdminScreen() {
     <AppShell
       eyebrow="Restricted"
       title="Operations centre"
-      action={<Pill label="ADMIN · MFA REQUIRED" tone="warning" />}
+      action={<Pill label="ADMIN, MFA REQUIRED" tone="warning" />}
     >
       <View style={styles.metrics}>
         <Metric
@@ -73,7 +73,7 @@ export default function AdminScreen() {
                 <View style={styles.syncCopy}>
                   <Text style={styles.syncName}>{row.provider}</Text>
                   <Text style={styles.syncMeta}>
-                    Finished {row.finishedAt ? relativeTime(row.finishedAt) : 'not yet'} ·{' '}
+                    Finished {row.finishedAt ? relativeTime(row.finishedAt) : 'not yet'},{' '}
                     {row.changed} changed
                   </Text>
                 </View>
@@ -95,7 +95,7 @@ export default function AdminScreen() {
                 <Text style={styles.auditKind}>{event.action.toUpperCase()}</Text>
                 <View style={styles.auditCopy}>
                   <Text style={styles.auditDetail}>
-                    {event.entityType} · {event.entityId}
+                    {event.entityType}, {event.entityId}
                   </Text>
                   <Text style={styles.auditActor}>{relativeTime(event.createdAt)}</Text>
                 </View>

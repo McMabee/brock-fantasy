@@ -84,7 +84,7 @@ export function PlayerForecastPanel({
           )}
         </Text>
         <Text style={ui.body}>
-          Next period{period ? ` · ${period.number}` : ''}: {projectedPoints(result?.total)}
+          Next period{period ? `, ${period.number}` : ''}: {projectedPoints(result?.total)}
         </Text>
         {result?.schedulePending ? (
           <Text style={ui.body}>⚠ Pending schedule confirmation</Text>
@@ -114,10 +114,10 @@ export function PlayerForecastPanel({
           </Text>
           <Text style={ui.body}>Published points: {projectedPoints(result.earned)}</Text>
           <Text style={ui.body}>
-            Upcoming: {projectedPoints(result.upcoming)} · {result.upcomingGames} games
+            Upcoming: {projectedPoints(result.upcoming)}, {result.upcomingGames} games
           </Text>
           <Text style={ui.body}>
-            Pending game estimates: {projectedPoints(result.pending)} · {result.pendingGames} games
+            Pending game estimates: {projectedPoints(result.pending)}, {result.pendingGames} games
           </Text>
           <Text style={ui.title}>Estimated finish: {projectedPoints(result.total)}</Text>
           <Text style={ui.body}>
@@ -136,7 +136,7 @@ export function PlayerForecastPanel({
             .map((game) => (
               <View key={game.id} style={{ paddingVertical: 10, gap: 4 }}>
                 <Text style={ui.body}>
-                  {gameTime(game.startsAt)} · {game.opponent} · {game.status}
+                  {gameTime(game.startsAt)}, {game.opponent}, {game.status}
                 </Text>
                 <Text style={ui.body}>
                   {['cancelled', 'postponed'].includes(game.status)

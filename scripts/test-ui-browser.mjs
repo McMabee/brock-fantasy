@@ -793,11 +793,11 @@ try {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(origin + '/dashboard');
     await page.getByText('Badgers Club', { exact: true }).waitFor();
-    await page.getByText(/Next game ·/).waitFor();
+    await page.getByText(/Next game,/).waitFor();
     await page.screenshot({ path: path.join(output, `dashboard-${theme}.png`) });
     const withHeight = players.find((p) => p.bio.height);
     await page.goto(origin + '/players/' + withHeight.id);
-    await page.getByText('Height ·', { exact: false }).waitFor();
+    await page.getByText('Height,', { exact: false }).waitFor();
     await page
       .getByText(
         withHeight.adp.base === null ? 'No recorded picks yet' : 'Supplied starting value',
@@ -808,13 +808,13 @@ try {
     const historyRow = (label) =>
       page.getByText(label, { exact: true }).locator('..').locator('..');
     assert.ok(
-      await historyRow('2026-27 · supplied projection').evaluate(
+      await historyRow('2026-27, supplied projection').evaluate(
         (element) => parseFloat(window.getComputedStyle(element).borderBottomWidth) > 0,
       ),
       'Historical records retain internal separators',
     );
     assert.equal(
-      await historyRow('2025-26 · historical').evaluate((element) =>
+      await historyRow('2025-26, historical').evaluate((element) =>
         parseFloat(window.getComputedStyle(element).borderBottomWidth),
       ),
       0,
@@ -822,7 +822,7 @@ try {
     );
     await page.getByText('2026-27', { exact: true }).click();
     assert.equal(
-      await historyRow('2026-27 · supplied projection').evaluate((element) =>
+      await historyRow('2026-27, supplied projection').evaluate((element) =>
         parseFloat(window.getComputedStyle(element).borderBottomWidth),
       ),
       0,
@@ -845,7 +845,7 @@ try {
     await page.screenshot({ path: path.join(output, `player-detail-${theme}.png`) });
     const seeded = players.find((player) => player.adp.base !== null);
     await page.goto(origin + '/players/' + seeded.id);
-    await page.getByText('Supplied starting value', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'About Average draft position', exact: true }).waitFor();
     assert.equal(
       await page.getByText(seeded.adp.base.toFixed(1), { exact: true }).count(),
       1,
@@ -853,15 +853,13 @@ try {
     );
     scenario = 'adp-adjusted';
     await page.goto(origin + '/players/' + observedPlayer.id);
-    await page.getByText(`Supplied ADP: ${observedPlayer.adp.base}`, { exact: true }).waitFor();
     await page
       .getByText(((observedPlayer.adp.base + 10) / 2).toFixed(1), { exact: true })
       .waitFor();
-    await page
-      .getByText('1 recorded pick across leagues · includes supplied starting value', {
-        exact: true,
-      })
-      .waitFor();
+    assert.equal(
+      await page.getByText('1 recorded pick across leagues', { exact: false }).count(),
+      0,
+    );
     scenario = 'populated';
     for (const state of ['loading', 'empty', 'error']) {
       for (const width of [390, 1440]) {
@@ -904,7 +902,7 @@ try {
     assert.equal(picks.length, 1);
     connected = false;
     await page
-      .getByText('RECONNECTING · PICKS DISABLED', { exact: true })
+      .getByText('RECONNECTING, PICKS DISABLED', { exact: true })
       .waitFor({ timeout: 20000 });
     assert.equal(
       await page.getByRole('button', { name: 'Wait', exact: true }).first().isDisabled(),
@@ -982,10 +980,10 @@ try {
       await page.getByRole('tab', { name: 'roster', exact: true }).click();
       await page.getByRole('heading', { name: 'Volleyball hitter', exact: true }).waitFor();
       await page.getByText('Player position: Hitter / middle blocker', { exact: true }).waitFor();
-      await page.getByText('🪑 Bench · 1/3', { exact: true }).waitFor();
+      await page.getByText('🪑 Bench, 1/3', { exact: true }).waitFor();
       assert.equal(
         await page
-          .getByText('Empty spot · add an eligible athlete or update your lineup', { exact: true })
+          .getByText('Empty spot, add an eligible athlete or update your lineup', { exact: true })
           .count(),
         6,
       );
@@ -1112,7 +1110,7 @@ try {
       }
       await page.getByRole('tab', { name: 'Roster & positions', exact: true }).click();
       assert.equal(
-        await page.getByText(/^\d spots? · (Starter|Reserve)$/).count(),
+        await page.getByText(/^\d spots?, (Starter|Reserve)$/).count(),
         8,
         'Rules show seven starter slots and three bench spaces',
       );

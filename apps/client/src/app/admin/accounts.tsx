@@ -167,8 +167,8 @@ export default function AdminAccountsScreen() {
             }
           />
           <Text style={uiStyles.body}>
-            Email {account.emailVerified ? 'verified' : 'pending'} · Eligibility{' '}
-            {account.eligible ? 'confirmed' : 'pending'} · Authenticator{' '}
+            Email {account.emailVerified ? 'verified' : 'pending'}, Eligibility{' '}
+            {account.eligible ? 'confirmed' : 'pending'}, Authenticator{' '}
             {account.totpEnrolled ? 'enrolled' : 'pending'}
           </Text>
           {account.protectedOperator ? (

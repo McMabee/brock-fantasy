@@ -41,14 +41,14 @@ export default function LeagueTeamScreen() {
                 </Text>
               </View>
               <View style={{ gap: 8 }}>
-                <Text style={ui.body}>Record · W–L–T</Text>
+                <Text style={ui.body}>Record, W–L–T</Text>
                 <Text style={ui.title}>
                   {standing ? `${standing.wins}–${standing.losses}–${standing.ties}` : '0–0–0'}
                 </Text>
               </View>
             </View>
             <Text style={ui.body}>
-              Saved roster · starters and reserves are visible to everyone in this league. Only the
+              Saved roster, starters and reserves are visible to everyone in this league. Only the
               team owner can change their lineup.
             </Text>
           </Card>
@@ -67,11 +67,13 @@ export default function LeagueTeamScreen() {
           />
         </View>
       )}
-      <ActionButton
-        label="Back to league standings"
-        href={`/league/${id}?tab=standings`}
-        variant="secondary"
-      />
+      <View style={{ marginTop: 24 }}>
+        <ActionButton
+          label="Back to league standings"
+          href={`/league/${id}?tab=standings`}
+          variant="secondary"
+        />
+      </View>
     </AppShell>
   );
 }

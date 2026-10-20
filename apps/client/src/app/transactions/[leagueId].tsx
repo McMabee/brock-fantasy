@@ -328,7 +328,7 @@ export default function TransactionsScreen() {
         {myAssets.map((asset) => (
           <Choice
             key={asset.id}
-            label={`${asset.displayName} · ${positionLabel(asset.position)}`}
+            label={`${asset.displayName}, ${positionLabel(asset.position)}`}
             selected={dropAthleteId === asset.id}
             onPress={() => setDropAthleteId(asset.id)}
           />
@@ -337,7 +337,7 @@ export default function TransactionsScreen() {
 
       <SectionTitle
         title="Available athletes"
-        detail={`${available.length} shown · ${transactions.freeAgents.length} unrostered`}
+        detail={`${available.length} shown, ${transactions.freeAgents.length} unrostered`}
       />
       <Card style={{ gap: 12 }}>
         <TextInput
@@ -368,7 +368,7 @@ export default function TransactionsScreen() {
                 value === 'all'
                   ? 'All positions'
                   : value === 'FLEX'
-                    ? 'FLEX · any athlete'
+                    ? 'FLEX, any athlete'
                     : positionLabel(value)
               }
               selected={position === value}
@@ -463,18 +463,18 @@ export default function TransactionsScreen() {
                   <Text style={styles.assetMeta}>
                     {programNames[athlete.player?.program ?? athlete.program] ??
                       athlete.player?.program ??
-                      athlete.program}{' '}
-                    · {athlete.player?.team ?? athlete.team} · {positionLabel(athlete.position)}
+                      athlete.program}
+                    , {athlete.player?.team ?? athlete.team}, {positionLabel(athlete.position)}
                   </Text>
                   <Text style={styles.assetMeta}>
-                    Next period: {projectedPoints(athlete.player?.nextProjection)} · Season
-                    projection: {projectedPoints(athlete.player?.seasonProjection)} · ADP:{' '}
+                    Next period: {projectedPoints(athlete.player?.nextProjection)}, Season
+                    projection: {projectedPoints(athlete.player?.seasonProjection)}, ADP:{' '}
                     {athlete.player?.adp?.toFixed(1) ?? 'Unavailable'}
                   </Text>
                   {athlete.player?.pending ? <PendingConfirmation /> : null}
                   {restricted ? (
                     <Text style={styles.assetMeta}>
-                      Your varsity program · unavailable to your account
+                      Your varsity program, unavailable to your account
                     </Text>
                   ) : null}
                 </View>
@@ -563,13 +563,13 @@ export default function TransactionsScreen() {
               <Text style={uiStyles.body}>
                 {athleteName(claim.athlete_in_id)}
                 {claim.athlete_out_id
-                  ? ` · conditional drop: ${athleteName(claim.athlete_out_id)}`
+                  ? `, conditional drop: ${athleteName(claim.athlete_out_id)}`
                   : ''}
               </Text>
               <Pill
                 label={
                   claim.status === 'pending'
-                    ? 'PENDING · NOT YET ACQUIRED'
+                    ? 'PENDING, NOT YET ACQUIRED'
                     : claim.status.toUpperCase()
                 }
                 tone={claim.status === 'successful' ? 'positive' : 'info'}
@@ -626,10 +626,10 @@ export default function TransactionsScreen() {
                     />
                   </View>
                   <Text style={styles.assetMeta}>
-                    {offered || '—'} for {requested || '—'} · expires{' '}
+                    {offered || '—'} for {requested || '—'}, expires{' '}
                     {new Date(trade.expiresAt).toLocaleDateString()}
                     {trade.reviewEndsAt
-                      ? ` · review ends ${new Date(trade.reviewEndsAt).toLocaleString()}`
+                      ? `, review ends ${new Date(trade.reviewEndsAt).toLocaleString()}`
                       : ''}
                   </Text>
                 </View>

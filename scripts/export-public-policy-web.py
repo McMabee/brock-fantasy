@@ -71,7 +71,7 @@ def main():
         html = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>{escape(title)} | Brock Fantasy</title><style>{STYLE}</style></head>
-<body><header><a href="/">Brock Fantasy</a> · Draft for operator publication</header>
+<body><header><a href="/">Brock Fantasy</a>, Draft for operator publication</header>
 <main>{body}</main><footer>Requests: <a href="mailto:tymabee@proton.me,gt22me@brocku.ca">email Ty and Tarik</a>.</footer></body></html>
 """
         output = OUTPUT / f"{source.stem}.html"

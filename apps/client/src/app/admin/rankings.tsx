@@ -65,47 +65,49 @@ export default function RankingPublicationScreen() {
   if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
     <AppShell title="Publish preseason rankings">
-      <Card style={{ gap: 12 }}>
-        <Text style={ui.body}>
-          Review the supplied projection order and publish a fixed version. Completed drafts and
-          autopick rankings retain their existing inputs.
-        </Text>
-        <ActionButton
-          label="Preview preseason rankings"
-          onPress={() => void load()}
-          loading={busy}
-        />
-        <Text accessibilityLiveRegion="polite" style={ui.body}>
-          {message}
-        </Text>
-        {preview ? (
-          <>
-            <Text style={ui.body}>{preview.rows.length} position entries</Text>
-            {preview.rows.map((row) => (
-              <Text key={`${row.athlete_id}:${row.position_group}`} style={ui.body}>
-                {rosterSlotLabel(row.position_group)} ·{' '}
-                {row.position_rank == null ? 'Unranked' : `#${row.position_rank}`} · {row.name} ·{' '}
-                {row.projected_points ?? 'Unavailable'} FP
-              </Text>
-            ))}
-            <TextInput
-              accessibilityLabel="Ranking publication review reason"
-              value={reason}
-              onChangeText={setReason}
-              maxLength={500}
-              multiline
-              style={ui.input}
-            />
-            <ActionButton
-              label="Publish reviewed snapshot"
-              onPress={() => void publish()}
-              disabled={reason.trim().length < 5 || busy}
-            />
-          </>
-        ) : null}
-      </Card>
-      <View style={{ marginTop: 16 }}>
-        <ActionButton label="Back to admin" href="/admin" variant="secondary" />
+      <View style={{ gap: 20 }}>
+        <Card style={{ gap: 12 }}>
+          <Text style={ui.body}>
+            Review the supplied projection order and publish a fixed version. Completed drafts and
+            autopick rankings retain their existing inputs.
+          </Text>
+          <ActionButton
+            label="Preview preseason rankings"
+            onPress={() => void load()}
+            loading={busy}
+          />
+          <Text accessibilityLiveRegion="polite" style={ui.body}>
+            {message}
+          </Text>
+          {preview ? (
+            <>
+              <Text style={ui.body}>{preview.rows.length} position entries</Text>
+              {preview.rows.map((row) => (
+                <Text key={`${row.athlete_id}:${row.position_group}`} style={ui.body}>
+                  {rosterSlotLabel(row.position_group)},{' '}
+                  {row.position_rank == null ? 'Unranked' : `#${row.position_rank}`}, {row.name},{' '}
+                  {row.projected_points ?? 'Unavailable'} FP
+                </Text>
+              ))}
+              <TextInput
+                accessibilityLabel="Ranking publication review reason"
+                value={reason}
+                onChangeText={setReason}
+                maxLength={500}
+                multiline
+                style={ui.input}
+              />
+              <ActionButton
+                label="Publish reviewed snapshot"
+                onPress={() => void publish()}
+                disabled={reason.trim().length < 5 || busy}
+              />
+            </>
+          ) : null}
+        </Card>
+        <View style={{ marginTop: 16 }}>
+          <ActionButton label="Back to admin" href="/admin" variant="secondary" />
+        </View>
       </View>
     </AppShell>
   );

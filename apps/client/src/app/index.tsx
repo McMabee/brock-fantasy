@@ -68,7 +68,7 @@ export default function HomeScreen() {
           {Object.entries(programNames).map(([key, name]) => (
             <Card key={key} style={styles.programCard}>
               <Text style={styles.programName}>{name}</Text>
-              <Text style={styles.programMeta}>Brock Badgers · 2026–27</Text>
+              <Text style={styles.programMeta}>Brock Badgers, 2026–27</Text>
             </Card>
           ))}
         </View>
@@ -87,7 +87,7 @@ export default function HomeScreen() {
             <Card key={competition.id} style={styles.programCard}>
               <Text style={styles.programName}>{competition.name}</Text>
               <Text style={styles.programMeta}>
-                {competition.division === 'womens' ? 'Women’s' : 'Men’s'} · {competition.sport} ·{' '}
+                {competition.division === 'womens' ? 'Women’s' : 'Men’s'}, {competition.sport},{' '}
                 {competition.seasonLabel}
               </Text>
               <Pill label={competition.isActive ? 'AVAILABLE' : 'COMING SOON'} tone="info" />

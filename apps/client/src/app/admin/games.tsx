@@ -400,7 +400,7 @@ export default function AdminGamesScreen() {
                   {new Date(game.starts_at).toLocaleString('en-CA', {
                     timeZone: 'America/Toronto',
                   })}{' '}
-                  Toronto · {game.status} · v{game.state_version}
+                  Toronto, {game.status}, v{game.state_version}
                 </Text>
               </Pressable>
             ))}
@@ -583,8 +583,8 @@ export default function AdminGamesScreen() {
                   {preview.players.map((player) => (
                     <Text key={player.athlete_id} style={styles.previewLine}>
                       {selected.athletes.find((athlete) => athlete.id === player.athlete_id)
-                        ?.display_name ?? player.athlete_id}{' '}
-                      ·{' '}
+                        ?.display_name ?? player.athlete_id}
+                      ,{' '}
                       {player.missing_stats.length
                         ? `incomplete: ${player.missing_stats.join(', ')}`
                         : `${player.previous_points} → ${player.projected_points} (${player.point_difference! >= 0 ? '+' : ''}${player.point_difference})`}

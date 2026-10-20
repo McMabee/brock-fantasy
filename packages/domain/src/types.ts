@@ -82,6 +82,7 @@ export interface League {
   inviteCode: string;
   stateVersion?: number;
   draftScheduledFor?: string;
+  draftPickSeconds?: number;
   draftScheduleVersion?: number;
   rosterFormat?: 'standard' | 'varsity';
 }

@@ -4,7 +4,7 @@ select no_plan();
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'rpc_private' and p.proname not in ('can_use_app','require_app_access','is_admin_account_email','issue_account_signup_handoff')
-), 65, 'existing commands plus insights, schedule review and participation have private implementations');
+), 66, 'existing commands plus insights, schedule review and participation have private implementations');
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.prosecdef
@@ -142,6 +142,8 @@ select set_config('request.jwt.claim.sub', '99000000-0000-4000-8000-000000000001
 select set_config('request.jwt.claims', '{"sub":"99000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1","session_id":"99000000-0000-4000-8000-000000000001"}', true);
 set local role authenticated;
 select is(public.current_user_is_admin(), false, 'AAL1 admin remains unauthorized');
+select is((select count(*)::integer from public.leagues where id = '99000000-0000-4000-8000-000000000008'),
+  0, 'AAL1 administrator cannot read a league without membership');
 select is(public.is_league_member('99000000-0000-4000-8000-000000000006'), true, 'membership helper avoids RLS recursion');
 select lives_ok($$select public.get_league_standings('99000000-0000-4000-8000-000000000006')$$,
   'table-returning standings wrapper accepts league members');
@@ -153,8 +155,16 @@ select is((select enabled from public.push_tokens where expo_push_token = 'ExpoP
   false, 'push token was disabled by its owner');
 select set_config('request.jwt.claims', '{"sub":"99000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2","session_id":"99000000-0000-4000-8000-000000000001"}', true);
 select is(public.current_user_is_admin(), true, 'AAL2 admin remains authorized through invoker wrapper');
+select is((select count(*)::integer from public.leagues where id in
+  ('99000000-0000-4000-8000-000000000006','99000000-0000-4000-8000-000000000008')),
+  2, 'AAL2 administrator retains explicit league oversight');
+select is((select count(*)::integer from public.leagues l
+  join public.league_members m on m.league_id = l.id and m.user_id = auth.uid()
+  where l.id in ('99000000-0000-4000-8000-000000000006','99000000-0000-4000-8000-000000000008')),
+  1, 'personal membership filter excludes oversight-only leagues for AAL2 administrators');
 reset role;
 update public.push_tokens set enabled = true where expo_push_token = 'ExpoPushToken[test_rpc]';
+delete from public.user_roles where user_id = '99000000-0000-4000-8000-000000000002' and role = 'admin';
 
 select set_config('request.jwt.claim.sub', '99000000-0000-4000-8000-000000000002', true);
 select set_config('request.jwt.claims', '{"sub":"99000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1","session_id":"99000000-0000-4000-8000-000000000002","user_metadata":{"admin":true}}', true);
@@ -162,6 +172,14 @@ set local role authenticated;
 select is(public.current_user_is_admin(), false, 'editable metadata cannot bypass administrator MFA');
 select is((select count(*)::integer from public.leagues where id = '99000000-0000-4000-8000-000000000006'),
   0, 'non-members still cannot read the private league');
+select set_config('request.jwt.claims', '{"sub":"99000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal2","session_id":"99000000-0000-4000-8000-000000000002","user_metadata":{"admin":true}}', true);
+select is(public.current_user_is_admin(), false, 'MFA and editable metadata do not grant the administrator role');
+select is((select count(*)::integer from public.leagues where id = '99000000-0000-4000-8000-000000000006'),
+  0, 'ordinary AAL2 account cannot read a league without membership');
+select is((select count(*)::integer from public.leagues where id = '99000000-0000-4000-8000-000000000008'),
+  1, 'ordinary AAL2 account can still read its own league');
+select is((select count(*)::integer from public.fantasy_teams where league_id = '99000000-0000-4000-8000-000000000006'),
+  0, 'ordinary AAL2 account cannot read another league roster owners');
 select is(public.get_athlete_adp('99000000-0000-4000-8000-000000000010', '99000000-0000-4000-8000-000000000007'),
   '{"average":2,"base":null,"samples":2,"autopicks":1}'::jsonb, 'ADP default argument retains global cross-league aggregate');
 select is(public.get_athlete_adp('99000000-0000-4000-8000-000000000010', '99000000-0000-4000-8000-000000000007', 4),

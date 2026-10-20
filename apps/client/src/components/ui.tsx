@@ -700,6 +700,8 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       letterSpacing: 1.8,
     },
     footerLinks: {
+      maxWidth: '100%',
+      flexShrink: 1,
       flexDirection: 'row',
       flexWrap: 'wrap',
       alignItems: 'center',

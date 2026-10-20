@@ -28,6 +28,7 @@ interface LeagueRow {
   state_version: number;
   draft_scheduled_for: string | null;
   draft_schedule_version: number;
+  draft_pick_seconds: number | null;
   roster_format: 'standard' | 'varsity';
 }
 
@@ -192,7 +193,7 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
         client
           .from('leagues')
           .select(
-            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version, draft_scheduled_for, draft_schedule_version, roster_format',
+            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version, draft_scheduled_for, draft_schedule_version, draft_pick_seconds, roster_format',
           )
           .eq('id', leagueId)
           .single(),
@@ -253,6 +254,7 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
       stateVersion: row.state_version,
       ...(row.draft_scheduled_for ? { draftScheduledFor: row.draft_scheduled_for } : {}),
       draftScheduleVersion: row.draft_schedule_version,
+      ...(row.draft_pick_seconds != null ? { draftPickSeconds: row.draft_pick_seconds } : {}),
     };
     const teamRows: TeamRow[] = teamResult.data ?? [];
     const teams = teamRows.map<FantasyTeam>((team) => ({

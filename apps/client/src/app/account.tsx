@@ -64,8 +64,8 @@ export default function AccountScreen() {
               <Text style={uiStyles.body}>
                 {participation.role === 'athlete_coach'
                   ? 'Varsity athlete & coach'
-                  : `Varsity ${participation.role}`}{' '}
-                · {participation.programs.map((program) => VARSITY_PROGRAMS[program]).join(', ')}
+                  : `Varsity ${participation.role}`}
+                , {participation.programs.map((program) => VARSITY_PROGRAMS[program]).join(', ')}
               </Text>
             ) : null}
           </View>

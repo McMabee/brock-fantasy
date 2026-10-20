@@ -80,7 +80,7 @@ export default function MatchupsScreen() {
         <>
           <Card>
             <Text accessibilityRole="header" style={ui.title}>
-              Period {current.period} · {current.status}
+              Period {current.period}, {current.status}
             </Text>
             {current.startsAt && current.endsAt ? (
               <Text style={ui.body}>
@@ -121,7 +121,7 @@ export default function MatchupsScreen() {
                           variant="ghost"
                         />
                         <Text style={ui.body}>
-                          {formatFantasyPoints(row.points)} pts · {row.games} scoring games
+                          {formatFantasyPoints(row.points)} pts, {row.games} scoring games
                         </Text>
                       </View>
                     ))
@@ -136,7 +136,7 @@ export default function MatchupsScreen() {
                     <View key={status} style={{ gap: 8 }}>
                       <Text style={ui.label}>
                         Current saved{' '}
-                        {status === 'starter' ? 'starters' : 'bench · bench games do not score'}
+                        {status === 'starter' ? 'starters' : 'bench, bench games do not score'}
                       </Text>
                       {team.roster
                         .filter((row) => row.status === status)

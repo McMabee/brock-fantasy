@@ -86,7 +86,7 @@ export default function DashboardScreen() {
                   />
                   <Text style={styles.leagueName}>{league.name}</Text>
                   <Text style={styles.leagueMeta}>
-                    Head-to-head · {league.maxMembers} managers · {league.status}
+                    Head-to-head, {league.maxMembers} managers, {league.status}
                   </Text>
                 </View>
                 <View style={styles.actions}>
@@ -131,7 +131,7 @@ export default function DashboardScreen() {
                     ? 'Loading game time…'
                     : (programGames.error ??
                       (programGames.games[competition.id]
-                        ? `Next game · ${new Date(programGames.games[competition.id]!.starts_at).toLocaleString('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}`
+                        ? `Next game, ${new Date(programGames.games[competition.id]!.starts_at).toLocaleString('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}`
                         : 'No upcoming game scheduled'))}
                 </Text>
                 {programGames.games[competition.id]?.schedule_confirmed === false ? (

@@ -25,7 +25,7 @@ export function NextGame({ game }: { game: InsightGame | null }) {
   return game ? (
     <View style={{ gap: 6 }}>
       <Text style={ui.body}>
-        {game.neutral ? 'Neutral · vs' : game.home ? 'vs' : '@'} {game.opponent} ·{' '}
+        {game.neutral ? 'Neutral, vs' : game.home ? 'vs' : '@'} {game.opponent},{' '}
         {gameTime(game.starts_at)}
       </Text>
       {!game.schedule_confirmed ? <PendingConfirmation /> : null}
@@ -133,12 +133,12 @@ export function PlayerInsightsPanel({
                     {player.displayName}
                   </Text>
                   <Text style={ui.body}>
-                    {programNames[player.program] ?? player.program.replaceAll('_', ' ')} ·{' '}
+                    {programNames[player.program] ?? player.program.replaceAll('_', ' ')},{' '}
                     {player.team}
                   </Text>
                   <Text style={ui.body}>{player.positions.map(positionLabel).join(' / ')}</Text>
                   <Text style={ui.body}>
-                    Jersey: {player.jerseyNumber ?? 'Unavailable'} · Height:{' '}
+                    Jersey: {player.jerseyNumber ?? 'Unavailable'}, Height:{' '}
                     {metrics?.heightLabel ?? 'Unavailable'}
                   </Text>
                   {(['eligibility', 'major', 'hometown'] as const).map((key) =>

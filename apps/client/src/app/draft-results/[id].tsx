@@ -73,7 +73,7 @@ export default function DraftResultsScreen() {
           />
           <SectionTitle
             title="All draft picks"
-            detail={`${data.picks.length} picks · in draft order`}
+            detail={`${data.picks.length} picks, in draft order`}
           />
           {!data.picks.length ? (
             <EmptyState title="No recorded picks" body="No picks were recorded for this draft." />
@@ -97,11 +97,11 @@ export default function DraftResultsScreen() {
                   <DraftPlayerPhoto player={{ displayName: pick.display_name, bio: pick.bio }} />
                   <View style={{ flex: 1, gap: 4 }}>
                     <Text style={styles.body}>
-                      {pick.display_name} · {pick.program.replace(/^Brock /u, '')}
+                      {pick.display_name}, {pick.program.replace(/^Brock /u, '')}
                     </Text>
                     <Text style={styles.body}>
-                      {pick.team_name} · Round {pick.round}, pick {pick.pick_in_round}
-                      {pick.source === 'autopick' ? ' · Autopick' : ''}
+                      {pick.team_name}, Round {pick.round}, pick {pick.pick_in_round}
+                      {pick.source === 'autopick' ? ', Autopick' : ''}
                     </Text>
                   </View>
                 </View>

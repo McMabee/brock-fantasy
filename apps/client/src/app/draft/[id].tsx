@@ -211,15 +211,15 @@ export default function DraftRoomScreen() {
                   <Text style={styles.playerName}>{a.displayName}</Text>
                 </Pressable>
                 <Text style={styles.meta}>
-                  {a.program.replace(/^Brock\s+/u, '')} · {a.positions.join('/')} · #
-                  {a.jerseyNumber ?? '—'} · {metrics.heightLabel}
+                  {a.program.replace(/^Brock\s+/u, '')}, {a.positions.join('/')}, #
+                  {a.jerseyNumber ?? '—'}, {metrics.heightLabel}
                 </Text>
                 <Text style={styles.stats}>
-                  Rank {a.rank} · Projected FP {metrics.projectedPoints ?? '—'} · ADP{' '}
+                  Rank {a.rank}, Projected FP {metrics.projectedPoints ?? '—'}, ADP{' '}
                   {a.adp?.average?.toFixed(1) ?? metrics.suppliedAdp?.toFixed(1) ?? '—'}
                 </Text>
                 {a.adp?.average == null && metrics.suppliedAdp === null ? (
-                  <Text style={styles.meta}>ADP · Not supplied yet</Text>
+                  <Text style={styles.meta}>ADP, Not supplied yet</Text>
                 ) : null}
               </View>
               <View style={styles.actions}>
@@ -259,9 +259,9 @@ export default function DraftRoomScreen() {
   const roster = (
     <Card style={styles.panel}>
       <Text style={styles.panelTitle}>
-        Your roster · {mine.length}/{mySlots.length || 10}
+        Your roster, {mine.length}/{mySlots.length || 10}
       </Text>
-      <Text style={styles.meta}>✓ Drafted · ⏳ Queued previews</Text>
+      <Text style={styles.meta}>✓ Drafted, ⏳ Queued previews</Text>
       <RulesLink section="draft" label="Draft rules & roster requirements" />
       <ScrollView style={{ maxHeight: 360 }} contentContainerStyle={{ gap: 8 }}>
         {rosterCells.map((cell, index) => {
@@ -283,8 +283,7 @@ export default function DraftRoomScreen() {
                     {athlete.displayName}
                   </Text>
                   <Text style={styles.meta}>
-                    {cell.entry ? 'Drafted' : 'Queued · not drafted'} ·{' '}
-                    {athlete.positions.join('/')}
+                    {cell.entry ? 'Drafted' : 'Queued, not drafted'}, {athlete.positions.join('/')}
                   </Text>
                 </Pressable>
               ) : (
@@ -298,7 +297,7 @@ export default function DraftRoomScreen() {
   );
   const queuePanel = (
     <Card style={styles.panel}>
-      <Text style={styles.panelTitle}>Your queue {queue.saving ? '· Saving…' : ''}</Text>
+      <Text style={styles.panelTitle}>Your queue {queue.saving ? ', Saving…' : ''}</Text>
       <Text style={styles.meta}>Autopick takes your first legal queued player.</Text>
       {queue.error ? (
         <View style={{ gap: 6 }}>
@@ -351,7 +350,7 @@ export default function DraftRoomScreen() {
   const recent = (
     <Card style={styles.panel}>
       <Text style={styles.panelTitle}>
-        Pick history · {data.picks.length}/{order.length}
+        Pick history, {data.picks.length}/{order.length}
       </Text>
       <ScrollView style={{ maxHeight: 240 }} contentContainerStyle={{ gap: 10 }}>
         {[...data.picks].reverse().map((pick, index) => (
@@ -360,8 +359,8 @@ export default function DraftRoomScreen() {
             style={[styles.historyRow, index === data.picks.length - 1 && uiStyles.lastRow]}
           >
             <Text style={styles.stats}>
-              #{pick.overallPick} ·{' '}
-              {data.teams.find((t) => t.id === pick.fantasyTeamId)?.name ?? 'Team'} ·{' '}
+              #{pick.overallPick},{' '}
+              {data.teams.find((t) => t.id === pick.fantasyTeamId)?.name ?? 'Team'},{' '}
               {pick.source === 'autopick' ? 'Autopick' : 'Drafted'}
             </Text>
             <Pressable
@@ -396,7 +395,7 @@ export default function DraftRoomScreen() {
         <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
           <Pill
             label={
-              (wide ? 'SNAKE DRAFT · ROUND ' : 'ROUND ') +
+              (wide ? 'SNAKE DRAFT, ROUND ' : 'ROUND ') +
               (Math.floor(
                 Math.min(pickIndex, Math.max(0, order.length - 1)) / (data.teams.length || 1),
               ) +
@@ -412,7 +411,7 @@ export default function DraftRoomScreen() {
           </Text>
           <Pill
             label={
-              data.connected ? 'CONNECTED' : wide ? 'RECONNECTING · PICKS DISABLED' : 'RECONNECTING'
+              data.connected ? 'CONNECTED' : wide ? 'RECONNECTING, PICKS DISABLED' : 'RECONNECTING'
             }
             tone={data.connected ? 'info' : 'warning'}
           />

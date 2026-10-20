@@ -64,98 +64,102 @@ export default function ScheduleReviewScreen() {
   }, [load]);
   if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
-    <AppShell eyebrow="Administrator · MFA required" title="Schedule confirmation and overrides">
-      <Text style={ui.body}>
-        Official changes apply immediately. Review pending fixtures below. Overrides persist through
-        automatic syncs until explicitly cleared. Started-game timing and recorded points are
-        protected.
-      </Text>
-      <ActionButton
-        label="Refresh schedule reviews"
-        onPress={() => void load()}
-        variant="secondary"
-      />
-      {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
-      {!data ? (
-        <LoadingState label="Loading schedule review" rows={4} />
-      ) : (
-        <>
-          <SectionTitle title="Official source health" />
-          <Card style={{ gap: 14 }}>
-            {data.sources.map((source) => (
-              <View key={source.id}>
-                <Text style={ui.label}>{source.program.replaceAll('_', ' ')}</Text>
-                <Text style={ui.body}>
-                  {source.last_synced_at
-                    ? `Last synced ${gameTime(source.last_synced_at)}`
-                    : 'Awaiting first scheduled sync'}
-                </Text>
-                {source.last_error ? (
-                  <Text accessibilityRole="alert" style={ui.body}>
-                    {source.last_error}
+    <AppShell eyebrow="Administrator, MFA required" title="Schedule confirmation and overrides">
+      <View style={{ gap: 20 }}>
+        <Text style={ui.body}>
+          Official changes apply immediately. Review pending fixtures below. Overrides persist
+          through automatic syncs until explicitly cleared. Started-game timing and recorded points
+          are protected.
+        </Text>
+        <ActionButton
+          label="Refresh schedule reviews"
+          onPress={() => void load()}
+          variant="secondary"
+        />
+        {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
+        {!data ? (
+          <LoadingState label="Loading schedule review" rows={4} />
+        ) : (
+          <>
+            <SectionTitle title="Official source health" />
+            <Card style={{ gap: 14 }}>
+              {data.sources.map((source) => (
+                <View key={source.id}>
+                  <Text style={ui.label}>{source.program.replaceAll('_', ' ')}</Text>
+                  <Text style={ui.body}>
+                    {source.last_synced_at
+                      ? `Last synced ${gameTime(source.last_synced_at)}`
+                      : 'Awaiting first scheduled sync'}
                   </Text>
-                ) : null}
-              </View>
-            ))}
-          </Card>
-          <SectionTitle
-            title="Projection and synchronization alerts"
-            detail={`${data.alerts.length} need review`}
-          />
-          <Card style={{ gap: 12 }}>
-            {data.alerts.length ? (
-              data.alerts.map((alert) => (
-                <Text key={alert.id} style={ui.body}>
-                  {alert.display_name ? `${alert.display_name}: ` : ''}
-                  {alert.message}
-                </Text>
-              ))
-            ) : (
-              <Text style={ui.body}>No unresolved projection or schedule alerts</Text>
-            )}
-          </Card>
-          <TextInput
-            accessibilityLabel="Find schedule fixture"
-            placeholder="Filter by program, opponent or date"
-            value={search}
-            onChangeText={setSearch}
-            style={ui.input}
-          />
-          <ActionButton
-            label={
-              showAll ? 'Show pending confirmations and overrides' : 'Show all fixtures to override'
-            }
-            variant="secondary"
-            onPress={() => setShowAll((current) => !current)}
-          />
-          <SectionTitle
-            title="Pending confirmations and pinned overrides"
-            detail={`${data.games.filter((game) => !game.schedule_confirmed || game.schedule_override).length} need review · ${data.games.length} total fixtures`}
-          />
-          <View style={{ gap: 18 }}>
-            {data.games
-              .filter(
-                (game) =>
-                  (showAll || !game.schedule_confirmed || game.schedule_override) &&
-                  `${game.program} ${game.home} ${game.away} ${game.starts_at}`
-                    .toLowerCase()
-                    .includes(search.trim().toLowerCase()),
-              )
-              .slice(0, 100)
-              .map((game) => (
-                <ScheduleReview
-                  key={`${game.id}:${game.schedule_revision}`}
-                  game={game}
-                  onSaved={load}
-                />
+                  {source.last_error ? (
+                    <Text accessibilityRole="alert" style={ui.body}>
+                      {source.last_error}
+                    </Text>
+                  ) : null}
+                </View>
               ))}
-          </View>
-          {!data.games.some((game) => !game.schedule_confirmed || game.schedule_override) ? (
-            <Text style={ui.body}>All schedules are confirmed and no overrides are pinned</Text>
-          ) : null}
-        </>
-      )}
-      <ActionButton label="Back to operations" href="/admin" variant="ghost" />
+            </Card>
+            <SectionTitle
+              title="Projection and synchronization alerts"
+              detail={`${data.alerts.length} need review`}
+            />
+            <Card style={{ gap: 12 }}>
+              {data.alerts.length ? (
+                data.alerts.map((alert) => (
+                  <Text key={alert.id} style={ui.body}>
+                    {alert.display_name ? `${alert.display_name}: ` : ''}
+                    {alert.message}
+                  </Text>
+                ))
+              ) : (
+                <Text style={ui.body}>No unresolved projection or schedule alerts</Text>
+              )}
+            </Card>
+            <TextInput
+              accessibilityLabel="Find schedule fixture"
+              placeholder="Filter by program, opponent or date"
+              value={search}
+              onChangeText={setSearch}
+              style={ui.input}
+            />
+            <ActionButton
+              label={
+                showAll
+                  ? 'Show pending confirmations and overrides'
+                  : 'Show all fixtures to override'
+              }
+              variant="secondary"
+              onPress={() => setShowAll((current) => !current)}
+            />
+            <SectionTitle
+              title="Pending confirmations and pinned overrides"
+              detail={`${data.games.filter((game) => !game.schedule_confirmed || game.schedule_override).length} need review, ${data.games.length} total fixtures`}
+            />
+            <View style={{ gap: 18 }}>
+              {data.games
+                .filter(
+                  (game) =>
+                    (showAll || !game.schedule_confirmed || game.schedule_override) &&
+                    `${game.program} ${game.home} ${game.away} ${game.starts_at}`
+                      .toLowerCase()
+                      .includes(search.trim().toLowerCase()),
+                )
+                .slice(0, 100)
+                .map((game) => (
+                  <ScheduleReview
+                    key={`${game.id}:${game.schedule_revision}`}
+                    game={game}
+                    onSaved={load}
+                  />
+                ))}
+            </View>
+            {!data.games.some((game) => !game.schedule_confirmed || game.schedule_override) ? (
+              <Text style={ui.body}>All schedules are confirmed and no overrides are pinned</Text>
+            ) : null}
+          </>
+        )}
+        <ActionButton label="Back to operations" href="/admin" variant="ghost" />
+      </View>
     </AppShell>
   );
 }
@@ -215,7 +219,7 @@ function ScheduleReview({ game, onSaved }: { game: ReviewGame; onSaved: () => Pr
         {game.program}
       </Text>
       <Text style={ui.body}>
-        {game.home} vs {game.away} · {gameTime(game.starts_at)} · {game.status}
+        {game.home} vs {game.away}, {gameTime(game.starts_at)}, {game.status}
       </Text>
       {!game.schedule_confirmed ? (
         <PendingConfirmation />
@@ -239,14 +243,14 @@ function ScheduleReview({ game, onSaved }: { game: ReviewGame; onSaved: () => Pr
           Latest source proposal:{' '}
           {typeof game.schedule_change.source.starts_at === 'string'
             ? gameTime(game.schedule_change.source.starts_at)
-            : 'Time unavailable'}{' '}
-          ·{' '}
+            : 'Time unavailable'}
+          ,{' '}
           {typeof game.schedule_change.source.status === 'string'
             ? game.schedule_change.source.status
             : 'Status unavailable'}
         </Text>
       ) : null}
-      <Text style={ui.label}>Override start · Toronto timezone</Text>
+      <Text style={ui.label}>Override start, Toronto timezone</Text>
       <TextInput
         accessibilityLabel={`Override date for ${game.id}`}
         value={date}
@@ -328,7 +332,7 @@ function ScheduleReview({ game, onSaved }: { game: ReviewGame; onSaved: () => Pr
         />
         {game.schedule_override ? (
           <ActionButton
-            label="Clear override · use next official sync"
+            label="Clear override, use next official sync"
             onPress={() => void submit('clear_override')}
             disabled={working}
             variant="secondary"

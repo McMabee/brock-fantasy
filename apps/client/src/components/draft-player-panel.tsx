@@ -81,9 +81,9 @@ export function DraftPlayerPanel({
                   {player.displayName}
                 </Text>
                 <Text style={uiStyles.body}>
-                  {player.program} · {player.positions.join('/')} · #{player.jerseyNumber ?? '—'}
+                  {player.program}, {player.positions.join('/')}, #{player.jerseyNumber ?? '—'}
                 </Text>
-                <Text style={uiStyles.body}>Height · {metrics?.heightLabel}</Text>
+                <Text style={uiStyles.body}>Height, {metrics?.heightLabel}</Text>
                 <View style={styles.metrics}>
                   <View style={styles.metric}>
                     <Text style={styles.metricLabel}>{BETA_SEASON} PROJECTED FP</Text>
@@ -122,7 +122,7 @@ export function DraftPlayerPanel({
                   .map((s, i) => (
                     <View key={i} style={{ gap: 6 }}>
                       <Text style={uiStyles.body}>
-                        {s.season_label}: {s.fantasy_points ?? 'Unavailable'} fantasy points ·{' '}
+                        {s.season_label}: {s.fantasy_points ?? 'Unavailable'} fantasy points ,{' '}
                         {s.games_played ?? 'Unavailable'} games
                       </Text>
                       {Object.entries(s.stats).map(([key, value]) => (

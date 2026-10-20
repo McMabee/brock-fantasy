@@ -57,7 +57,7 @@ export function HistoricalGameLogs({ athleteId }: { athleteId: string }) {
         2025–26 Brock game logs
       </Text>
       <Text style={ui.body}>
-        Regular-season and playoff appearances · FP under current rules is separate from supplied
+        Regular-season and playoff appearances, FP under current rules is separate from supplied
         historical totals and never scores active fantasy teams.
       </Text>
       {state.error ? (
@@ -73,15 +73,15 @@ export function HistoricalGameLogs({ athleteId }: { athleteId: string }) {
         state.rows.map((row) => (
           <View key={row.source_game_id} style={{ gap: 8, paddingVertical: 12 }}>
             <Text style={ui.title}>
-              {gameTime(row.played_at)} · {row.opponent}
+              {gameTime(row.played_at)}, {row.opponent}
             </Text>
             <Text style={ui.body}>
-              {row.result} · {row.phase === 'playoff' ? 'Playoffs' : 'Regular season'}
+              {row.result}, {row.phase === 'playoff' ? 'Playoffs' : 'Regular season'}
             </Text>
             <Text style={ui.body}>
               {Object.entries(row.stats)
                 .map(([key, value]) => `${key.replaceAll('_', ' ')}: ${value}`)
-                .join(' · ')}
+                .join(', ')}
             </Text>
             <Text style={ui.body}>
               FP under current rules:{' '}

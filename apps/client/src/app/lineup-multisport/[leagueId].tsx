@@ -272,7 +272,7 @@ export default function BetaLineupScreen() {
   return (
     <AppShell
       eyebrow="Fantasy lineup"
-      title="Seven starters · three bench"
+      title="Seven starters, three bench"
       action={
         <Pill
           label={dirty ? 'UNSAVED CHANGES' : 'SAVED LINEUP'}
@@ -289,7 +289,7 @@ export default function BetaLineupScreen() {
       <RulesLink section="lineup" label="Lineup locks & eligible positions explained" />
       {leagueData.league?.rosterFormat === 'varsity' ? (
         <Text style={ui.body}>
-          Varsity format · any two hockey, two basketball and two volleyball athletes, plus FLEX
+          Varsity format, any two hockey, two basketball and two volleyball athletes, plus FLEX
         </Text>
       ) : null}
       {lineup?.entries.some((entry) => entry.participation_conflict) ? (
@@ -339,8 +339,8 @@ export default function BetaLineupScreen() {
                   title={group === 'bench' ? 'Bench' : 'Starting lineup'}
                   detail={
                     group === 'bench'
-                      ? 'Three reserves · separate from your starters'
-                      : 'Seven starting spots · changes apply after Save lineup'
+                      ? 'Three reserves, separate from your starters'
+                      : 'Seven starting spots, changes apply after Save lineup'
                   }
                 />
                 {ROSTER_GUIDE.filter((guide) => (guide.code === 'BN') === (group === 'bench')).map(
@@ -355,8 +355,8 @@ export default function BetaLineupScreen() {
                             {rosterSlotLabel(
                               guide.code,
                               leagueData.league?.rosterFormat === 'varsity',
-                            )}{' '}
-                            · {entries.length}/{slot.slot_count}
+                            )}
+                            , {entries.length}/{slot.slot_count}
                           </Text>
                           <Text style={ui.body}>
                             {guide.code === 'BN'
@@ -416,7 +416,7 @@ export default function BetaLineupScreen() {
                                     {player ? <NextGame game={player.nextGame} /> : null}
                                     <Pill
                                       label={
-                                        entry.locked ? 'LOCKED · until game finishes' : 'UNLOCKED'
+                                        entry.locked ? 'LOCKED, until game finishes' : 'UNLOCKED'
                                       }
                                       tone={entry.locked ? 'warning' : 'info'}
                                     />
@@ -425,7 +425,7 @@ export default function BetaLineupScreen() {
                                         selected && selected !== entry.athlete_id
                                           ? `Swap with ${entry.display_name}`
                                           : selected === entry.athlete_id
-                                            ? 'Selected · choose a destination'
+                                            ? 'Selected, choose a destination'
                                             : `Move ${entry.display_name}`
                                       }
                                       disabled={entry.locked || saving}

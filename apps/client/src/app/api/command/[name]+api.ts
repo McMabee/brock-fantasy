@@ -18,6 +18,12 @@ const commands: Readonly<Record<string, readonly string[]>> = {
   rename_my_fantasy_team: ['p_league_id', 'p_name', 'p_idempotency_key'],
   delete_league: ['p_league_id', 'p_confirmation_name', 'p_expected_version', 'p_idempotency_key'],
   start_draft: ['p_league_id', 'p_rounds', 'p_pick_seconds', 'p_idempotency_key'],
+  set_league_pick_duration: [
+    'p_league_id',
+    'p_pick_seconds',
+    'p_expected_version',
+    'p_idempotency_key',
+  ],
   schedule_league_draft: [
     'p_league_id',
     'p_scheduled_for',

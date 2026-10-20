@@ -39,7 +39,7 @@ export default function RulesScreen() {
   const router = useRouter();
   const selected = SECTIONS.some((item) => item.id === section) ? section : 'overview';
   return (
-    <AppShell eyebrow={`${BETA_SEASON} · Fantasy rules`} title="How to play Brock Fantasy">
+    <AppShell eyebrow={`${BETA_SEASON}, Fantasy rules`} title="How to play Brock Fantasy">
       <Text style={styles.body}>
         Build one fantasy team from Brock men’s and women’s hockey, basketball and volleyball. Your
         starters earn fantasy points from their real games.
@@ -135,7 +135,7 @@ export default function RulesScreen() {
                 </Text>
                 <Text style={styles.body}>Eligible: {slotEligibility(slot.code)}</Text>
                 <Text style={styles.note}>
-                  {slot.count} {slot.count === 1 ? 'spot' : 'spots'} ·{' '}
+                  {slot.count} {slot.count === 1 ? 'spot' : 'spots'},{' '}
                   {slot.code === 'BN' ? 'Reserve' : 'Starter'}
                 </Text>
               </View>
@@ -168,9 +168,10 @@ export default function RulesScreen() {
             each manager ten athletes.
           </Paragraph>
           <Paragraph title="Your turn">
-            You have two minutes to pick while the draft is active. The commissioner starts the
-            draft and can pause or resume it. A scheduled draft time is a reminder; it does not
-            start the draft automatically.
+            Each pick defaults to two minutes. Before the draft starts, the commissioner can save a
+            different pick timer with a minimum of 20 seconds. The commissioner starts the draft and
+            can pause or resume it. A scheduled draft time is a reminder; it does not start the
+            draft automatically.
           </Paragraph>
           <Paragraph title="Queues and automatic picks">
             Put your preferred athletes in your queue. If your timer expires, the system takes your

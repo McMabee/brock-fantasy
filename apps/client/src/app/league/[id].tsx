@@ -150,31 +150,33 @@ export default function LeagueScreen() {
           {loadError ?? actionError}
         </Text>
       ) : null}
-      <View style={styles.inviteBar}>
-        <View>
-          <Text style={styles.inviteLabel}>PRIVATE INVITE CODE</Text>
-          <Text selectable style={styles.inviteCode}>
-            {league?.inviteCode ?? '—'}
+      <View style={{ gap: 16, marginBottom: 20 }}>
+        <View style={styles.inviteBar}>
+          <View>
+            <Text style={styles.inviteLabel}>PRIVATE INVITE CODE</Text>
+            <Text selectable style={styles.inviteCode}>
+              {league?.inviteCode ?? '—'}
+            </Text>
+          </View>
+          <Text style={styles.inviteMeta}>
+            {teams.length} of {league?.maxMembers ?? '—'} managers
           </Text>
         </View>
-        <Text style={styles.inviteMeta}>
-          {teams.length} of {league?.maxMembers ?? '—'} managers · {id}
-        </Text>
-      </View>
 
-      {league?.commissionerId === user?.id ? (
-        <ActionButton
-          label="Copy invite link"
-          variant="secondary"
-          onPress={() => void copyInvite()}
-        />
-      ) : null}
-      {league?.commissionerId === user?.id &&
-      leagueData.draftStatus === 'complete' &&
-      !leagueData.matchups.length ? (
-        <MatchupSetup leagueId={id} teams={teams} onCreated={leagueData.reload} />
-      ) : null}
-      <ActionButton label="View matchups" href={`/matchups/${id}`} variant="secondary" />
+        {league?.commissionerId === user?.id ? (
+          <ActionButton
+            label="Copy invite link"
+            variant="secondary"
+            onPress={() => void copyInvite()}
+          />
+        ) : null}
+        {league?.commissionerId === user?.id &&
+        leagueData.draftStatus === 'complete' &&
+        !leagueData.matchups.length ? (
+          <MatchupSetup leagueId={id} teams={teams} onCreated={leagueData.reload} />
+        ) : null}
+        <ActionButton label="View matchups" href={`/matchups/${id}`} variant="secondary" />
+      </View>
       <View accessibilityRole="tablist" style={styles.tabs}>
         {TABS.map((item) => (
           <Pressable
@@ -278,7 +280,7 @@ function Overview({
             <View style={styles.scoreHeader}>
               <View>
                 <Pill
-                  label={`${matchup.status.toUpperCase()} · WEEK ${matchup.period}`}
+                  label={`${matchup.status.toUpperCase()}, WEEK ${matchup.period}`}
                   tone={matchup.status === 'active' ? 'warning' : 'info'}
                 />
                 <Text style={styles.scoreTitle}>Current matchup</Text>
@@ -371,7 +373,7 @@ function Standings({
         detail={
           league?.format === 'points_leaderboard'
             ? 'Cumulative points leaderboard'
-            : 'Head-to-head · Points-for tiebreaker'
+            : 'Head-to-head, Points-for tiebreaker'
         }
       />
       <Card>
@@ -426,7 +428,7 @@ function Chat({
   const colors = useThemeColors();
   return (
     <View style={styles.chatLayout}>
-      <SectionTitle title="League chat" detail="Text only · Report and mute available" />
+      <SectionTitle title="League chat" detail="Text only, Report and mute available" />
       <Card style={styles.chatCard}>
         {messages.map((message) => (
           <View key={message.id} style={styles.message}>

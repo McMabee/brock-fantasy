@@ -94,7 +94,7 @@ export function MatchupSetup({
           {preview.periods.map((period) => (
             <View key={period.number} style={{ gap: 6 }}>
               <Text style={ui.label}>
-                Period {period.number} · {gameTime(period.starts_at)} – {gameTime(period.ends_at)}
+                Period {period.number}, {gameTime(period.starts_at)} – {gameTime(period.ends_at)}
               </Text>
               {preview.pairings
                 .filter((pair) => pair.period === period.number)
