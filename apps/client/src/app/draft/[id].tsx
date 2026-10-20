@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ActionButton, AppShell, Card, LoadingState, Pill, useUiStyles } from '@/components/ui';
 import { DraftChat } from '@/components/draft-chat';
+import { DraftStatusControls } from '@/components/draft-status-controls';
 import { DraftPlayerPanel, DraftPlayerPhoto } from '@/components/draft-player-panel';
 import { useDraft } from '@/hooks/use-draft';
 import { useDraftQueue } from '@/hooks/use-draft-queue';
@@ -22,6 +23,7 @@ import type { DraftPlayer } from '@/lib/draft-state';
 import { heading } from '@/theme';
 import { RulesLink } from '@/components/rules-link';
 import { rosterSlotLabel } from '@/lib/roster-guide';
+import { useSession } from '@/providers/session-provider';
 
 type Tab = 'available' | 'roster' | 'queue' | 'chat' | 'history';
 export default function DraftRoomScreen() {
@@ -31,6 +33,7 @@ export default function DraftRoomScreen() {
   useRequireUser();
   const { id } = useLocalSearchParams<{ id: string }>();
   const data = useDraft(id);
+  const { user } = useSession();
   const { width, height } = useWindowDimensions();
   const wide = width >= 1024;
   const threeColumns = width >= 1280;
@@ -382,6 +385,7 @@ export default function DraftRoomScreen() {
       <DraftChat leagueId={data.draft?.leagueId} />
     </Card>
   );
+  if (data.replaced && data.draft) return <Redirect href={`/league/${data.draft.leagueId}`} />;
   if (data.draft?.status === 'complete') return <Redirect href={`/draft-results/${id}`} />;
   if (data.loading && !data.draft)
     return (
@@ -428,6 +432,16 @@ export default function DraftRoomScreen() {
           </Text>
         </View>
       </View>
+      {data.draft ? (
+        <DraftStatusControls
+          key={data.draft.id}
+          draftId={data.draft.id}
+          status={data.draft.status}
+          isCommissioner={Boolean(user && user.id === data.commissionerId)}
+          connected={data.connected}
+          reload={data.reload}
+        />
+      ) : null}
       {!data.connected && !data.loading ? (
         <View accessibilityRole="alert" style={styles.notice}>
           <Text style={styles.error}>

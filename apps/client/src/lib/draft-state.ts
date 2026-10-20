@@ -34,6 +34,7 @@ export interface DraftSnapshot {
   serverTime: string;
   unchanged: boolean;
   closed?: boolean;
+  replaced?: boolean;
   draft?: {
     id: string;
     league_id: string;
@@ -44,7 +45,13 @@ export interface DraftSnapshot {
     state_version: number;
     team_order: string[];
   };
-  league?: { id: string; name: string; pool_id: string; roster_format?: 'standard' | 'varsity' };
+  league?: {
+    id: string;
+    name: string;
+    pool_id: string;
+    commissioner_id?: string | null;
+    roster_format?: 'standard' | 'varsity';
+  };
   teams?: {
     id: string;
     league_id: string;
@@ -86,6 +93,8 @@ export interface DraftSnapshot {
   legalAthleteIds?: string[];
 }
 export interface DraftViewState {
+  commissionerId: string | null;
+  replaced: boolean;
   rosterFormat: 'standard' | 'varsity';
   draft: DraftState | null;
   leagueName: string;

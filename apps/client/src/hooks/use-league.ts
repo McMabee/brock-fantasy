@@ -205,7 +205,13 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
           .eq('league_id', leagueId)
           .order('draft_position'),
         client.rpc('get_league_standings', { p_league_id: leagueId }),
-        client.from('drafts').select('id, status').eq('league_id', leagueId).maybeSingle(),
+        // - Exclude archived drafts so a reset still resolves to one current draft
+        client
+          .from('drafts')
+          .select('id, status')
+          .eq('league_id', leagueId)
+          .is('voided_at', null)
+          .maybeSingle(),
         client
           .from('matchups')
           .select(

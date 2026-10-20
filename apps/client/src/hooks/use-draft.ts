@@ -8,6 +8,8 @@ import type { DraftSnapshot, DraftViewState } from '@/lib/draft-state';
 
 export type { DraftViewState } from '@/lib/draft-state';
 const initial: Omit<DraftViewState, 'reload'> = {
+  commissionerId: null,
+  replaced: false,
   rosterFormat: 'standard',
   draft: null,
   leagueName: '',
@@ -96,6 +98,8 @@ export function useDraft(draftId: string | undefined): DraftViewState {
         if (snapshot.closed) {
           setState({
             ...initial,
+            commissionerId: snapshot.league.commissioner_id ?? null,
+            replaced: snapshot.replaced ?? false,
             loading: false,
             connected: true,
             draft: {
@@ -156,6 +160,8 @@ export function useDraft(draftId: string | undefined): DraftViewState {
               picks,
             },
             leagueName: snapshot.league!.name,
+            commissionerId: snapshot.league!.commissioner_id ?? null,
+            replaced: false,
             rosterFormat: snapshot.league!.roster_format ?? 'standard',
             teams: (snapshot.teams ?? []).map((t) => ({
               id: t.id,
