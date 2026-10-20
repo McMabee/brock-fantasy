@@ -23,6 +23,7 @@ import { useSession } from '@/providers/session-provider';
 import { useTheme, useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { colors, fonts, heading, radii, shadow } from '@/theme';
 import { useNotifications } from '@/hooks/use-notifications';
+import { DeveloperWatermark } from './developer-watermark';
 
 export function AppShell({
   children,
@@ -243,6 +244,7 @@ export function AppShell({
                   >
                     Association Instagram
                   </Link>
+                  <DeveloperWatermark />
                 </View>
               </View>
             </View>
@@ -420,7 +422,15 @@ export function ActionButton({
   );
 }
 
-export function SectionTitle({ title, detail }: { title: string; detail?: string }) {
+export function SectionTitle({
+  title,
+  detail,
+  accessory,
+}: {
+  title: string;
+  detail?: string;
+  accessory?: ReactNode;
+}) {
   const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
   return (
@@ -430,9 +440,18 @@ export function SectionTitle({ title, detail }: { title: string; detail?: string
         width < 600 && { flexDirection: 'column', alignItems: 'flex-start', gap: 6 },
       ]}
     >
-      <Text accessibilityRole="header" style={styles.sectionTitle}>
-        {title}
-      </Text>
+      {accessory ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+          <Text accessibilityRole="header" style={[styles.sectionTitle, { flexShrink: 1 }]}>
+            {title}
+          </Text>
+          {accessory}
+        </View>
+      ) : (
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
+          {title}
+        </Text>
+      )}
       {detail ? <Text style={styles.sectionDetail}>{detail}</Text> : null}
     </View>
   );

@@ -336,6 +336,29 @@ try {
             ],
           });
         if (table === 'get_player_insights') return reply(players);
+        if (table === 'get_pool_adp')
+          return reply(
+            Object.fromEntries(
+              players.map((player) => [player.id, { average: player.adp, base: null, samples: 1 }]),
+            ),
+          );
+        if (table === 'athlete_season_summaries')
+          return reply([
+            {
+              season_label: '2026-27',
+              kind: 'supplied_projection',
+              fantasy_points: 200,
+              games_played: 20,
+              stats: {},
+            },
+            {
+              season_label: '2025-26',
+              kind: 'historical',
+              fantasy_points: 39,
+              games_played: 8,
+              stats: {},
+            },
+          ]);
         if (table === 'notifications') return reply(inbox);
         if (table === 'get_player_forecast')
           return reply({
@@ -585,11 +608,111 @@ try {
       0,
       'An MFA administrator sees only actual memberships in Your leagues',
     );
+    const signature = page.getByRole('link', {
+      name: 'Built by Ty, visit developer website, opens in a new tab',
+      exact: true,
+    });
+    await page.goto(origin + '/notifications');
+    await expect(signature).toHaveAttribute('href', 'https://tymabee.ca/');
+    await expect(signature).toHaveAttribute('target', '_blank');
+    await expect(signature).toHaveAttribute('rel', 'noopener noreferrer');
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await signature.scrollIntoViewIfNeeded();
+      await page.evaluate(() => document.fonts.load('italic 600 19px "Ty Signature"'));
+      const signatureBox = await signature.boundingBox();
+      const feedbackBox = await page
+        .getByRole('link', { name: 'Report a bug or suggestion', exact: true })
+        .boundingBox();
+      assert.ok(signatureBox.height >= 44);
+      assert.ok(signatureBox.x + signatureBox.width <= width);
+      assert.ok(
+        signatureBox.x + signatureBox.width <= feedbackBox.x ||
+          signatureBox.y + signatureBox.height <= feedbackBox.y ||
+          signatureBox.y >= feedbackBox.y + feedbackBox.height,
+        'The footer signature clears the fixed feedback control',
+      );
+      await assertNoOverflow(page);
+      await page.screenshot({ path: path.join(output, `footer-signature-${theme}-${width}.png`) });
+    }
+    const fill = signature.locator('.ink-fill');
+    const clipRight = () =>
+      fill.evaluate((element) =>
+        parseFloat(
+          getComputedStyle(element)
+            .clipPath.match(/inset\(([^)]+)\)/)[1]
+            .split(/\s+/)[1] ?? '0',
+        ),
+      );
+    await signature.hover();
+    await expect.poll(clipRight, { timeout: 3500 }).toBe(0);
+    await page.mouse.move(0, 0);
+    await expect.poll(clipRight, { timeout: 3500 }).toBe(100);
+    await context.route('https://tymabee.ca/**', (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: '<title>Developer destination fixture</title>',
+      }),
+    );
+    const destination = context.waitForEvent('page');
+    await signature.click();
+    const destinationPage = await destination;
+    await destinationPage.waitForURL('https://tymabee.ca/');
+    assert.equal(await destinationPage.evaluate(() => window.opener === null), true);
+    await destinationPage.close();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.mouse.move(0, 0);
+    await page.keyboard.press('Tab');
+    await signature.focus();
+    assert.equal(
+      await fill.evaluate((element) => getComputedStyle(element).transitionDuration),
+      '0s',
+    );
+    await signature.evaluate((element) => element.blur());
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    report.checks.push(
+      `Footer signature ${theme}: approved typography, responsive placement, hover reversal, reduced motion and isolated new-tab destination`,
+    );
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: width < 800 ? 844 : 1000 });
       await page.goto(`${origin}/transactions/${leagueId}`);
       const buttons = page.getByRole('button', { name: /^Insights for / });
       await buttons.first().waitFor();
+      const filterBounds = await cardBounds(
+        page.getByRole('textbox', { name: 'Search available athletes', exact: true }),
+      );
+      const athletesBounds = await cardBounds(buttons.first());
+      assert.ok(
+        athletesBounds.y - filterBounds.y - filterBounds.height >= 23,
+        'Transaction filters and athlete results have at least 24px of separation',
+      );
+      const choiceFont = await page
+        .getByRole('radio', { name: 'All positions', exact: true })
+        .getByText('All positions', { exact: true })
+        .evaluate((element) => ({
+          family: getComputedStyle(element).fontFamily,
+          size: parseFloat(getComputedStyle(element).fontSize),
+        }));
+      assert.ok(
+        choiceFont.family.includes('Inter') && choiceFont.size >= 15,
+        'Filter choices use readable body typography',
+      );
+      for (const [heading, topic] of [
+        ['My claims', 'Waiver claims'],
+        ['Trade history', 'Trade status'],
+      ]) {
+        const label = page.getByRole('heading', { name: heading, exact: true });
+        const info = label
+          .locator('..')
+          .getByRole('button', { name: `About ${topic}`, exact: true });
+        await info.scrollIntoViewIfNeeded();
+        const labelBox = await label.boundingBox(),
+          infoBox = await info.boundingBox();
+        assert.ok(
+          Math.abs(labelBox.y + labelBox.height / 2 - infoBox.y - infoBox.height / 2) < 3,
+          `${heading} and its information icon share a line`,
+        );
+      }
       assert.equal(
         await buttons.first().getAttribute('aria-label'),
         'Insights for Zulu Free Guard',
@@ -663,6 +786,47 @@ try {
         'Insights are vertically centered',
       );
       assert.ok(box.y >= 0 && box.y + box.height <= viewport.height, 'Insights fit the viewport');
+      assert.equal(
+        await panel.getByText('Average draft position:', { exact: false }).count(),
+        0,
+        'The quick-view panel omits ADP',
+      );
+      for (const [label, topic] of [
+        [/^Season points:/, 'Fantasy points'],
+        [/^Season projection:/, 'Projected fantasy points'],
+        ['Next upcoming game', 'Game locks'],
+      ]) {
+        const labelNode = panel.getByText(label, { exact: typeof label === 'string' });
+        const info = labelNode
+          .locator('..')
+          .getByRole('button', { name: `About ${topic}`, exact: true });
+        await info.click();
+        const popupId = await info.getAttribute('aria-controls');
+        assert.ok(popupId);
+        const definitionPanel = page.locator(`[id="${popupId}"]`);
+        await definitionPanel.getByText(topic, { exact: true }).waitFor();
+        assert.ok(
+          await definitionPanel.evaluate((element) => {
+            const box = element.getBoundingClientRect();
+            return element.contains(
+              document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2),
+            );
+          }),
+          'A definition is above the athlete dialog and accepts pointer input',
+        );
+        const popupBox = await definitionPanel.boundingBox();
+        assert.ok(
+          popupBox.y >= 0 && popupBox.y + popupBox.height <= viewport.height,
+          'The complete definition fits the viewport',
+        );
+        await definitionPanel.getByRole('button', { name: 'Close', exact: true }).click();
+        await expect(info).toBeFocused();
+        await expect(info).toHaveAttribute('aria-expanded', 'false');
+        await info.click();
+        await page.keyboard.press('Escape');
+        await expect(info).toHaveAttribute('aria-expanded', 'false');
+        await expect(panel).toBeVisible();
+      }
       const analysis = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
       report.accessibility.push({
         page: 'insights',
@@ -735,6 +899,28 @@ try {
       .getByText('Required statistics missing: power play goals', { exact: true })
       .waitFor();
     await page.getByText('Estimated finish: 10.0 pts', { exact: true }).waitFor();
+    const historyCard = page
+      .getByText('2025-26, historical', { exact: true })
+      .locator('..')
+      .locator('..')
+      .locator('..');
+    const forecastHeader = page.getByRole('heading', {
+      name: 'Game and period forecast',
+      exact: true,
+    });
+    const historyBounds = await historyCard.boundingBox();
+    const forecastBounds = await cardBounds(forecastHeader);
+    assert.ok(
+      forecastBounds.y - historyBounds.y - historyBounds.height >= 23,
+      'Season history and the forecast have at least 24px of separation',
+    );
+    assert.equal(
+      await forecastHeader
+        .locator('..')
+        .getByRole('button', { name: 'About Projected fantasy points', exact: true })
+        .count(),
+      1,
+    );
     for (const width of [320, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
       for (const [label, topic] of [

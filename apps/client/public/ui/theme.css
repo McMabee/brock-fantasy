@@ -297,3 +297,95 @@ a,
 .feedback-honeypot {
   display: none;
 }
+
+/* - Preserve the approved signature typography and motion across both websites */
+
+@font-face {
+  font-family: 'Ty Signature';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/ui/fonts/ty-signature.woff2') format('woff2');
+}
+:root {
+  --wm-ink: var(--bf-muted);
+  --wm-accent: var(--bf-link);
+}
+.developer-watermark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  max-width: 100%;
+  color: var(--wm-ink, inherit);
+  text-decoration: none;
+  white-space: nowrap;
+  background: none;
+  border: 0;
+  border-radius: 3px;
+}
+.developer-watermark .wordmark {
+  position: relative;
+  padding-bottom: 6px;
+  font:
+    italic 600 19px/1.25 'Ty Signature',
+    Georgia,
+    serif;
+  letter-spacing: -0.025em;
+}
+.developer-watermark .ink-fill {
+  position: absolute;
+  inset: 0 0 auto;
+  color: var(--wm-accent, currentColor);
+  pointer-events: none;
+  user-select: none;
+}
+.developer-watermark .stroke {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 5px;
+  color: var(--wm-accent, currentColor);
+}
+.developer-watermark .ink-fill,
+.developer-watermark .stroke {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--wm-duration, 1600ms) cubic-bezier(0.65, 0, 0.35, 1);
+}
+.developer-watermark:is(:hover, :focus-visible) .ink-fill,
+.developer-watermark:is(:hover, :focus-visible) .stroke {
+  clip-path: inset(0 0 0 0);
+}
+.developer-watermark .arrow {
+  font:
+    15px/1 system-ui,
+    sans-serif;
+}
+.developer-watermark:focus-visible {
+  outline: 2px solid var(--wm-accent, currentColor);
+  outline-offset: 5px;
+}
+
+.developer-watermark-slot {
+  display: inline-flex;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+@media (max-width: 599px) {
+  .developer-watermark-slot {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .developer-watermark .ink-fill,
+  .developer-watermark .stroke {
+    transition: none;
+  }
+}
+
+/* - Keep the signature clear of the fixed feedback control */
+.developer-watermark-slot {
+  padding-right: 64px;
+}

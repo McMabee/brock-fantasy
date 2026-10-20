@@ -154,8 +154,12 @@ export function PlayerInsightsPanel({
                     ) : null,
                   )}
                   <PlayerTradeAction athleteId={player.id} leagueId={leagueId} onSent={onClose} />
-                  <InfoButton topic="points" />
-                  <Text style={ui.body}>Season points: {projectedPoints(player.seasonPoints)}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={[ui.body, { flexShrink: 1 }]}>
+                      Season points: {projectedPoints(player.seasonPoints)}
+                    </Text>
+                    <InfoButton topic="points" />
+                  </View>
                   <Text style={[ui.body, { fontWeight: '700' }]}>Published season statistics</Text>
                   {Object.keys(player.seasonStats ?? {}).length ? (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
@@ -190,16 +194,20 @@ export function PlayerInsightsPanel({
                       No game statistics have been published for this season yet.
                     </Text>
                   )}
-                  <Text style={ui.body}>
-                    Average draft position: {player.adp?.toFixed(1) ?? 'Unavailable'}
-                  </Text>
-                  <Text style={ui.body}>
-                    Season projection: {projectedPoints(player.seasonProjection)}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={[ui.body, { flexShrink: 1 }]}>
+                      Season projection: {projectedPoints(player.seasonProjection)}
+                    </Text>
+                    <InfoButton topic="projection" />
+                  </View>
                   <PlayerForecastPanel athleteId={player.id} compact />
-                  <Text style={[ui.body, { fontWeight: '700' }]}>Next upcoming game</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={[ui.body, { fontWeight: '700', flexShrink: 1 }]}>
+                      Next upcoming game
+                    </Text>
+                    <InfoButton topic="locks" />
+                  </View>
                   <NextGame game={player.nextGame} />
-                  <InfoButton topic="projection" />
 
                   <ActionButton
                     label="Full player profile →"

@@ -339,7 +339,7 @@ export default function TransactionsScreen() {
         title="Available athletes"
         detail={`${available.length} shown, ${transactions.freeAgents.length} unrostered`}
       />
-      <Card style={{ gap: 12 }}>
+      <Card style={{ gap: 12, marginBottom: 24 }}>
         <TextInput
           accessibilityLabel="Search available athletes"
           placeholder="Search by athlete name"
@@ -554,8 +554,7 @@ export default function TransactionsScreen() {
         </>
       ) : null}
 
-      <SectionTitle title="My claims" />
-      <InfoButton topic="waivers" />
+      <SectionTitle title="My claims" accessory={<InfoButton topic="waivers" />} />
       <Card>
         {transactions.claims.length ? (
           transactions.claims.map((claim) => (
@@ -589,8 +588,7 @@ export default function TransactionsScreen() {
           <Text style={uiStyles.body}>No waiver claims submitted.</Text>
         )}
       </Card>
-      <SectionTitle title="Trade history" />
-      <InfoButton topic="trades" />
+      <SectionTitle title="Trade history" accessory={<InfoButton topic="trades" />} />
       {transactions.trades.length === 0 ? (
         <EmptyState
           title="No trades"
@@ -714,6 +712,9 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
     choice: {
       minHeight: 44,
+      maxWidth: '100%',
+      flexShrink: 1,
+      justifyContent: 'center',
       borderColor: colors.border,
       borderWidth: 1,
       borderRadius: 999,
@@ -722,7 +723,13 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       backgroundColor: colors.canvasSoft,
     },
     choiceSelected: { borderColor: colors.red, backgroundColor: colors.canvasSoft },
-    choiceText: { fontFamily: 'Inter', color: colors.muted, fontSize: 13, fontWeight: '700' },
+    choiceText: {
+      fontFamily: 'Inter',
+      color: colors.muted,
+      fontSize: 15,
+      lineHeight: 22,
+      fontWeight: '600',
+    },
     choiceTextSelected: { color: colors.text },
     assetRow: {
       flexDirection: 'row',

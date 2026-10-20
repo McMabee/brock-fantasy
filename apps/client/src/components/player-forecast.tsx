@@ -93,10 +93,12 @@ export function PlayerForecastPanel({
     );
   return (
     <Card style={{ gap: 12 }}>
-      <Text accessibilityRole="header" style={ui.title}>
-        Game and period forecast
-      </Text>
-      <InfoButton topic="projection" />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Text accessibilityRole="header" style={[ui.title, { flexShrink: 1 }]}>
+          Game and period forecast
+        </Text>
+        <InfoButton topic="projection" />
+      </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {source.periods.map((row) => (
           <ActionButton

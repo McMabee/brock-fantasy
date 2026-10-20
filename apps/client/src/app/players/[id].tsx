@@ -452,8 +452,10 @@ export default function PlayerScreen() {
               </Text>
             ) : null}
           </Card>
-          <PlayerForecastPanel athleteId={id} />
-          <HistoricalGameLogs athleteId={id} />
+          <View style={{ marginTop: 24, gap: 24 }}>
+            <PlayerForecastPanel athleteId={id} />
+            <HistoricalGameLogs athleteId={id} />
+          </View>
         </>
       )}
       <View style={styles.backToPlayers}>

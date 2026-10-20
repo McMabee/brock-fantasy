@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ViewportPortal } from './viewport-portal';
 import { Modal, Platform, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -60,12 +60,19 @@ export function InfoButton({
   const [open, setOpen] = useState(false);
   const id = useId();
   const anchor = useRef<View>(null);
+  const trigger = useRef<View>(null);
+  const suppressFocus = useRef(false);
+  const [portalHost, setPortalHost] = useState<Element | null>(null);
   const [placement, setPlacement] = useState({ top: 0, left: 0 });
   const reveal = () => {
     if (Platform.OS !== 'web') {
       setOpen(true);
       return;
     }
+    // - Keep definitions inside their dialog's stacking layer and keyboard focus boundary
+    setPortalHost(
+      (anchor.current as unknown as HTMLElement | null)?.closest('[aria-modal="true"]') ?? null,
+    );
     anchor.current?.measureInWindow((x, y, _width, height) =>
       setPlacement({
         top: Math.min(y + height + 4, Math.max(8, window.innerHeight - 330)),
@@ -74,6 +81,14 @@ export function InfoButton({
     );
     setOpen(true);
   };
+  const dismiss = useCallback((restoreFocus = false) => {
+    setOpen(false);
+    if (restoreFocus && Platform.OS === 'web') {
+      suppressFocus.current = true;
+      (trigger.current as unknown as HTMLElement | null)?.focus();
+      suppressFocus.current = false;
+    }
+  }, []);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelClose = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -87,14 +102,27 @@ export function InfoButton({
   useEffect(() => {
     if (!open || Platform.OS !== 'web') return;
     const handler = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        dismiss(true);
+      }
     };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open]);
+    // - Consume Escape before the enclosing React Native dialog handles its keyup
+    document.addEventListener('keyup', handler, true);
+    return () => document.removeEventListener('keyup', handler, true);
+  }, [open, dismiss]);
   const content = (
     <View
       nativeID={id}
+      onLayout={(event) => {
+        if (Platform.OS !== 'web') return;
+        const height = event.nativeEvent.layout.height;
+        setPlacement((current) => ({
+          ...current,
+          top: Math.max(8, Math.min(current.top, window.innerHeight - height - 8)),
+        }));
+      }}
       onPointerEnter={cancelClose}
       style={{
         width: '100%',
@@ -131,7 +159,7 @@ export function InfoButton({
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        onPress={() => setOpen(false)}
+        onPress={() => dismiss(true)}
         style={{ minHeight: 44, justifyContent: 'center' }}
       >
         <Text style={{ color: colors.text }}>Close</Text>
@@ -141,22 +169,27 @@ export function InfoButton({
   return (
     <View ref={anchor} style={{ alignSelf: 'flex-start' }}>
       <Pressable
+        ref={trigger}
         accessibilityRole="button"
         accessibilityLabel={`About ${title ?? definition.title}`}
         accessibilityState={{ expanded: open }}
+        aria-expanded={open}
+        aria-controls={open ? id : undefined}
         onPress={reveal}
         onHoverIn={() => {
           cancelClose();
           reveal();
         }}
-        onFocus={reveal}
+        onFocus={() => {
+          if (!suppressFocus.current) reveal();
+        }}
         style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
       >
         <Text style={{ color: colors.text, fontFamily: 'Inter', fontSize: 19 }}>ⓘ</Text>
       </Pressable>
       {Platform.OS === 'web' ? (
         open && typeof document !== 'undefined' ? (
-          <ViewportPortal>
+          <ViewportPortal container={portalHost}>
             <View
               style={{ position: 'fixed' as 'absolute', inset: 0, zIndex: 2000 }}
               pointerEvents="box-none"
