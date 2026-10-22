@@ -160,6 +160,8 @@ try {
     await page.getByRole('heading', { name: 'Draft paused', exact: true }).waitFor();
     for (const width of [320, 390, 1440]) {
       await page.setViewportSize({ width, height: 900 });
+      // - Wait for responsive React layouts to settle after the viewport changes
+      await page.waitForFunction(() => document.documentElement.scrollWidth <= window.innerWidth);
       assert.ok(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
         `Draft overflow at ${width}`,

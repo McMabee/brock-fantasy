@@ -12,6 +12,18 @@ select is((
       or has_function_privilege('authenticated', p.oid, 'EXECUTE'))
 ), 0, 'no API-exposed definer is executable by anonymous or signed-in users');
 
+-- - The draft enum implementation is internal and intentionally has no public overload
+select ok(not exists (
+  select 1 from pg_proc private
+  left join pg_proc exposed on exposed.pronamespace='public'::regnamespace
+    and exposed.proname=private.proname and exposed.proargtypes=private.proargtypes
+  where private.pronamespace='rpc_private'::regnamespace
+    and private.proname not in ('can_use_app','require_app_access','is_admin_account_email','issue_account_signup_handoff')
+    and has_function_privilege('authenticated',private.oid,'execute')
+    and private.oid<>'rpc_private.set_draft_status(uuid,public.draft_status,text)'::regprocedure
+    and exposed.oid is null
+), 'every other authenticated private command retains its public invoker');
+
 select ok(
   not exposed.prosecdef and private.prosecdef
   and pg_get_function_arguments(exposed.oid) = pg_get_function_arguments(private.oid)

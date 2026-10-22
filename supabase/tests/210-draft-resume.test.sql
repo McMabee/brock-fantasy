@@ -1,5 +1,13 @@
 begin;
-select plan(1);
+select plan(5);
+select is((select count(*)::integer from pg_proc where pronamespace='public'::regnamespace
+  and proname='set_draft_status'),1,'JSON callers resolve exactly one public draft status function');
+select has_function('public','set_draft_status',array['uuid','text','text'],'the existing text RPC contract remains');
+select ok(to_regprocedure('public.set_draft_status(uuid,public.draft_status,text)') is null,
+  'the conflicting public enum overload is retired');
+select ok(to_regprocedure('rpc_private.set_draft_status(uuid,public.draft_status,text)') is not null
+  and position('rpc_private.set_draft_status' in pg_get_functiondef('rpc_private.set_draft_status(uuid,text,text)'::regprocedure))>0,
+  'the text adapter delegates directly to the retained private enum implementation');
 -- - Exercise reset drafts and commissioner controls using isolated rollback fixtures
 create function pg_temp.resume_id(text) returns uuid language sql immutable as $$ select md5('draft-resume:'||$1)::uuid; $$;
 insert into auth.users(id,email,email_confirmed_at,created_at,raw_user_meta_data)

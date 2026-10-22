@@ -46,8 +46,11 @@ async function scaffold(suffix) {
     '--no-owner',
     '--no-privileges',
   ]);
-  // Application-owned Auth triggers are recreated by the migrations below.
-  const platform = platformDump.replace(/^CREATE TRIGGER confirm_account_news[^;]+;\s*$/gmu, '');
+  // - Recreate application-owned Auth triggers after their schemas and functions exist
+  const platform = platformDump.replace(
+    /^CREATE TRIGGER [^\n]+ EXECUTE FUNCTION (?:public|beta_private|rpc_private|registration_private)\.[^;]+;\s*$/gmu,
+    '',
+  );
   await sql(
     db,
     `create function public.handle_new_user() returns trigger language plpgsql as $$begin return new; end$$;`,
@@ -107,9 +110,17 @@ try {
     console.log(result.stdout.trim());
   }
   let assertions = 0;
-  for (const file of (await readdir('supabase/tests'))
-    .filter((p) => p.endsWith('.test.sql'))
-    .sort()) {
+  const testFiles = (await readdir('supabase/tests')).filter((p) => p.endsWith('.test.sql')).sort();
+  const selectedTests = new Set(
+    (process.env.BROCK_TEST_SQL_FILES ?? '').split(',').filter(Boolean),
+  );
+  assert.ok(
+    [...selectedTests].every((file) => testFiles.includes(file)),
+    'Selected SQL tests exist',
+  );
+  for (const file of testFiles.filter(
+    (file) => selectedTests.size === 0 || selectedTests.has(file),
+  )) {
     const output = await sql(
       db,
       `set search_path=public,extensions;\n${await readFile(`supabase/tests/${file}`, 'utf8')}`,

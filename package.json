@@ -23,6 +23,7 @@
     "test:import": "node --experimental-strip-types --test scripts/lib/*.test.mjs",
     "test:ui": "node --experimental-strip-types scripts/test-ui-browser.mjs",
     "test:draft-controls:browser": "node --experimental-strip-types scripts/test-draft-controls-browser.mjs",
+    "test:draft-status:api:local": "node --experimental-strip-types scripts/test-draft-status-api-local.mjs",
     "test:varsity:browser": "node --experimental-strip-types scripts/test-varsity-browser.mjs",
     "test:player-metrics:local": "node --experimental-strip-types scripts/test-height-publication-local.mjs",
     "test:roster-metrics:local": "node --experimental-strip-types scripts/test-roster-metrics-local.mjs",
