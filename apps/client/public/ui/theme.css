@@ -389,3 +389,97 @@ a,
 .developer-watermark-slot {
   padding-right: 64px;
 }
+
+/* - Keep help clear of phone navigation and device safe areas */
+.help-menu {
+  --help-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: var(--help-bottom);
+  width: 52px;
+  height: 52px;
+  z-index: 100;
+  font-family: Inter, system-ui, sans-serif;
+}
+.help-menu > summary {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #b00020;
+  color: #fff;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  list-style: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px #0005;
+  -webkit-tap-highlight-color: transparent;
+}
+.help-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.help-menu-options {
+  box-sizing: border-box;
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 4px;
+  width: min(
+    280px,
+    calc(100vw - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
+  max-height: calc(100dvh - var(--help-bottom) - 80px - env(safe-area-inset-top, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--bf-border);
+  border-radius: 16px;
+  background: var(--bf-panel);
+  box-shadow: 0 10px 32px #0003;
+}
+.help-menu:not([open]) > .help-menu-options {
+  display: none;
+}
+.help-menu-options a {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 48px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: var(--bf-text);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+  text-decoration: none;
+}
+.help-menu-options a:hover,
+.help-menu-options a:active {
+  background: var(--bf-canvas-soft);
+}
+.help-menu > summary:focus-visible,
+.help-menu-options a:focus-visible {
+  outline: 2px solid var(--bf-link);
+  outline-offset: 3px;
+}
+.help-menu--public {
+  --help-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 1024px) {
+  .help-menu {
+    --help-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    right: calc(20px + env(safe-area-inset-right, 0px));
+  }
+}

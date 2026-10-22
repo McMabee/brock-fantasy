@@ -19,6 +19,7 @@ export default function RootHtml({ children }: PropsWithChildren) {
           crossOrigin="anonymous"
         />
         <script src="/ui/theme.js" />
+        <script src="/ui/help-menu.js" defer />
       </head>
       <body>{children}</body>
     </html>

@@ -311,26 +311,3 @@ body > main {
 .participation:has(input[value='none']:checked) .varsity-programs {
   display: none;
 }
-
-.floating-feedback {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: #b00020;
-  color: #fff;
-  border: 2px solid #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 25px;
-  z-index: 100;
-  box-shadow: 0 4px 14px #0005;
-  text-decoration: none;
-}
-.floating-feedback:focus-visible {
-  outline: 3px solid #1263df;
-  outline-offset: 4px;
-}

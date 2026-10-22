@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 // - Exercise exported public routes without hosted accounts, private CSVs or email sends
@@ -54,6 +54,65 @@ try {
     const page = await context.newPage();
     page.on('pageerror', (error) => errors.push(`${page.url()}: ${error.message}`));
     await page.goto(origin);
+    const help = page.getByRole('button', { name: 'Help and support', exact: true });
+    const helpOptions = page.getByRole('navigation', { name: 'Help and support options' });
+    for (const viewportWidth of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width: viewportWidth, height: 900 });
+      await help.click();
+      await helpOptions.waitFor();
+      await expect(help).toHaveAttribute('aria-expanded', 'true');
+      assert.deepEqual(await helpOptions.getByRole('link').allTextContents(), [
+        'Report a bug',
+        'Leave a suggestion',
+        'Rules / info',
+      ]);
+      const triggerBox = await help.boundingBox();
+      const panelBox = await helpOptions.boundingBox();
+      assert.equal(Math.round(triggerBox.width), 52);
+      assert.equal(Math.round(triggerBox.height), 52);
+      assert.ok(panelBox.x >= 16 && panelBox.x + panelBox.width <= viewportWidth - 15);
+      assert.ok(panelBox.y >= 0 && panelBox.y + panelBox.height <= triggerBox.y - 11);
+      for (const link of await helpOptions.getByRole('link').all()) {
+        assert.ok((await link.boundingBox()).height >= 48);
+      }
+      const accessibility = await new AxeBuilder({ page })
+        .include('[data-bf-help]')
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+        .analyze();
+      assert.deepEqual(
+        accessibility.violations,
+        [],
+        `Help menu accessibility at ${viewportWidth}px`,
+      );
+      await page.screenshot({
+        path: `${output}/help-${theme}-${viewportWidth}.png`,
+        animations: 'disabled',
+      });
+      await page.keyboard.press('Escape');
+      assert.equal(await helpOptions.isVisible(), false);
+      assert.equal(await help.evaluate((node) => node === document.activeElement), true);
+      await page.keyboard.press('Enter');
+      await helpOptions.waitFor();
+      await page.mouse.click(8, 300);
+      assert.equal(await helpOptions.isVisible(), false);
+    }
+    await page.setViewportSize({ width, height: 900 });
+    await help.click();
+    await helpOptions.getByRole('link', { name: 'Leave a suggestion', exact: true }).click();
+    await page.waitForURL('**/feedback?kind=suggestion');
+    await page.getByRole('radio', { name: 'Suggestion', exact: true }).waitFor();
+    await expect(page.getByRole('radio', { name: 'Suggestion', exact: true })).toBeChecked();
+    await help.click();
+    await helpOptions.getByRole('link', { name: 'Rules / info', exact: true }).click();
+    await page.waitForURL('**/rules?section=overview');
+    await page.getByRole('heading', { name: 'Your first season', exact: true }).waitFor();
+    assert.equal(
+      await page
+        .getByRole('tab', { name: 'Getting started', exact: true })
+        .getAttribute('aria-selected'),
+      'true',
+    );
+    await page.goto(origin);
     await page.getByRole('link', { name: 'Create an account', exact: true }).click();
     await page.waitForURL('**/auth?mode=sign-up');
     assert.equal(
@@ -95,9 +154,10 @@ try {
       await page.locator('.auth-tabs [aria-current="page"]').innerText(),
       'Create an account',
     );
-    await page.getByRole('link', { name: 'Report Bugs/Suggestions', exact: true }).click();
-    await page.waitForURL('**/feedback');
-    await page.getByRole('heading', { name: 'Report Bugs/Suggestions', exact: true }).waitFor();
+    await help.click();
+    await helpOptions.getByRole('link', { name: 'Report a bug', exact: true }).click();
+    await page.waitForURL('**/feedback?kind=bug');
+    await page.getByRole('heading', { name: 'Report a bug', exact: true }).waitFor();
     assert.equal(await page.locator('.feedback-form').getAttribute('method'), 'POST');
     for (const kind of ['Bug', 'Suggestion']) {
       if (kind === 'Suggestion') await page.goto(origin + '/feedback');
@@ -124,7 +184,10 @@ try {
         .analyze();
       assert.deepEqual(accessibility.violations, [], `${kind} form accessibility at ${width}px`);
       await page
-        .getByRole('heading', { name: 'Report Bugs/Suggestions', exact: true })
+        .getByRole('heading', {
+          name: kind === 'Bug' ? 'Report a bug' : 'Leave a suggestion',
+          exact: true,
+        })
         .scrollIntoViewIfNeeded();
       await page.screenshot({
         path: `${output}/${kind.toLowerCase()}-${width}.png`,
@@ -160,6 +223,8 @@ try {
       bugAndSuggestionPostsCaptured: true,
       feedbackAccessibilityViolations: 0,
       realEmailsSent: false,
+      helpMenuNavigationAndDismissal: true,
+      helpMenuWidths: [320, 390, 768, 1440],
     });
     await context.close();
   }

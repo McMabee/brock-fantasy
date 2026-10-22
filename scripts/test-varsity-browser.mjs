@@ -622,7 +622,7 @@ try {
       await page.evaluate(() => document.fonts.load('italic 600 19px "Ty Signature"'));
       const signatureBox = await signature.boundingBox();
       const feedbackBox = await page
-        .getByRole('link', { name: 'Report a bug or suggestion', exact: true })
+        .getByRole('button', { name: 'Help and support', exact: true })
         .boundingBox();
       assert.ok(signatureBox.height >= 44);
       assert.ok(signatureBox.x + signatureBox.width <= width);
@@ -737,7 +737,7 @@ try {
         .getByText('Your varsity program, unavailable to your account', { exact: true })
         .waitFor();
       await page.getByRole('radio', { name: 'All programs', exact: true }).click();
-      const bug = page.getByRole('link', { name: 'Report a bug or suggestion', exact: true });
+      const bug = page.getByRole('button', { name: 'Help and support', exact: true });
       const beforeBug = await bug.boundingBox();
       await page.evaluate(() =>
         document.querySelectorAll('div').forEach((element) => {

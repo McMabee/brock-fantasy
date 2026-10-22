@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
 import { Platform, Text } from 'react-native';
@@ -8,25 +8,33 @@ const feedbackOrigin = process.env.EXPO_PUBLIC_APP_ORIGIN ?? 'https://play.brock
 
 export default function FeedbackScreen() {
   const ui = useUiStyles();
-  const { submitted } = useLocalSearchParams<{ submitted?: string }>();
-  const [kind, setKind] = useState<'Bug' | 'Suggestion'>('Bug');
+  const { submitted, kind: requestedKind } = useLocalSearchParams<{
+    submitted?: string;
+    kind?: string;
+  }>();
+  const router = useRouter();
   const [hydrated, setHydrated] = useState(false);
   // - Match the static export before showing URL-dependent confirmation content
   useEffect(() => setHydrated(true), []);
+  const kind =
+    (Platform.OS !== 'web' || hydrated) && requestedKind === 'suggestion' ? 'Suggestion' : 'Bug';
+  const title = kind === 'Bug' ? 'Report a bug' : 'Leave a suggestion';
   if (Platform.OS !== 'web')
     return (
-      <AppShell title="Report Bugs/Suggestions">
+      <AppShell title={title}>
         <Card>
           <Text style={ui.body}>Send a bug report or share an idea for Brock Fantasy.</Text>
           <ActionButton
             label="Open feedback form"
-            onPress={() => void Linking.openURL(`${feedbackOrigin}/feedback`)}
+            onPress={() =>
+              void Linking.openURL(`${feedbackOrigin}/feedback?kind=${kind.toLowerCase()}`)
+            }
           />
         </Card>
       </AppShell>
     );
   return (
-    <AppShell title="Report Bugs/Suggestions" eyebrow="HELP IMPROVE BROCK FANTASY">
+    <AppShell title={title} eyebrow="HELP IMPROVE BROCK FANTASY">
       {hydrated && submitted === '1' ? (
         <Card>
           <Text accessibilityRole="header" style={ui.title}>
@@ -58,7 +66,7 @@ export default function FeedbackScreen() {
                   name="Report type"
                   value={value}
                   checked={kind === value}
-                  onChange={() => setKind(value)}
+                  onChange={() => router.setParams({ kind: value.toLowerCase() })}
                   required
                 />
                 {value}
