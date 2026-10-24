@@ -409,6 +409,8 @@ try {
           const id = dataPath.searchParams.get('id')?.replace('eq.', '');
           return reply(id ? players.find((p) => p.id === id) : players);
         }
+        if (table === 'get_notification_snapshot')
+          return reply({ notifications: [], unreadCount: 0 });
         if (table === 'get_player_insights') {
           const payload = JSON.parse(route.request().postData() ?? '{}');
           return reply(

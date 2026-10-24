@@ -73,17 +73,32 @@ export function legalDraftAthletes(
   slots: readonly DraftSlot[],
   teamId: string,
 ): readonly string[] {
-  return candidates.flatMap((candidate) =>
-    candidate.ownerId === null &&
-    completeDraftRoster(
-      candidates.map((athlete) =>
-        athlete.id === candidate.id ? { ...athlete, ownerId: teamId } : athlete,
-      ),
-      slots,
-    )
-      ? [candidate.id]
-      : [],
-  );
+  const uniqueIds = new Set(candidates.map((candidate) => candidate.id)).size === candidates.length;
+  const eligibility = new Map<string, boolean>();
+  return candidates.flatMap((candidate) => {
+    if (candidate.ownerId !== null) return [];
+    // - Interchangeable unowned athletes have identical matching feasibility
+    // - Preserve the original calculation for malformed inputs with duplicate identities
+    const key = uniqueIds
+      ? JSON.stringify([
+          [...new Set(candidate.positions)].sort(),
+          [...new Set(candidate.blockedTeamIds ?? [])].sort(),
+        ])
+      : null;
+    let allowed = key === null ? undefined : eligibility.get(key);
+    if (allowed === undefined) {
+      allowed = Boolean(
+        completeDraftRoster(
+          candidates.map((athlete) =>
+            athlete.id === candidate.id ? { ...athlete, ownerId: teamId } : athlete,
+          ),
+          slots,
+        ),
+      );
+      if (key !== null) eligibility.set(key, allowed);
+    }
+    return allowed ? [candidate.id] : [];
+  });
 }
 
 export function formatDraftClock(seconds: number): string {

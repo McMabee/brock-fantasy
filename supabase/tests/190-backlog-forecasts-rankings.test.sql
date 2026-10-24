@@ -42,7 +42,7 @@ update public.athlete_season_summaries set fantasy_points=500 where athlete_id=p
 select is((select projected_points from public.preseason_ranking_entries where athlete_id=pg_temp.b_id('athlete1')),100::numeric,'published snapshot is unchanged by later projection edits');
 select set_config('request.jwt.claim.sub',pg_temp.b_id('user1')::text,true);
 set local role authenticated;
-select throws_ok($$select public.publish_preseason_rankings('b0000000-0000-4000-8000-000000000003',(select data->>'input_hash' from ranking_preview),'Reviewed fixture projection order','rankings-stale')$$,'40001','Ranking inputs changed; preview and review again','stale ranking inputs require another review');
+select throws_ok($$select public.publish_preseason_rankings('b0000000-0000-4000-8000-000000000003',(select data->>'input_hash' from ranking_preview),'Reviewed fixture projection order','rankings-stale')$$,'PT409','Ranking inputs changed; preview and review again','stale ranking inputs require another review');
 reset role;
 update public.athletes set fantasy_withdrawn_at=now() where id=pg_temp.b_id('athlete2');
 select set_config('request.jwt.claim.sub',pg_temp.b_id('user2')::text,true);

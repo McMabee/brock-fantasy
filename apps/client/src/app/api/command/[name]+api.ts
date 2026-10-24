@@ -169,7 +169,14 @@ const handle: RequestHandler = async (request, params) => {
       typeof errorResponse?.message === 'string'
         ? errorResponse.message
         : 'The command could not be completed.';
-    return json({ error: message }, result.status === 401 || result.status === 403 ? 403 : 400);
+    const code = typeof errorResponse?.code === 'string' ? errorResponse.code : undefined;
+    const status =
+      result.status === 409 || code === 'PT409'
+        ? 409
+        : result.status === 401 || result.status === 403
+          ? 403
+          : 400;
+    return json({ error: message, code }, status);
   }
   const confirmed = json(response);
   if (name === 'join_league')

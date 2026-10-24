@@ -5,14 +5,14 @@ import type {
   MatchupResult,
   StandingsRow,
 } from '@brock-fantasy/domain';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { firstRelated } from '@/lib/relations';
 import { LEAGUE_ROSTER_SELECT } from '@/lib/league-roster-query';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
+import { useActivePoll, useScreenActive } from '@/hooks/use-active-poll';
 
 interface LeagueRow {
   id: string;
@@ -145,7 +145,8 @@ interface MessageRow {
 }
 
 export function useLeague(leagueId: string | undefined, rosterTeamId?: string): LeagueData {
-  const { user } = useSession();
+  const { user, readScope } = useSession();
+  const active = useScreenActive();
   const [data, setData] = useState<Omit<LeagueData, 'reload'>>({
     league: null,
     teams: [],
@@ -161,10 +162,15 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
   });
 
   const pending = useRef<Promise<void> | null>(null);
-  const identity = (user?.id ?? '') + ':' + (leagueId ?? '') + ':' + (rosterTeamId ?? '');
+  const identity = useMemo(
+    () => ({ readScope, leagueId, rosterTeamId }),
+    [readScope, leagueId, rosterTeamId],
+  );
   const latestIdentity = useRef(identity);
   latestIdentity.current = identity;
+  const stateIdentity = useRef(identity);
   useEffect(() => {
+    stateIdentity.current = identity;
     pending.current = null;
     setData((current) => ({
       ...current,
@@ -180,9 +186,9 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
       loading: Boolean(user?.id),
       error: null,
     }));
-  }, [leagueId, user?.id, rosterTeamId]);
+  }, [identity, user?.id]);
   const load = useCallback(async () => {
-    const requestIdentity = latestIdentity.current;
+    const requestIdentity = identity;
     if (!supabase || !leagueId || !user) {
       setData((current) => ({ ...current, loading: false }));
       return;
@@ -349,76 +355,76 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
       loading: false,
       error: null,
     });
-  }, [leagueId, user, rosterTeamId]);
+  }, [identity, leagueId, user, rosterTeamId]);
 
   const reload = useCallback(() => {
     if (pending.current) return pending.current;
-    const request = load().catch(() =>
-      setData((current) => ({ ...current, loading: false, error: 'League is reconnecting…' })),
-    );
+    const request = load().catch(() => {
+      if (latestIdentity.current === identity)
+        setData((current) => ({ ...current, loading: false, error: 'League is reconnecting…' }));
+    });
     pending.current = request;
     void request.finally(() => {
       if (pending.current === request) pending.current = null;
     });
     return request;
-  }, [load]);
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const poll = async () => {
-        await reload();
-        if (active && Platform.OS === 'web')
-          timer = setTimeout(
-            () => void poll(),
-            document.visibilityState === 'hidden' ? 30_000 : 5000,
-          );
-      };
-      void poll();
-      if (!supabase || !leagueId) return;
-      if (Platform.OS === 'web') {
-        return () => {
-          active = false;
-          if (timer) clearTimeout(timer);
-        };
-      }
-      const client = supabase;
-      const channel = client
-        .channel(`league:${leagueId}`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'matchups', filter: `league_id=eq.${leagueId}` },
-          () => void reload(),
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'chat_messages',
-            filter: `league_id=eq.${leagueId}`,
-          },
-          () => void reload(),
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'roster_entries',
-            filter: `league_id=eq.${leagueId}`,
-          },
-          () => void reload(),
-        )
-        .subscribe();
-      return () => {
-        active = false;
-        void client.removeChannel(channel);
-      };
-    }, [leagueId, reload]),
-  );
+  }, [identity, load]);
+  useActivePoll(reload, active && Boolean(user?.id && leagueId) && Platform.OS === 'web', 5000);
+  useEffect(() => {
+    if (!active || !supabase || !leagueId || !user?.id || Platform.OS === 'web') return;
+    void reload();
+    const client = supabase;
+    const channel = client
+      .channel(`league:${leagueId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'matchups', filter: `league_id=eq.${leagueId}` },
+        () => void reload(),
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `league_id=eq.${leagueId}`,
+        },
+        () => void reload(),
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'roster_entries',
+          filter: `league_id=eq.${leagueId}`,
+        },
+        () => void reload(),
+      )
+      .subscribe();
+    return () => {
+      void client.removeChannel(channel);
+    };
+  }, [active, leagueId, reload, user?.id]);
 
-  return { ...data, reload };
+  return {
+    ...(stateIdentity.current === identity
+      ? data
+      : {
+          league: null,
+          teams: [],
+          standings: [],
+          draftId: null,
+          draftStatus: null,
+          myTeamId: null,
+          roster: [],
+          matchups: [],
+          messages: [],
+          loading: Boolean(user?.id),
+          error: null,
+        }),
+    reload,
+  };
 }
 
 function isDraftRow(value: unknown): value is DraftRow {

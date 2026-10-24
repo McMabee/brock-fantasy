@@ -34,6 +34,7 @@ const tables = new Set([
   'waiver_claims',
 ]);
 const readRpc = new Set([
+  'get_notification_snapshot',
   'get_athlete_adp',
   'get_pool_adp',
   'get_draft_results',

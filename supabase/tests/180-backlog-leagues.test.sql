@@ -29,7 +29,7 @@ create temp table preview as select public.get_matchup_preview(pg_temp.b_id('lea
 select is((select (data->>'shortened')::boolean from preview),true,'late setup explicitly previews a shortened season');
 select is((select jsonb_array_length(data->'periods') from preview),7,'underway period is excluded from eligible regular-season periods');
 select is((select count(*)::int from public.matchups where league_id=pg_temp.b_id('league')),0,'preview performs no schedule writes');
-select throws_ok($$select public.confirm_matchup_schedule(pg_temp.b_id('league'),'stale','backlog-stale')$$,'40001','Schedule preview changed; reload and review again','stale preview cannot generate pairings');
+select throws_ok($$select public.confirm_matchup_schedule(pg_temp.b_id('league'),'stale','backlog-stale')$$,'PT409','Schedule preview changed; reload and review again','stale preview cannot generate pairings');
 select lives_ok($$select public.confirm_matchup_schedule(pg_temp.b_id('league'),(select data->>'signature' from preview),'backlog-confirm')$$,'commissioner confirms the reviewed schedule');
 select is((select count(*)::int from public.matchups where league_id=pg_temp.b_id('league')),14,'generation matches all previewed pairings');
 select lives_ok($$select public.confirm_matchup_schedule(pg_temp.b_id('league'),(select data->>'signature' from preview),'backlog-confirm')$$,'retry returns the original confirmation');

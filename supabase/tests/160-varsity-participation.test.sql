@@ -1,5 +1,7 @@
 begin;
 select no_plan();
+-- - Keep draft fixtures independent of the published season start date
+update public.fantasy_periods set starts_at=now()+make_interval(days=>number*7),ends_at=now()+make_interval(days=>number*7+6);
 create function pg_temp.v_id(text) returns uuid language sql immutable as $$ select md5('varsity-fixture:'||$1)::uuid; $$;
 
 -- - Exercise fresh signup validation without granting privileges from editable metadata
@@ -65,7 +67,7 @@ select set_config('request.jwt.claims',jsonb_build_object('sub',pg_temp.v_id('us
 select lives_ok($$select public.set_league_pick_duration(pg_temp.v_id('league'),20,(select state_version from public.leagues where id=pg_temp.v_id('league')),'timer-save')$$,'commissioner can save the twenty-second minimum at AAL1');
 select is((select draft_pick_seconds from public.leagues where id=pg_temp.v_id('league')),20,'league saves its own pick timer');
 select lives_ok($$select public.set_league_pick_duration(pg_temp.v_id('league'),20,0,'timer-save')$$,'save retry returns the existing receipt despite its old version');
-select throws_ok($$select public.set_league_pick_duration(pg_temp.v_id('league'),40,0,'timer-stale')$$,'40001','League changed; refresh and retry','a stale commissioner cannot overwrite a saved timer');
+select throws_ok($$select public.set_league_pick_duration(pg_temp.v_id('league'),40,0,'timer-stale')$$,'PT409','League changed; refresh and retry','a stale commissioner cannot overwrite a saved timer');
 select throws_ok($$select public.start_draft(pg_temp.v_id('league'),10,120,'varsity-wrong-timer')$$,'P0001','Draft requires ten rounds and the saved pick duration','draft creation cannot bypass the saved timer');
 select lives_ok($$select public.start_draft(pg_temp.v_id('league'),10,20,'varsity-start')$$,'varsity league starts a legal ten-round draft with its saved timer');
 select is((select pick_seconds from public.drafts where league_id=pg_temp.v_id('league')),20,'active draft snapshots the saved duration');
@@ -94,7 +96,7 @@ select set_config('request.jwt.claims',jsonb_build_object('sub',pg_temp.v_id('us
 set local role authenticated;
 select lives_ok($$select public.admin_set_participation(pg_temp.v_id('user2'),'coach',array['womens_volleyball'],1,'Confirmed varsity coach','varsity-coach-update')$$,'MFA administrator can identify a coach and programs');
 select lives_ok($$select public.admin_set_participation(pg_temp.v_id('user2'),'coach',array['womens_volleyball'],1,'Confirmed varsity coach','varsity-coach-update')$$,'administrator correction retries are idempotent');
-select throws_ok($$select public.admin_set_participation(pg_temp.v_id('user2'),'none','{}',1,'Stale status correction','varsity-stale-update')$$,'40001','Participation changed; reload and retry','stale corrections cannot overwrite a newer status');
+select throws_ok($$select public.admin_set_participation(pg_temp.v_id('user2'),'none','{}',1,'Stale status correction','varsity-stale-update')$$,'PT409','Participation changed; reload and retry','stale corrections cannot overwrite a newer status');
 select is(jsonb_array_length(public.admin_find_participants('Participant')),9,'administrators can find existing accounts by name');
 reset role;
 select is((select count(*)::int from public.roster_entries where fantasy_team_id=pg_temp.v_id('team2') and released_at is null),10,'status correction preserves existing athletes');

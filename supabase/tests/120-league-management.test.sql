@@ -147,7 +147,7 @@ select throws_ok($$select public.delete_league(current_setting('test.league_id')
   '22023', 'Type the league name to confirm deletion', 'incorrect confirmation is rejected on the server');
 select throws_ok($$select public.delete_league(current_setting('test.league_id')::uuid,
   'League commands fixture', 0, 'league-confirm-stale')$$,
-  '40001', 'League changed. Refresh league controls and confirm again.', 'a stale confirmation cannot delete changed league data');
+  'PT409', 'League changed. Refresh league controls and confirm again.', 'a stale confirmation cannot delete changed league data');
 reset role;
 select is((select count(*)::integer from public.leagues where id = current_setting('test.league_id')::uuid), 1,
   'rejected deletion leaves the league intact');

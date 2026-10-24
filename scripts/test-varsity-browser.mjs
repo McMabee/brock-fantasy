@@ -195,6 +195,9 @@ try {
     let preDraft = false;
     let pickSeconds = null;
     let leagueVersion = 1;
+    let lineupVersion = 1;
+    let lineupSaveMode = 'success';
+    const lineupReceipts = new Map();
     const inbox = [
       {
         id: 'historical-inbox',
@@ -299,6 +302,39 @@ try {
             programs: payload.p_programs,
             revision: participant.revision + 1,
           };
+        if (name === 'set_period_lineup') {
+          if (lineupReceipts.has(payload.p_idempotency_key))
+            return reply(lineupReceipts.get(payload.p_idempotency_key));
+          if (lineupSaveMode === 'conflict' || lineupSaveMode === 'roster-conflict') {
+            if (lineupSaveMode === 'roster-conflict') {
+              const flex = roster.find((entry) => entry.slot_code === 'FLEX');
+              const reserve = roster.filter((entry) => entry.slot_code === 'BN')[1];
+              [flex.slot_code, reserve.slot_code] = [reserve.slot_code, flex.slot_code];
+              for (const entry of roster)
+                entry.status = entry.slot_code === 'BN' ? 'bench' : 'starter';
+            }
+            lineupVersion++;
+            lineupSaveMode = 'success';
+            return route.fulfill({
+              status: 409,
+              contentType: 'application/json',
+              body: JSON.stringify({ error: 'Lineup changed; reload and retry', code: 'PT409' }),
+            });
+          }
+          for (const value of payload.p_entries) {
+            const entry = roster.find((item) => item.athlete_id === value.athlete_id);
+            entry.slot_code = value.slot_code;
+            entry.status = value.slot_code === 'BN' ? 'bench' : 'starter';
+          }
+          lineupVersion++;
+          const receipt = { state_version: lineupVersion };
+          lineupReceipts.set(payload.p_idempotency_key, receipt);
+          if (lineupSaveMode === 'uncertain') {
+            lineupSaveMode = 'success';
+            return route.abort('failed');
+          }
+          return reply(receipt);
+        }
         if (name === 'add_free_agent') {
           const target = roster.findIndex((entry) => entry.athlete_id === payload.p_athlete_out_id);
           const athlete = players.find((player) => player.id === payload.p_athlete_in_id);
@@ -359,6 +395,11 @@ try {
               stats: {},
             },
           ]);
+        if (table === 'get_notification_snapshot')
+          return reply({
+            notifications: inbox,
+            unreadCount: inbox.filter((row) => !row.read_at).length,
+          });
         if (table === 'notifications') return reply(inbox);
         if (table === 'get_player_forecast')
           return reply({
@@ -581,8 +622,8 @@ try {
         if (table === 'roster_slot_rules') return reply(rules);
         if (table === 'get_beta_lineup')
           return reply({
-            period: null,
-            state_version: 1,
+            period: { number: 1, ends_at: '2099-11-01T04:00:00Z' },
+            state_version: lineupVersion,
             entries: roster.map((entry) => ({
               athlete_id: entry.athlete_id,
               display_name: entry.athlete.display_name,
@@ -958,7 +999,7 @@ try {
     for (const width of [320, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
       const first = await inviteAction.boundingBox();
-      const setup = await cardBounds(page.getByText('Set up matchups', { exact: true }));
+      const setup = await cardBounds(page.getByText('Automatic matchup schedule', { exact: true }));
       const view = await page
         .getByRole('link', { name: 'View matchups', exact: true })
         .boundingBox();
@@ -975,18 +1016,18 @@ try {
       });
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.getByRole('button', { name: 'Preview matchup schedule', exact: true }).click();
-    await page.getByText('Shortened season:', { exact: false }).waitFor();
-    await page.getByRole('button', { name: 'Confirm matchup schedule', exact: true }).click();
-    assert.ok(
-      commands.some(
-        (command) =>
-          command.name === 'confirm_matchup_schedule' &&
-          command.payload.p_expected_signature === 'fixture-schedule-signature',
-      ),
+    assert.equal(
+      await page.getByRole('button', { name: 'Confirm matchup schedule', exact: true }).count(),
+      0,
     );
+    assert.equal(
+      await page.getByRole('link', { name: 'View matchup schedule', exact: true }).count(),
+      1,
+    );
+    assert.ok(!commands.some((command) => command.name === 'confirm_matchup_schedule'));
+    scheduled = true;
     report.checks.push(
-      `Backlog ${theme}: profile trade, inline definitions, forecast, historical missing statistics, reviewed rankings, shortened schedule confirmation, fixed feedback at 320–1440px`,
+      `Backlog ${theme}: profile trade, inline definitions, forecast, historical missing statistics, reviewed rankings, automatic schedule status without commissioner confirmation, fixed feedback at 320–1440px`,
     );
     await page.goto(origin + '/matchups/' + leagueId);
     for (const width of [320, 1440]) {
@@ -1213,6 +1254,73 @@ try {
       )
       .waitFor();
     await page.getByText('🏒 Hockey 1, any position, 1/1', { exact: true }).waitFor();
+    const changeFlex = async () => {
+      const starter = roster.find((entry) => entry.slot_code === 'FLEX');
+      const reserve = roster.find((entry) => entry.slot_code === 'BN');
+      await page
+        .getByRole('button', { name: `Move ${starter.athlete.display_name}`, exact: true })
+        .click();
+      await page
+        .getByRole('button', { name: `Swap with ${reserve.athlete.display_name}`, exact: true })
+        .click();
+    };
+    const lineupCommands = () => commands.filter((command) => command.name === 'set_period_lineup');
+    await changeFlex();
+    lineupSaveMode = 'conflict';
+    const savesBeforeConflict = lineupCommands().length;
+    await page.getByRole('button', { name: 'Save lineup', exact: true }).click();
+    await page.getByText('League updated. Your changes are retained.', { exact: false }).waitFor();
+    await page.waitForTimeout(200);
+    assert.equal(
+      lineupCommands().length,
+      savesBeforeConflict + 1,
+      'Conflict refresh never automatically resubmits a lineup',
+    );
+    await page.getByRole('button', { name: 'Save lineup', exact: true }).click();
+    await page
+      .getByText('Lineup saved. Future games use these assignments; earned points remain.', {
+        exact: true,
+      })
+      .waitFor();
+    assert.notEqual(
+      lineupCommands().at(-1).payload.p_idempotency_key,
+      lineupCommands().at(-2).payload.p_idempotency_key,
+      'Reviewed version creates a new mutation attempt',
+    );
+    await changeFlex();
+    lineupSaveMode = 'uncertain';
+    await page.getByRole('button', { name: 'Save lineup', exact: true }).click();
+    await page.getByText('Unable to reach the Brock Fantasy server.', { exact: true }).waitFor();
+    const committedVersion = lineupVersion;
+    await page.getByRole('button', { name: 'Save lineup', exact: true }).click();
+    await page
+      .getByText('Lineup saved. Future games use these assignments; earned points remain.', {
+        exact: true,
+      })
+      .waitFor();
+    assert.equal(
+      lineupCommands().at(-1).payload.p_idempotency_key,
+      lineupCommands().at(-2).payload.p_idempotency_key,
+      'Uncertain outcome retries the original mutation key',
+    );
+    assert.equal(
+      lineupVersion,
+      committedVersion,
+      'Retry receipt does not apply a second lineup mutation',
+    );
+    await changeFlex();
+    lineupSaveMode = 'roster-conflict';
+    await page.getByRole('button', { name: 'Save lineup', exact: true }).click();
+    await page.getByText('The saved roster changed.', { exact: false }).waitFor();
+    assert.equal(
+      await page.getByRole('button', { name: 'Save lineup', exact: true }).isDisabled(),
+      true,
+    );
+    await page.getByRole('button', { name: 'Reload saved lineup', exact: true }).click();
+    await page.getByText('SAVED LINEUP', { exact: true }).waitFor();
+    report.checks.push(
+      `Lineup recovery ${theme}: preserved pending edits, explicit conflict retry, stable uncertain-outcome key, one committed mutation, changed-roster review`,
+    );
     report.checks.push(
       `Participation ${theme}: admin correction payload, account badge, varsity lineup labels`,
     );

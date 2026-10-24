@@ -75,8 +75,7 @@ export async function verifyMatchupConcurrency({ database, databaseContainer, ex
   const competing = executeSql(`begin;${actor}${confirm('backlog-concurrent-second')}commit;`);
   const results = await Promise.allSettled([done, competing]);
   assert.equal(results[0].status, 'fulfilled');
-  assert.equal(results[1].status, 'rejected');
-  assert.match(String(results[1].reason), /Schedule already generated/u);
+  assert.equal(results[1].status, 'fulfilled');
   await executeSql(`begin;${actor}${confirm('backlog-concurrent-first')}commit;`);
   assert.equal(
     Number(
@@ -99,6 +98,6 @@ export async function verifyMatchupConcurrency({ database, databaseContainer, ex
     0,
   );
   console.log(
-    'Concurrent matchup confirmations create one future-only schedule and preserve the original retry receipt',
+    'Concurrent compatibility confirmations create one schedule and preserve the original retry receipt',
   );
 }

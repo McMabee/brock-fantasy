@@ -23,6 +23,7 @@ import { onSessionRenewed, refreshWebSession, sessionNeedsRenewal } from '@/lib/
 
 interface SessionContextValue {
   user: User | null;
+  readScope: object;
   loading: boolean;
   error: string | null;
   signIn: (
@@ -45,7 +46,13 @@ interface SessionContextValue {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, updateUser] = useState<User | null>(null);
+  const [readScope, setReadScope] = useState<object>(() => ({}));
+  // - Rotate pending read ownership on every accepted Auth update, including same-user sessions
+  const setUser = useCallback((candidate: User | null) => {
+    setReadScope({});
+    updateUser(candidate);
+  }, []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -246,6 +253,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const value = useMemo<SessionContextValue>(
     () => ({
       user,
+      readScope,
       loading,
       error,
       signIn,
@@ -254,7 +262,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       updatePassword,
       signOut,
     }),
-    [error, loading, requestPasswordReset, signIn, signOut, signUp, updatePassword, user],
+    [
+      error,
+      loading,
+      readScope,
+      requestPasswordReset,
+      signIn,
+      signOut,
+      signUp,
+      updatePassword,
+      user,
+    ],
   );
 
   return <SessionContext value={value}>{children}</SessionContext>;

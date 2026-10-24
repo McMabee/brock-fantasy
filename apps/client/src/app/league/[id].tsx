@@ -312,7 +312,7 @@ function Overview({
         ) : (
           <EmptyState
             title="No matchup scheduled"
-            body="The commissioner can create fantasy periods after league setup."
+            body="Matchups are created automatically when your draft finishes."
           />
         )}
         <SectionTitle title="Recent activity" />

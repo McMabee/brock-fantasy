@@ -1,7 +1,9 @@
 import { BETA_PLAYER_POOL_ID } from '@brock-fantasy/domain';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
+import { createSingleFlight } from '@/lib/single-flight';
+import { useScreenActive } from '@/hooks/use-active-poll';
 
 export interface InsightGame {
   id: string;
@@ -36,50 +38,77 @@ export interface PlayerInsight {
   nextGame: InsightGame | null;
 }
 
+const requestInsights = createSingleFlight<{
+  players: readonly PlayerInsight[];
+  error: boolean;
+  denied: boolean;
+}>();
+
 export function usePlayerInsights(
   poolId: string | undefined = BETA_PLAYER_POOL_ID,
   athleteId?: string,
 ) {
-  const { user } = useSession();
-  const [players, setPlayers] = useState<readonly PlayerInsight[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, readScope } = useSession();
+  const active = useScreenActive();
+  const identity = useMemo(
+    () => ({ poolId, athleteId, readScope }),
+    [poolId, athleteId, readScope],
+  );
+  const latest = useRef(identity);
+  latest.current = identity;
+  const [state, setState] = useState<{
+    identity: object;
+    players: readonly PlayerInsight[];
+    error: string | null;
+    loading: boolean;
+  }>({ identity, players: [], error: null, loading: true });
   const reload = useCallback(async () => {
-    if (!supabase || !poolId || !user?.id) return;
-    const result = await supabase.rpc('get_player_insights', {
-      p_pool_id: poolId,
-      ...(athleteId ? { p_athlete_id: athleteId } : {}),
-    });
-    if (result.error) setError('Player insights are unavailable. Please retry.');
-    else {
-      setPlayers((result.data ?? []) as PlayerInsight[]);
-      setError(null);
+    if (!supabase || !poolId || !user?.id || !active) return;
+    try {
+      const result = await requestInsights(
+        readScope,
+        JSON.stringify([poolId, athleteId ?? null]),
+        async () => {
+          const response = await supabase!.rpc('get_player_insights', {
+            p_pool_id: poolId,
+            ...(athleteId ? { p_athlete_id: athleteId } : {}),
+          });
+          return {
+            players: (response.data ?? []) as PlayerInsight[],
+            error: Boolean(response.error),
+            denied: [401, 403].includes(response.status),
+          };
+        },
+      );
+      if (latest.current !== identity) return;
+      setState((previous) => ({
+        identity,
+        players: result.error
+          ? result.denied || previous.identity !== identity
+            ? []
+            : previous.players
+          : result.players,
+        error: result.error ? 'Player insights are unavailable. Please retry.' : null,
+        loading: false,
+      }));
+    } catch {
+      if (latest.current === identity)
+        setState({
+          identity,
+          players: [],
+          error: 'Player insights are unavailable. Please retry.',
+          loading: false,
+        });
     }
-    setLoading(false);
-  }, [poolId, athleteId, user?.id]);
+  }, [active, poolId, athleteId, identity, readScope, user?.id]);
   useEffect(() => {
-    let cancelled = false;
-    setPlayers([]);
-    setLoading(true);
-    if (!supabase || !poolId || !user?.id) {
-      setLoading(false);
-      return;
-    }
-    void supabase
-      .rpc('get_player_insights', {
-        p_pool_id: poolId,
-        ...(athleteId ? { p_athlete_id: athleteId } : {}),
-      })
-      .then((result) => {
-        if (cancelled) return;
-        setError(result.error ? 'Player insights are unavailable. Please retry.' : null);
-        if (!result.error) setPlayers((result.data ?? []) as PlayerInsight[]);
-        setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [poolId, athleteId, user?.id]);
+    void reload();
+  }, [reload]);
+  const players = state.identity === identity && user?.id ? state.players : [];
+  const error = state.identity === identity ? state.error : null;
+  const loading = Boolean(
+    supabase && poolId && user?.id && (state.identity !== identity || state.loading),
+  );
   const byId = useMemo(() => new Map(players.map((player) => [player.id, player])), [players]);
   return { players, byId, error, loading, reload };
 }

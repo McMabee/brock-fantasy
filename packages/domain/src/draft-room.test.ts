@@ -63,4 +63,71 @@ describe('draft completion and previews', () => {
       '0:00',
     ]);
   });
+  it('preserves the original legal picks across all three-player eligibility combinations', () => {
+    const profiles = [
+      { positions: ['F'], ownerId: null },
+      { positions: ['D'], ownerId: null },
+      { positions: ['D', 'F'], ownerId: null },
+      { positions: ['F'], ownerId: 'one' },
+      { positions: ['D'], ownerId: 'two' },
+      { positions: ['F', 'D'], ownerId: null, blockedTeamIds: ['one'] },
+      { positions: ['F', 'D'], ownerId: null, blockedTeamIds: ['two'] },
+      { positions: ['D', 'F', 'D'], ownerId: null, blockedTeamIds: ['one', 'two'] },
+    ];
+    const smallSlots = [
+      { teamId: 'one', code: 'F', positions: ['F'] },
+      { teamId: 'two', code: 'D', positions: ['D'] },
+    ];
+    for (const first of profiles)
+      for (const second of profiles)
+        for (const third of profiles) {
+          const pool = [first, second, third].map((profile, index) => ({
+            id: String(index),
+            ...profile,
+          }));
+          for (const team of ['one', 'two']) {
+            const reference = pool.flatMap((candidate) =>
+              candidate.ownerId === null &&
+              completeDraftRoster(
+                pool.map((athlete) =>
+                  athlete.id === candidate.id ? { ...athlete, ownerId: team } : athlete,
+                ),
+                smallSlots,
+              )
+                ? [candidate.id]
+                : [],
+            );
+            expect(legalDraftAthletes(pool, smallSlots, team)).toEqual(reference);
+          }
+        }
+  });
+  it('retains feasibility for a large interchangeable pool and rejects a blocked owner', () => {
+    const pool = Array.from({ length: 1200 }, (_, n) => ({
+      id: String(n),
+      positions: ['F', 'D'],
+      ownerId: null,
+      blockedTeamIds: n % 2 ? ['two'] : [],
+    }));
+    expect(legalDraftAthletes(pool, slots, 'one')).toHaveLength(1200);
+    expect(legalDraftAthletes(pool, slots, 'two')).toHaveLength(600);
+  });
+  it('keeps duplicate-identity behavior equivalent to the original matching calls', () => {
+    const pool = [
+      { id: 'duplicate', positions: ['F'], ownerId: null },
+      { id: 'duplicate', positions: ['D'], ownerId: null },
+      ...candidates,
+    ];
+    const reference = pool.flatMap((candidate) =>
+      candidate.ownerId === null &&
+      completeDraftRoster(
+        pool.map((athlete) =>
+          athlete.id === candidate.id ? { ...athlete, ownerId: 'one' } : athlete,
+        ),
+        slots,
+      )
+        ? [candidate.id]
+        : [],
+    );
+    expect(legalDraftAthletes(pool, slots, 'one')).toEqual(reference);
+  });
 });

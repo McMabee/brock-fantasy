@@ -36,14 +36,7 @@ const handle: RequestHandler = async (request, params) => {
     throw new AppAccessUnavailable('Draft response unavailable.');
   })) as DraftSnapshot;
   if (!snapshot.unchanged && snapshot.draft && snapshot.myTeamId) {
-    const key =
-      id +
-      ':' +
-      snapshot.draft.state_version +
-      ':' +
-      snapshot.poolRevision +
-      ':' +
-      snapshot.myTeamId;
+    const key = id + ':' + snapshot.revision + ':' + snapshot.myTeamId;
     let legal = legality.get(key);
     if (!legal) {
       legal = legalDraftAthletes(

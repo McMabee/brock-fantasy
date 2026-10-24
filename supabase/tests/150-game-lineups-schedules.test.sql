@@ -144,7 +144,7 @@ select is((select schedule_revision from public.games where id='98000000-0000-40
 reset role;
 select set_config('request.jwt.claims','{"sub":"98000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal2","session_id":"98000000-0000-4000-8000-000000000002"}',true);
 set local role authenticated;
-select throws_ok($$select public.review_game_schedule('98000000-0000-4000-8000-000000000023',2,'confirm','{}','Reviewed official schedule','stale-fixture')$$,'40001','Schedule changed; reload and retry','stale confirmation cannot approve a newer source revision');
+select throws_ok($$select public.review_game_schedule('98000000-0000-4000-8000-000000000023',2,'confirm','{}','Reviewed official schedule','stale-fixture')$$,'PT409','Schedule changed; reload and retry','stale confirmation cannot approve a newer source revision');
 select lives_ok($$select public.review_game_schedule('98000000-0000-4000-8000-000000000023',3,'confirm','{}','Reviewed official schedule','confirm-fixture')$$,'admin confirms the current revision');
 select lives_ok($$select public.review_game_schedule('98000000-0000-4000-8000-000000000023',3,'confirm','{}','Reviewed official schedule','confirm-fixture')$$,'confirmation retry is idempotent');
 select lives_ok($$select public.review_game_schedule('98000000-0000-4000-8000-000000000023',4,'clear_override','{}','Return to official schedule','clear-fixture')$$,'admin can clear an override for the next sync');

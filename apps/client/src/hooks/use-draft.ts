@@ -1,10 +1,11 @@
 import { legalDraftAthletes } from '@brock-fantasy/domain';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { webRequest } from '@/lib/web-request';
 import { useSession } from '@/providers/session-provider';
 import type { DraftSnapshot, DraftViewState } from '@/lib/draft-state';
+import { useActivePoll, useScreenActive } from '@/hooks/use-active-poll';
 
 export type { DraftViewState } from '@/lib/draft-state';
 const initial: Omit<DraftViewState, 'reload'> = {
@@ -29,7 +30,14 @@ const initial: Omit<DraftViewState, 'reload'> = {
   error: null,
 };
 export function useDraft(draftId: string | undefined): DraftViewState {
-  const { user } = useSession();
+  const { user, readScope } = useSession();
+  const active = useScreenActive();
+  const identity = useMemo(() => ({ readScope, draftId }), [readScope, draftId]);
+  const latestScope = useRef(identity);
+  latestScope.current = identity;
+  const stateScope = useRef(identity);
+  const closed = useRef(false);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [state, setState] = useState(initial);
   const revision = useRef<string | undefined>(undefined);
   const poolRevision = useRef<string | undefined>(undefined);
@@ -38,6 +46,9 @@ export function useDraft(draftId: string | undefined): DraftViewState {
   const failures = useRef(0);
   const reload = useCallback((): Promise<boolean> => {
     if (pending.current) return pending.current;
+    // - Explicit reload can recover terminal access while background polling remains stopped
+    closed.current = false;
+    setAccessDenied(false);
     const currentGeneration = generation.current;
     const promise = (async () => {
       if (!draftId || !user?.id) {
@@ -58,12 +69,31 @@ export function useDraft(draftId: string | undefined): DraftViewState {
                   p_draft_id: draftId,
                   p_known_revision: revision.current ?? null,
                   p_known_pool_revision: poolRevision.current ?? null,
-                })) as { data: DraftSnapshot | null; error: { message: string } | null })
+                })) as {
+                  data: DraftSnapshot | null;
+                  error: { message: string; code?: string } | null;
+                  status?: number;
+                })
               : { data: null, error: 'Draft service is unavailable.' };
-        if (currentGeneration !== generation.current) return false;
+        if (currentGeneration !== generation.current || latestScope.current !== identity)
+          return false;
         if (result.error || !result.data) {
           failures.current++;
-          const denied = 'status' in result && (result.status === 401 || result.status === 403);
+          const code =
+            typeof result.error === 'object' && result.error
+              ? result.error.code
+              : 'code' in result
+                ? result.code
+                : undefined;
+          const denied =
+            ('status' in result && (result.status === 401 || result.status === 403)) ||
+            code === '42501';
+          if (denied) {
+            closed.current = true;
+            setAccessDenied(true);
+            revision.current = undefined;
+            poolRevision.current = undefined;
+          }
           setState((s) => ({
             ...(denied ? initial : s),
             loading: false,
@@ -96,6 +126,7 @@ export function useDraft(draftId: string | undefined): DraftViewState {
         const d = snapshot.draft;
         if (!d || !snapshot.league) throw new Error('Invalid draft response');
         if (snapshot.closed) {
+          closed.current = true;
           setState({
             ...initial,
             commissionerId: snapshot.league.commissioner_id ?? null,
@@ -196,7 +227,7 @@ export function useDraft(draftId: string | undefined): DraftViewState {
         });
         return true;
       } catch {
-        if (currentGeneration === generation.current) {
+        if (currentGeneration === generation.current && latestScope.current === identity) {
           failures.current++;
           setState((s) => ({
             ...s,
@@ -213,36 +244,28 @@ export function useDraft(draftId: string | undefined): DraftViewState {
       if (pending.current === promise) pending.current = null;
     });
     return promise;
-  }, [draftId, user?.id]);
+  }, [draftId, identity, user?.id]);
   useEffect(() => {
     generation.current++;
     revision.current = undefined;
     poolRevision.current = undefined;
     pending.current = null;
     failures.current = 0;
+    closed.current = false;
+    setAccessDenied(false);
+    stateScope.current = identity;
     setState(initial);
-    if (!draftId || !user?.id) return;
-    let active = true;
-    let timer: ReturnType<typeof setTimeout>;
-    const poll = async () => {
-      await reload();
-      if (active)
-        timer = setTimeout(
-          () => void poll(),
-          Math.min(15_000, 2000 * 2 ** Math.min(failures.current, 3)),
-        );
-    };
-    void poll();
-    const focus = () => {
-      if (active) void reload();
-    };
-    if (Platform.OS === 'web') window.addEventListener('focus', focus);
     return () => {
-      active = false;
       generation.current++;
-      clearTimeout(timer);
-      if (Platform.OS === 'web') window.removeEventListener('focus', focus);
     };
-  }, [draftId, reload, user?.id]);
-  return { ...state, reload };
+  }, [identity, user?.id]);
+  const delay = useCallback(() => Math.min(15_000, 2000 * 2 ** Math.min(failures.current, 3)), []);
+  const shouldContinue = useCallback(() => !closed.current, []);
+  useActivePoll(
+    reload,
+    active && !accessDenied && Boolean(draftId && user?.id),
+    delay,
+    shouldContinue,
+  );
+  return { ...(stateScope.current === identity ? state : initial), reload };
 }

@@ -433,8 +433,8 @@ export function CommissionerControls({
         ) : (
           <Text style={uiStyles.body}>
             {leagueData.matchups.length
-              ? 'Matchup schedule already created.'
-              : 'Complete the draft to preview and create matchups.'}
+              ? 'Your matchup schedule was created automatically after the draft.'
+              : 'Matchups will be created automatically when the draft finishes.'}
           </Text>
         )
       ) : leagueData.league?.format === 'head_to_head' ? (

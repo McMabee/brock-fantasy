@@ -1,11 +1,13 @@
 import { useThemeColors } from '@/providers/theme-provider';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { ActionButton, useUiStyles } from './ui';
 import { supabase } from '@/lib/supabase';
 import { firstRelated } from '@/lib/relations';
 import { VarsityBadge } from './varsity-badge';
 import { betaCommand } from '@/lib/web-api';
+import { useActivePoll, useScreenActive } from '@/hooks/use-active-poll';
+import { useSession } from '@/providers/session-provider';
 
 interface ChatRow {
   id: string;
@@ -18,17 +20,21 @@ interface ChatRow {
     | null;
 }
 export function DraftChat({ leagueId }: { leagueId: string | undefined }) {
+  const { user, readScope } = useSession();
+  const active = useScreenActive();
+  const identity = useMemo(() => ({ leagueId, readScope }), [leagueId, readScope]);
   const uiStyles = useUiStyles();
   const colors = useThemeColors();
   const [rows, setRows] = useState<ChatRow[]>([]);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const currentLeague = useRef(leagueId);
-  currentLeague.current = leagueId;
+  const currentLeague = useRef(identity);
+  currentLeague.current = identity;
+  const stateIdentity = useRef(identity);
   const pending = useRef<Promise<void> | null>(null);
   const load = useCallback(async () => {
-    if (!supabase || !leagueId) return;
+    if (!supabase || !leagueId || !user?.id) return;
     const result = await supabase
       .from('chat_messages')
       .select(
@@ -37,36 +43,33 @@ export function DraftChat({ leagueId }: { leagueId: string | undefined }) {
       .eq('league_id', leagueId)
       .order('created_at', { ascending: false })
       .limit(50);
-    if (currentLeague.current !== leagueId) return;
+    if (currentLeague.current !== identity) return;
     if (result.error) setError('Chat is reconnecting…');
     else {
       setRows((result.data as ChatRow[]).reverse());
       setError(null);
     }
-  }, [leagueId]);
+  }, [identity, leagueId, user?.id]);
   useEffect(() => {
+    stateIdentity.current = identity;
     setRows([]);
+    setText('');
+    setSending(false);
     pending.current = null;
-    let active = true;
-    let timer: ReturnType<typeof setTimeout>;
-    const poll = async () => {
-      try {
-        pending.current ??= load().finally(() => {
-          pending.current = null;
-        });
-        await pending.current;
-      } finally {
-        if (active) timer = setTimeout(() => void poll(), 5000);
-      }
-    };
-    void poll();
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
+    setError(null);
+  }, [identity]);
+  const poll = useCallback(() => {
+    if (pending.current) return pending.current;
+    const request = load().finally(() => {
+      if (pending.current === request) pending.current = null;
+    });
+    pending.current = request;
+    return request;
   }, [load]);
+  useActivePoll(poll, active && Boolean(leagueId && user?.id), 5000);
   const command = async (name: string, payload: Record<string, unknown>) => {
     const result = await betaCommand(name, payload);
+    if (currentLeague.current !== identity) return;
     if (result.error) setError(result.error);
     else await load();
   };
@@ -78,6 +81,7 @@ export function DraftChat({ leagueId }: { leagueId: string | undefined }) {
       p_body: text.trim(),
       p_idempotency_key: crypto.randomUUID(),
     });
+    if (currentLeague.current !== identity) return;
     if (result.error) setError(result.error);
     else {
       setText('');
@@ -88,13 +92,13 @@ export function DraftChat({ leagueId }: { leagueId: string | undefined }) {
   return (
     <View style={{ gap: 10 }}>
       <Text style={{ color: colors.text, fontWeight: '800' }}>League chat</Text>
-      {error ? (
+      {error && stateIdentity.current === identity ? (
         <Text accessibilityRole="alert" style={{ color: colors.danger }}>
           {error}
         </Text>
       ) : null}
       <ScrollView style={{ maxHeight: 260 }} contentContainerStyle={{ gap: 12 }}>
-        {rows.map((row) => (
+        {(stateIdentity.current === identity ? rows : []).map((row) => (
           <View key={row.id} style={{ gap: 4 }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>
               {firstRelated(row.author)?.display_name ?? 'League member'}

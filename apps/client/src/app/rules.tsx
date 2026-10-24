@@ -84,7 +84,7 @@ export default function RulesScreen() {
           <Paragraph title="Season calendar">
             The season calendar has eight regular-season periods, followed by semifinal and final
             periods. Period lengths vary and there is a winter break. Your league overview shows the
-            matchups actually scheduled by your commissioner; a fantasy period is not always a
+            matchups created automatically after your draft; a fantasy period is not always a
             calendar week.
           </Paragraph>
           <Paragraph title="Eight-manager round robin">

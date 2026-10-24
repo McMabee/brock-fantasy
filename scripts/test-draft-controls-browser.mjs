@@ -58,8 +58,12 @@ try {
     let replaced = false;
     let failed = false;
     let connected = true;
+    let denied = false;
     let commands = 0;
     let currentDraftReads = 0;
+    let draftReads = 0;
+    let notificationReads = 0;
+    let legacyNotificationReads = 0;
     const keys = [];
     const league = () => ({
       id: lid,
@@ -90,6 +94,8 @@ try {
       if (url.pathname === '/api/admin/status')
         return reply({ isAdmin: false, hasAdminRole: false, authenticated: true, aal: 'aal1' });
       if (url.pathname.startsWith('/api/draft/')) {
+        draftReads++;
+        if (denied) return reply({ error: 'Draft membership is required.', code: '42501' }, 403);
         if (!connected) return reply({ error: 'Connection interrupted' }, 503);
         return reply({
           revision: `fixture-${paused}-${commissioner}-${replaced}`,
@@ -133,6 +139,11 @@ try {
       if (url.pathname === '/api/data/supabase') {
         const query = new URL(url.searchParams.get('path'), origin);
         const table = query.pathname.split('/').at(-1);
+        if (table === 'get_notification_snapshot') {
+          notificationReads++;
+          return reply({ notifications: [], unreadCount: 0 });
+        }
+        if (table === 'notifications') legacyNotificationReads++;
         if (table === 'leagues') return reply(query.searchParams.has('id') ? league() : [league()]);
         if (table === 'fantasy_teams') return reply(teams);
         if (table === 'get_my_participation')
@@ -158,6 +169,36 @@ try {
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto(origin + '/draft/' + did);
     await page.getByRole('heading', { name: 'Draft paused', exact: true }).waitFor();
+    const visibleReads = draftReads;
+    await page.waitForTimeout(2300);
+    assert.ok(draftReads > visibleReads, 'Visible paused drafts keep the two-second cadence');
+    // - Control visibility explicitly because headless Chromium emulates focus for every page
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await page.waitForTimeout(500);
+    const hiddenReads = { draft: draftReads, notification: notificationReads };
+    await page.waitForTimeout(5500);
+    assert.deepEqual(
+      { draft: draftReads, notification: notificationReads },
+      hiddenReads,
+      'Hidden tabs stop draft and notification polling',
+    );
+    await page.evaluate(() => {
+      delete document.visibilityState;
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    for (let n = 0; n < 30 && draftReads === hiddenReads.draft; n++) await page.waitForTimeout(100);
+    assert.ok(
+      draftReads > hiddenReads.draft,
+      'Returning to the tab immediately refreshes the draft',
+    );
+    assert.equal(
+      legacyNotificationReads,
+      0,
+      'Notifications use one snapshot RPC instead of paired table reads',
+    );
     for (const width of [320, 390, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       // - Wait for responsive React layouts to settle after the viewport changes
@@ -189,6 +230,21 @@ try {
       true,
     );
     connected = true;
+    await page.getByRole('button', { name: 'Retry connection', exact: true }).click();
+    await page.getByRole('button', { name: 'Resume draft', exact: true }).waitFor();
+    denied = true;
+    await page
+      .getByText('Draft membership is required.', { exact: false })
+      .waitFor({ timeout: 20000 });
+    const deniedReads = draftReads;
+    await page.waitForTimeout(4500);
+    assert.equal(draftReads, deniedReads, 'Access denial stops automatic reads');
+    assert.equal(
+      await page.getByRole('heading', { name: 'Draft paused', exact: true }).count(),
+      0,
+      'Access denial clears the private draft snapshot',
+    );
+    denied = false;
     await page.getByRole('button', { name: 'Retry connection', exact: true }).click();
     await page.getByRole('button', { name: 'Resume draft', exact: true }).waitFor();
     commissioner = false;

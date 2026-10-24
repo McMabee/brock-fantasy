@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { Platform, Pressable, Text, View } from 'react-native';
 import {
@@ -23,6 +23,9 @@ import { useSession } from '@/providers/session-provider';
 import { useThemeColors } from '@/providers/theme-provider';
 import { useResponsiveDimensions } from '@/hooks/use-responsive-dimensions';
 import { DraftPlayerPhoto } from '@/components/player-photo';
+import { createSingleFlight } from '@/lib/single-flight';
+import { useActivePoll, useScreenActive } from '@/hooks/use-active-poll';
+import { sameSavedLineup } from '@/lib/lineup-recovery';
 
 interface SlotRule {
   slot_code: string;
@@ -46,6 +49,7 @@ interface BetaLineup {
   state_version: number;
   entries: readonly BetaEntry[];
 }
+const requestLineup = createSingleFlight<{ data: unknown; error: { message: string } | null }>();
 
 export default function BetaLineupScreen() {
   const ui = useUiStyles();
@@ -53,7 +57,8 @@ export default function BetaLineupScreen() {
   const { width } = useResponsiveDimensions();
   const wide = width >= 1100;
   useRequireUser();
-  const { user } = useSession();
+  const { user, readScope } = useSession();
+  const active = useScreenActive();
   const { leagueId } = useLocalSearchParams<{ leagueId: string }>();
   const leagueData = useLeague(leagueId);
   const insights = usePlayerInsights(leagueData.league?.playerPoolId);
@@ -64,24 +69,48 @@ export default function BetaLineupScreen() {
   const [selected, setSelected] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [conflictReview, setConflictReview] = useState(false);
+  const saveInFlight = useRef(false);
+  const saveAttempt = useRef<{ identity: object; signature: string; key: string } | null>(null);
   const storageKey =
     user?.id && leagueData.myTeamId ? `bf-lineup:${user.id}:${leagueData.myTeamId}` : null;
+  const identity = useMemo(
+    () => ({ readScope, teamId: leagueData.myTeamId }),
+    [readScope, leagueData.myTeamId],
+  );
+  const latestIdentity = useRef(identity);
+  latestIdentity.current = identity;
+  const lineupIdentity = useRef<object | null>(null);
+  const getLineup = useCallback(
+    async () =>
+      requestLineup(
+        readScope,
+        leagueData.myTeamId ?? '',
+        async () =>
+          await supabase!.rpc('get_beta_lineup', { p_fantasy_team_id: leagueData.myTeamId }),
+      ),
+    [readScope, leagueData.myTeamId],
+  );
 
   const load = useCallback(async () => {
     if (!supabase || !leagueData.myTeamId || !leagueData.league?.rulesetId) return;
     const [result, rules] = await Promise.all([
-      supabase.rpc('get_beta_lineup', { p_fantasy_team_id: leagueData.myTeamId }),
+      getLineup(),
       supabase
         .from('roster_slot_rules')
         .select('slot_code,label,allowed_positions,slot_count,is_starter')
         .eq('ruleset_id', leagueData.league.rulesetId),
     ]);
+    if (latestIdentity.current !== identity) return;
     if (result.error || rules.error) {
       setMessage(result.error?.message ?? rules.error?.message ?? 'Lineup unavailable');
       return;
     }
-    const next = result.data as unknown as BetaLineup;
+    const next = result.data as BetaLineup;
+    lineupIdentity.current = identity;
     setLineup(next);
+    setConflictReview(false);
+    saveAttempt.current = null;
     setSlots(rules.data ?? []);
     const committed = Object.fromEntries(
       next.entries.map((entry) => [entry.athlete_id, entry.slot_code]),
@@ -102,7 +131,7 @@ export default function BetaLineupScreen() {
     } catch {
       setAssignment(committed);
     }
-  }, [leagueData.myTeamId, leagueData.league?.rulesetId, storageKey]);
+  }, [getLineup, identity, leagueData.myTeamId, leagueData.league?.rulesetId, storageKey]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -117,44 +146,28 @@ export default function BetaLineupScreen() {
       /* - Browser storage is optional */
     }
   }, [assignment, lineup, storageKey]);
-  useEffect(() => {
+  const refreshLocks = useCallback(async () => {
     if (!supabase || !leagueData.myTeamId) return;
-    const client = supabase;
-    let active = true;
-    let pending = false;
-    const timer = setInterval(() => {
-      if (pending) return;
-      pending = true;
-      void Promise.resolve(
-        client.rpc('get_beta_lineup', { p_fantasy_team_id: leagueData.myTeamId }),
-      )
-        .then((result) => {
-          if (!active || result.error) return;
-          const next = result.data as unknown as BetaLineup;
-          const locks = new Map(next.entries.map((entry) => [entry.athlete_id, entry]));
-          // - Refresh locks without overwriting unsaved assignments or their concurrency version
-          setLineup((current) =>
-            current
-              ? {
-                  ...current,
-                  entries: current.entries.map((entry) => ({
-                    ...entry,
-                    locked: locks.get(entry.athlete_id)?.locked ?? true,
-                    locks_at: locks.get(entry.athlete_id)?.locks_at ?? null,
-                  })),
-                }
-              : current,
-          );
-        })
-        .finally(() => {
-          pending = false;
-        });
-    }, 15000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [leagueData.myTeamId]);
+    const result = await getLineup();
+    if (latestIdentity.current !== identity || lineupIdentity.current !== identity || result.error)
+      return;
+    const next = result.data as BetaLineup;
+    const locks = new Map(next.entries.map((entry) => [entry.athlete_id, entry]));
+    // - Refresh locks without overwriting unsaved assignments or their concurrency version
+    setLineup((current) =>
+      current
+        ? {
+            ...current,
+            entries: current.entries.map((entry) => ({
+              ...entry,
+              locked: locks.get(entry.athlete_id)?.locked ?? true,
+              locks_at: locks.get(entry.athlete_id)?.locks_at ?? null,
+            })),
+          }
+        : current,
+    );
+  }, [getLineup, identity, leagueData.myTeamId]);
+  useActivePoll(refreshLocks, active && Boolean(leagueData.myTeamId), 15000);
 
   const slotByCode = useMemo(() => new Map(slots.map((slot) => [slot.slot_code, slot])), [slots]);
   const entriesBySlot = useMemo(() => {
@@ -234,23 +247,65 @@ export default function BetaLineupScreen() {
     }
   };
   const save = async () => {
-    if (!lineup || !leagueData.myTeamId || saving) return;
+    if (
+      !lineup ||
+      lineupIdentity.current !== identity ||
+      !leagueData.myTeamId ||
+      saveInFlight.current ||
+      conflictReview
+    )
+      return;
     if (lineup.entries.length !== 10 || Object.keys(assignment).length !== 10) {
       setMessage('Include all ten rostered athletes before saving.');
       return;
     }
+    saveInFlight.current = true;
     setSaving(true);
     setMessage(null);
     try {
+      const entries = lineup.entries.map((entry) => ({
+        athlete_id: entry.athlete_id,
+        slot_code: assignment[entry.athlete_id],
+      }));
+      const signature = JSON.stringify([lineup.state_version, entries]);
+      if (
+        saveAttempt.current?.identity !== identity ||
+        saveAttempt.current.signature !== signature
+      ) {
+        saveAttempt.current = {
+          identity,
+          signature,
+          key: `lineup-${leagueData.myTeamId}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        };
+      }
       const result = await betaCommand('set_period_lineup', {
         p_fantasy_team_id: leagueData.myTeamId,
-        p_entries: lineup.entries.map((entry) => ({
-          athlete_id: entry.athlete_id,
-          slot_code: assignment[entry.athlete_id],
-        })),
+        p_entries: entries,
         p_expected_version: lineup.state_version,
-        p_idempotency_key: `lineup-${leagueData.myTeamId}-${Date.now()}`,
+        p_idempotency_key: saveAttempt.current.key,
       });
+      if (latestIdentity.current !== identity) return;
+      if (result.status === 409 || result.code === 'PT409') {
+        // - Refresh once without automatically submitting the user's pending changes
+        const refreshed = await supabase!.rpc('get_beta_lineup', {
+          p_fantasy_team_id: leagueData.myTeamId,
+        });
+        if (latestIdentity.current !== identity) return;
+        const next = refreshed.data as BetaLineup | null;
+        if (!refreshed.error && next && sameSavedLineup(lineup.entries, next.entries)) {
+          setLineup(next);
+          saveAttempt.current = null;
+          setMessage(
+            'League updated. Your changes are retained. Review current locks, then save again.',
+          );
+        } else {
+          setConflictReview(true);
+          setMessage(
+            'The saved roster changed. Your pending changes remain on screen. Review them, then reload the saved lineup and reapply your changes.',
+          );
+        }
+        return;
+      }
       if (result.error) {
         setMessage(result.error);
         return;
@@ -259,6 +314,7 @@ export default function BetaLineupScreen() {
       await Promise.all([load(), leagueData.reload()]);
       setMessage('Lineup saved. Future games use these assignments; earned points remain.');
     } finally {
+      saveInFlight.current = false;
       setSaving(false);
     }
   };
@@ -310,7 +366,7 @@ export default function BetaLineupScreen() {
           {message}
         </Text>
       ) : null}
-      {!lineup ? (
+      {!lineup || lineupIdentity.current !== identity ? (
         message ? (
           <ErrorState message={message} onRetry={() => void load()} />
         ) : (
@@ -476,7 +532,7 @@ export default function BetaLineupScreen() {
               label="Save lineup"
               onPress={() => void save()}
               loading={saving}
-              disabled={!lineup.period || lineup.entries.length !== 10 || !dirty}
+              disabled={conflictReview || !lineup.period || lineup.entries.length !== 10 || !dirty}
             />
           </View>
         </>
