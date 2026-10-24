@@ -214,7 +214,11 @@ try {
     select pg_temp.m_id('period'||n),pg_temp.m_id('season'),n,'regular',now()+make_interval(days=>n*7),now()+make_interval(days=>n*7+6) from generate_series(1,8)n;
     ${fixture}commit;`);
   fixtureCreated = true;
-  await sql(`begin;
+  if (process.argv.includes('--late-draft')) {
+    const { testLateDraft } = await import('./lib/test-late-draft-http.mjs');
+    await testLateDraft({ sql, rpc, q, proveUpgrade: process.argv.includes('--prove-upgrade') });
+  } else {
+    await sql(`begin;
     insert into public.athletes(id,competition_id,team_id,display_name,position)
     select pg_temp.m_id('reserve'||n),pg_temp.m_id('competition'),pg_temp.m_id('program'),'Recovery reserve '||n,'F'from generate_series(1,9)n;
     insert into public.athlete_seasons(athlete_id,season_id,competition_id,team_id,positions,directory_visible,draft_eligible)
@@ -222,115 +226,120 @@ try {
     insert into public.roster_entries(league_id,fantasy_team_id,athlete_id,slot_code,status,acquisition_type)
     select pg_temp.m_id('league'),pg_temp.m_id('team1'),pg_temp.m_id('reserve'||n),code,(case when code='BN'then'bench'else'starter'end)::public.roster_status,'draft'
     from unnest(array['HK_DG','BB_BC','BB_FC','VB_HT','VB_LS','FLEX','BN','BN','BN'])with ordinality x(code,n);commit;`);
-  const team = await sql("select pg_temp.m_id('team1');");
-  const league = await sql("select pg_temp.m_id('league');");
-  const read = await rpc('get_beta_lineup', { p_fantasy_team_id: team });
-  assert.equal(read.status, 200);
-  assert.equal((await read.json()).entries.length, 10);
-  const before = await sql(
-    `select jsonb_build_object('rosters',(select jsonb_agg(to_jsonb(r) order by id)from public.roster_entries r where league_id=${q(league)}),'version',(select state_version from public.leagues where id=${q(league)}));`,
-  );
-  for (let n = 0; n < 12; n++) {
-    const started = Date.now();
-    const response = await rpc('set_period_lineup', {
-      p_fantasy_team_id: team,
-      p_entries: [],
-      p_expected_version: -1,
-      p_idempotency_key: 'stale-' + suffix + n,
-    });
-    assert.equal(response.status, 409);
-    assert.equal((await response.json()).code, 'PT409');
-    assert.ok(
-      Date.now() - started < 3000,
-      'One stale request returns promptly without a retry loop',
+    const team = await sql("select pg_temp.m_id('team1');");
+    const league = await sql("select pg_temp.m_id('league');");
+    const read = await rpc('get_beta_lineup', { p_fantasy_team_id: team });
+    assert.equal(read.status, 200);
+    assert.equal((await read.json()).entries.length, 10);
+    const before = await sql(
+      `select jsonb_build_object('rosters',(select jsonb_agg(to_jsonb(r) order by id)from public.roster_entries r where league_id=${q(league)}),'version',(select state_version from public.leagues where id=${q(league)}));`,
     );
-  }
-  if (!restOnly) {
-    const web = await appRequest(origin + '/api/command/set_period_lineup', {
-      method: 'POST',
-      headers: {
-        origin,
-        cookie: clients[0].cookie,
-        'x-csrf-token': clients[0].csrf,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
+    for (let n = 0; n < 12; n++) {
+      const started = Date.now();
+      const response = await rpc('set_period_lineup', {
         p_fantasy_team_id: team,
         p_entries: [],
         p_expected_version: -1,
-        p_idempotency_key: 'web-stale-' + suffix,
-      }),
-      signal: AbortSignal.timeout(4000),
-    });
-    assert.equal(web.status, 409);
-    assert.equal((await web.json()).code, 'PT409');
-  }
-  const foreign = await rpc(
-    'set_period_lineup',
-    {
-      p_fantasy_team_id: team,
-      p_entries: [],
-      p_expected_version: -1,
-      p_idempotency_key: 'foreign-' + suffix,
-    },
-    1,
-  );
-  assert.equal(foreign.status, 400);
-  assert.equal((await foreign.json()).message, 'Team owner access required');
-  const after = await sql(
-    `select jsonb_build_object('rosters',(select jsonb_agg(to_jsonb(r) order by id)from public.roster_entries r where league_id=${q(league)}),'version',(select state_version from public.leagues where id=${q(league)}));`,
-  );
-  assert.equal(after, before, 'Rejected saves preserve the roster and concurrency version');
-  if (process.argv.includes('--browser')) {
-    const { chromium } = await import('@playwright/test');
-    const browser = await chromium.launch();
-    try {
-      const context = await browser.newContext({ ignoreHTTPSErrors: true });
-      await context.addCookies(
-        clients[0].cookie.split('; ').map((row) => {
-          const equal = row.indexOf('=');
-          const name = row.slice(0, equal);
-          return {
-            name,
-            value: row.slice(equal + 1),
-            url: origin,
-            secure: name.startsWith('__Host-') || name.startsWith('__Secure-'),
-          };
-        }),
+        p_idempotency_key: 'stale-' + suffix + n,
+      });
+      assert.equal(response.status, 409);
+      assert.equal((await response.json()).code, 'PT409');
+      assert.ok(
+        Date.now() - started < 3000,
+        'One stale request returns promptly without a retry loop',
       );
-      const page = await context.newPage();
-      await page.goto(origin + '/lineup-multisport/' + league);
-      await page.getByRole('button', { name: 'Move Backlog athlete 1', exact: true }).click();
-      await page.getByRole('button', { name: 'Swap with Recovery reserve 7', exact: true }).click();
-      await page.getByRole('button', { name: 'Save lineup', exact: true }).click();
-      await page
-        .getByText('Lineup saved. Future games use these assignments; earned points remain.', {
-          exact: true,
-        })
-        .waitFor();
-      assert.equal(
-        await sql(
-          "select slot_code from public.roster_entries where fantasy_team_id=pg_temp.m_id('team1')and athlete_id=pg_temp.m_id('athlete1')and released_at is null;",
-        ),
-        'BN',
-      );
-      console.log(
-        'PASS browser through exported API and real Auth/PostgREST to a persisted legal starter/bench swap',
-      );
-    } finally {
-      await browser.close();
     }
+    if (!restOnly) {
+      const web = await appRequest(origin + '/api/command/set_period_lineup', {
+        method: 'POST',
+        headers: {
+          origin,
+          cookie: clients[0].cookie,
+          'x-csrf-token': clients[0].csrf,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          p_fantasy_team_id: team,
+          p_entries: [],
+          p_expected_version: -1,
+          p_idempotency_key: 'web-stale-' + suffix,
+        }),
+        signal: AbortSignal.timeout(4000),
+      });
+      assert.equal(web.status, 409);
+      assert.equal((await web.json()).code, 'PT409');
+    }
+    const foreign = await rpc(
+      'set_period_lineup',
+      {
+        p_fantasy_team_id: team,
+        p_entries: [],
+        p_expected_version: -1,
+        p_idempotency_key: 'foreign-' + suffix,
+      },
+      1,
+    );
+    assert.equal(foreign.status, 400);
+    assert.equal((await foreign.json()).message, 'Team owner access required');
+    const after = await sql(
+      `select jsonb_build_object('rosters',(select jsonb_agg(to_jsonb(r) order by id)from public.roster_entries r where league_id=${q(league)}),'version',(select state_version from public.leagues where id=${q(league)}));`,
+    );
+    assert.equal(after, before, 'Rejected saves preserve the roster and concurrency version');
+    if (process.argv.includes('--browser')) {
+      const { chromium } = await import('@playwright/test');
+      const browser = await chromium.launch();
+      try {
+        const context = await browser.newContext({ ignoreHTTPSErrors: true });
+        await context.addCookies(
+          clients[0].cookie.split('; ').map((row) => {
+            const equal = row.indexOf('=');
+            const name = row.slice(0, equal);
+            return {
+              name,
+              value: row.slice(equal + 1),
+              url: origin,
+              secure: name.startsWith('__Host-') || name.startsWith('__Secure-'),
+            };
+          }),
+        );
+        const page = await context.newPage();
+        await page.goto(origin + '/lineup-multisport/' + league);
+        await page.getByRole('button', { name: 'Move Backlog athlete 1', exact: true }).click();
+        await page
+          .getByRole('button', { name: 'Swap with Recovery reserve 7', exact: true })
+          .click();
+        await page.getByRole('button', { name: 'Save lineup', exact: true }).click();
+        await page
+          .getByText('Lineup saved. Future games use these assignments; earned points remain.', {
+            exact: true,
+          })
+          .waitFor();
+        assert.equal(
+          await sql(
+            "select slot_code from public.roster_entries where fantasy_team_id=pg_temp.m_id('team1')and athlete_id=pg_temp.m_id('athlete1')and released_at is null;",
+          ),
+          'BN',
+        );
+        console.log(
+          'PASS browser through exported API and real Auth/PostgREST to a persisted legal starter/bench swap',
+        );
+      } finally {
+        await browser.close();
+      }
+    }
+    console.log(
+      'PASS real Auth sessions, PostgREST 14.5 HTTP409/code propagation, bounded stale requests, unchanged rosters and foreign-owner denial' +
+        (restOnly ? '' : ', exported application HTTP409/code propagation'),
+    );
   }
-  console.log(
-    'PASS real Auth sessions, PostgREST 14.5 HTTP409/code propagation, bounded stale requests, unchanged rosters and foreign-owner denial' +
-      (restOnly ? '' : ', exported application HTTP409/code propagation'),
-  );
 } finally {
   if (fixtureCreated)
     await sql(`begin;
     delete from public.audit_log where entity_type='fantasy_team'and entity_id=pg_temp.m_id('team1')::text;
     delete from public.roster_slot_history where roster_entry_id in(select id from public.roster_entries where league_id=pg_temp.m_id('league'));
     delete from public.leagues where id=pg_temp.m_id('league');
+    delete from public.pool_rankings where pool_id=pg_temp.m_id('pool');
+    delete from public.pool_competitions where pool_id=pg_temp.m_id('pool');
     delete from public.athlete_seasons where competition_id=pg_temp.m_id('competition');
     delete from public.athletes where competition_id=pg_temp.m_id('competition');
     delete from public.teams where competition_id=pg_temp.m_id('competition');

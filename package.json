@@ -25,6 +25,7 @@
     "test:draft-controls:browser": "node --experimental-strip-types scripts/test-draft-controls-browser.mjs",
     "test:draft-status:api:local": "node --experimental-strip-types scripts/test-draft-status-api-local.mjs",
     "test:matchup-recovery:local": "node --experimental-strip-types scripts/test-matchup-recovery-local.mjs --browser",
+    "test:late-draft:local": "node scripts/test-matchup-recovery-local.mjs --rest-only --late-draft",
     "test:supabase-optimization:local": "node --experimental-strip-types scripts/test-supabase-optimization-local.mjs",
     "test:varsity:browser": "node --experimental-strip-types scripts/test-varsity-browser.mjs",
     "test:player-metrics:local": "node --experimental-strip-types scripts/test-height-publication-local.mjs",
