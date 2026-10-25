@@ -10,6 +10,9 @@ const entries: Record<string, string> = {
   '/reset-password': 'reset',
 };
 const publicActions = new Map<string, readonly string[]>([
+  ['/api/contact', ['GET', 'POST']],
+  ['/api/service-email/webhook', ['POST']],
+  ['/api/service-email/preferences', ['POST']],
   ['/api/auth/entry', ['GET', 'HEAD']],
   ['/api/auth/callback', ['GET', 'HEAD']],
   ['/api/auth/csrf', ['GET']],
@@ -23,6 +26,9 @@ const policyPaths = new Set(
   [
     'terms-of-use',
     'privacy-notice',
+    'cookie-policy',
+    'accessibility-statement',
+    'data-minimization',
     'support-policy',
     'gambling-policy',
     'delayed-data-notice',

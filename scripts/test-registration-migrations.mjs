@@ -5,6 +5,11 @@ import { readFile, readdir } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
+if (process.argv.includes('--automatic-drafts')) {
+  process.env.BROCK_TEST_AUTOMATIC_HTTP = '1';
+  process.env.BROCK_TEST_SQL_FILES ??=
+    '080-rpc-security.test.sql,240-scheduled-automatic-drafts.test.sql,250-privacy-retention-email.test.sql';
+}
 const container = process.env.LOCAL_SUPABASE_CONTAINER ?? 'supabase_db_brock-fantasy';
 assert.match(container, /^supabase_db_[a-zA-Z0-9_-]+$/u);
 const created = new Set();
@@ -136,6 +141,16 @@ try {
   if (process.env.BROCK_TEST_EXTRA_SQL) {
     const output = await sql(db, await readFile(process.env.BROCK_TEST_EXTRA_SQL, 'utf8'));
     console.log(output.trim());
+  }
+  if (process.env.BROCK_TEST_AUTOMATIC_HTTP === '1') {
+    const { verifyErasureReplay } = await import('./lib/test-erasure-replay-local.mjs');
+    await verifyErasureReplay({ database: db, executeSql: (input) => sql(db, input) });
+    const { verifyAutomaticDraftHttp } = await import('./lib/test-automatic-draft-http.mjs');
+    await verifyAutomaticDraftHttp({
+      database: db,
+      databaseContainer: container,
+      executeSql: (input) => sql(db, input),
+    });
   }
   if (process.env.BROCK_TEST_FLEX_UPGRADE_SQL) {
     const flex = migrations.findIndex((name) =>

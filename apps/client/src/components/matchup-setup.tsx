@@ -6,10 +6,12 @@ import type { FantasyTeam } from '@brock-fantasy/domain';
 export function MatchupSetup({
   leagueId,
   teams,
+  entryPeriodAvailable = true,
   onCreated,
 }: {
   leagueId: string;
   teams: readonly FantasyTeam[];
+  entryPeriodAvailable?: boolean;
   onCreated: () => Promise<void>;
 }) {
   const ui = useUiStyles();
@@ -20,8 +22,9 @@ export function MatchupSetup({
         Automatic matchup schedule
       </Text>
       <Text style={ui.body}>
-        Your {teams.length}-team round-robin schedule is created when the draft finishes. The
-        current period is included when your draft finished before its first scoring game.
+        {entryPeriodAvailable
+          ? `Your ${teams.length}-team round-robin schedule is created when the draft finishes. The first playable period is fixed at draft completion, before its first scoring game.`
+          : 'Your draft finished after the final regular-season entry cutoff. This league has no scoring periods or playoff entry this season.'}
       </Text>
       <ActionButton label="View matchup schedule" href={`/matchups/${leagueId}`} />
       <ActionButton

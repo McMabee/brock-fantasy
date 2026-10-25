@@ -10,6 +10,7 @@ import { signupHandoff, handoffPage } from '../../../server/signup-handoff';
 import { invitationReturnPath, invitationCookie } from '../../../server/auth-invitation';
 import { testerPage } from '../../../server/tester-entry';
 import { authReturnPath } from '../../../lib/admin-navigation';
+import { allowsPreferenceStorage } from '../../../lib/cookie-preferences';
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const REFRESH_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-refresh' : 'bf_refresh';
@@ -554,6 +555,9 @@ export const POST: RequestHandler = async (request, params) => {
     cookies,
     cookie(request, CSRF_COOKIE) ?? '',
     returnTo ? authReturnPath(returnTo) : '',
-    cookie(request, 'bf_theme') === 'light' ? 'light' : 'dark',
+    allowsPreferenceStorage(request.headers.get('cookie') ?? '') &&
+      cookie(request, 'bf_theme') === 'light'
+      ? 'light'
+      : 'dark',
   );
 };

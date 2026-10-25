@@ -36,6 +36,7 @@ export interface DraftSnapshot {
   closed?: boolean;
   replaced?: boolean;
   draft?: {
+    mode?: DraftState['mode'];
     id: string;
     league_id: string;
     status: DraftState['status'];

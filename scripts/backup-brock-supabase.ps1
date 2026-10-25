@@ -152,9 +152,13 @@ try {
       $offsiteRestoreVerified = $true
     }
   }
-  # 30-day maximum is stricter than the draft 90-day backup maximum. Storage
-  # cleanup and actual off-site retention still need verified scheduled runs.
+  # - Apply the same project-scoped 30-day limit to local and verified off-site copies
   $null = Invoke-Checked $restic @('--repo',$repository,'forget','--tag',$projectRef,'--group-by=','--keep-within','30d','--prune')
+  if ($offsiteVerified -and $offsiteRestoreVerified) {
+    $null = Invoke-Checked $restic @('--repo',$remote,'-o',$rcloneOption,'forget','--tag',$projectRef,'--group-by=','--keep-within','30d','--prune')
+    $retainedOffsite = Invoke-Checked $restic @('--repo',$remote,'-o',$rcloneOption,'snapshots','--json','--tag',$projectRef) | ConvertFrom-Json
+    if (-not ($retainedOffsite | Where-Object { $_.id -eq $offsiteSnapshotId })) { throw 'Off-site retention did not preserve the verified snapshot' }
+  }
   $recoveryConfirmed = $false
   $recoveryConfirmationPath = Join-Path $privatePath 'recovery-password-storage.json'
   if (Test-Path -LiteralPath $recoveryConfirmationPath) {

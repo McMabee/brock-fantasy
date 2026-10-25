@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -144,7 +145,7 @@ export default function LineupScreen() {
         slot_code: slotCode,
         athlete_id: athleteId,
       })),
-      p_idempotency_key: `lineup-${selectedGameId}-${Date.now()}`,
+      p_idempotency_key: newCommandKey(),
     });
     if (result.error) setMessage(result.error);
     else setMessage('Lineup committed. It will lock at the game start time.');

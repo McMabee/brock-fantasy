@@ -60,7 +60,7 @@ export default function TermsScreen() {
           displayed totals. The point ledger records those changes.
         </Term>
         <Term title="Contact and governing law">
-          Requests go to both Ty Mabee at tymabee@proton.me and Tarik Merchant at gt22me@brocku.ca.
+          Requests go to Ty Mabee at tymabee@proton.me, with Tarik involved internally when needed.
           Ontario and applicable Canadian law govern these terms. The effective date remains pending
           the operator's final publication decision.
         </Term>

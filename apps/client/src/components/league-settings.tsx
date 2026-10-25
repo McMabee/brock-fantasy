@@ -1,3 +1,4 @@
+import { newCommandKey } from '../lib/command-key';
 import { useEffect, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { ActionButton, Card, SectionTitle, useUiStyles } from './ui';
@@ -25,7 +26,7 @@ export function LeagueSettings({ data }: { data: ReturnType<typeof useLeague> })
       const result = await betaCommand('rename_my_fantasy_team', {
         p_league_id: data.league.id,
         p_name: name.trim(),
-        p_idempotency_key: `team-name-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        p_idempotency_key: newCommandKey(),
       });
       setMessage(result.error ?? 'Team name saved.');
       if (!result.error) await data.reload();

@@ -14,6 +14,7 @@ const beta = {
 
 test('staging and production validate public config without any server secrets', () => {
   validatePublicAuthConfig(beta);
+  validatePublicAuthConfig({ ...beta, EXPO_PUBLIC_SUPPORT_EMAIL: 'tymabee@proton.me' });
   validatePublicAuthConfig({
     ...beta,
     EXPO_PUBLIC_APP_ENV: 'production',
@@ -44,7 +45,7 @@ test('hosted config rejects invalid environments, origins, projects and support 
     { EXPO_PUBLIC_APP_ORIGIN: 'https://play.brockfantasy.ca' },
     { EXPO_PUBLIC_APP_ENV: 'production' },
     { EXPO_PUBLIC_SUPABASE_URL: 'https://other.supabase.co' },
-    { EXPO_PUBLIC_SUPPORT_EMAIL: 'tymabee@proton.me' },
+    { EXPO_PUBLIC_SUPPORT_EMAIL: 'gt22me@brocku.ca' },
   ])
     assert.throws(() => validatePublicAuthConfig({ ...beta, ...change }));
 });

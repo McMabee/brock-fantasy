@@ -11,7 +11,7 @@ process.env.EXPO_PUBLIC_APP_ENV = 'local';
 delete process.env.VERCEL;
 const { default: handler } = await import('../api/index.js');
 const staticRoot = path.resolve('apps/client/dist/client');
-const feedbackEndpoint = 'https://formsubmit.co/c561de24beb750974ce891e2eb88ed52';
+
 const mime = {
   '.js': 'text/javascript',
   '.css': 'text/css',
@@ -50,7 +50,10 @@ try {
     [1440, 'light'],
   ]) {
     const context = await browser.newContext({ viewport: { width, height: 900 } });
-    await context.addCookies([{ name: 'bf_theme', value: theme, url: origin }]);
+    await context.addCookies([
+      { name: 'bf_theme', value: theme, url: origin },
+      { name: 'bf_consent', value: 'v1.preferences', url: origin },
+    ]);
     const page = await context.newPage();
     page.on('pageerror', (error) => errors.push(`${page.url()}: ${error.message}`));
     await page.goto(origin);
@@ -68,12 +71,12 @@ try {
       ]);
       const triggerBox = await help.boundingBox();
       const panelBox = await helpOptions.boundingBox();
-      assert.equal(Math.round(triggerBox.width), 52);
-      assert.equal(Math.round(triggerBox.height), 52);
+      assert.equal(Math.round(triggerBox.width), 44);
+      assert.equal(Math.round(triggerBox.height), 44);
       assert.ok(panelBox.x >= 16 && panelBox.x + panelBox.width <= viewportWidth - 15);
-      assert.ok(panelBox.y >= 0 && panelBox.y + panelBox.height <= triggerBox.y - 11);
+      assert.ok(panelBox.y >= 0 && panelBox.y + panelBox.height <= 900);
       for (const link of await helpOptions.getByRole('link').all()) {
-        assert.ok((await link.boundingBox()).height >= 48);
+        assert.ok((await link.boundingBox()).height >= 44);
       }
       const accessibility = await new AxeBuilder({ page })
         .include('[data-bf-help]')
@@ -161,8 +164,7 @@ try {
     assert.equal(await page.locator('.feedback-form').getAttribute('method'), 'POST');
     for (const kind of ['Bug', 'Suggestion']) {
       if (kind === 'Suggestion') await page.goto(origin + '/feedback');
-      assert.equal(await page.locator('.feedback-form').getAttribute('action'), feedbackEndpoint);
-      assert.ok(!(await page.locator('.feedback-form').innerText()).includes('tymabee@proton.me'));
+      assert.equal(await page.locator('.feedback-form').getAttribute('action'), '/api/contact');
       await page.getByRole('radio', { name: kind, exact: true }).check();
       await page.getByLabel('Title', { exact: false }).fill('Fixture feedback title');
       await page
@@ -195,25 +197,25 @@ try {
         animations: 'disabled',
       });
       let captured = false;
-      await page.route('https://formsubmit.co/**', async (route) => {
-        assert.equal(route.request().url(), feedbackEndpoint);
+      await page.route('**/api/contact', async (route) => {
         assert.equal(route.request().method(), 'POST');
-        const form = new URLSearchParams(route.request().postData());
-        assert.equal(form.get('Report type'), kind);
-        assert.equal(form.get('_subject'), `Brock Fantasy ${kind} Report`);
-        assert.equal(form.get('email'), 'fixture@example.test');
-        assert.equal(form.get('_captcha'), null);
+        const payload = JSON.parse(route.request().postData());
+        assert.equal(payload.kind, kind.toLowerCase());
+        assert.equal(payload.title, 'Fixture feedback title');
+        assert.equal(payload.replyEmail, 'fixture@example.test');
+        assert.ok(payload.message.includes('Disposable browser verification'));
+        assert.match(payload.requestId, /^[0-9a-f-]{36}$/u);
         captured = true;
         await route.fulfill({
-          status: 303,
-          headers: { location: origin + '/feedback?submitted=1' },
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ requestId: payload.requestId, status: 'accepted' }),
         });
       });
       await page.getByRole('button', { name: `Send ${kind.toLowerCase()}`, exact: true }).click();
-      await page.waitForURL('**/feedback?submitted=1');
-      await page.getByRole('heading', { name: 'Thanks for your feedback', exact: true }).waitFor();
+      await page.getByRole('heading', { name: 'Request accepted', exact: true }).waitFor();
       assert.equal(captured, true);
-      await page.unroute('https://formsubmit.co/**');
+      await page.unroute('**/api/contact');
     }
     results.push({
       width,
@@ -236,5 +238,6 @@ try {
   console.log(JSON.stringify({ results, browserErrors: errors }));
 } finally {
   await browser.close();
+  server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));
 }

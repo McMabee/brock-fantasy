@@ -117,6 +117,10 @@ values(pg_temp.v_id('prior-game'),pg_temp.v_id('womens_volleyball'),pg_temp.v_id
 (pg_temp.v_id('subsequent-game'),pg_temp.v_id('womens_volleyball'),pg_temp.v_id('womens_volleyball-team'),pg_temp.v_id('opponent'),clock_timestamp()-interval '1 hour',clock_timestamp()-interval '1 hour','final');
 insert into public.fantasy_point_events(league_id,fantasy_team_id,athlete_id,game_id,ruleset_id,stat_key,stat_value,points,kind,source_identity)
 select pg_temp.v_id('league'),pg_temp.v_id('team2'),pg_temp.v_id('womens_volleyball1'),pg_temp.v_id('prior-game'),ruleset_id,'volleyball.digs',28,7,'score','varsity-earned-points' from public.leagues where id=pg_temp.v_id('league');
+-- - Exercise participation history only within a published scoring period
+insert into public.matchups(league_id,period,starts_at,ends_at,home_team_id,away_team_id)
+select pg_temp.v_id('league'),number,starts_at,ends_at,pg_temp.v_id('team1'),pg_temp.v_id('team2') from public.fantasy_periods
+where season_id='b0000000-0000-4000-8000-000000000002' and number=1;
 select beta_private.snapshot_locks(pg_temp.v_id('league'));
 select is((select count(*)::int from public.game_lineup_snapshots where game_id=pg_temp.v_id('prior-game')),2,'games before the participation change retain their starting assignments');
 select is((select count(*)::int from public.game_lineup_snapshots where game_id=pg_temp.v_id('subsequent-game')),0,'conflicting athletes cannot enter games starting after the participation change');
@@ -143,6 +147,7 @@ select set_config('request.jwt.claim.sub',pg_temp.v_id('user1')::text,true);
 select set_config('request.jwt.claims',jsonb_build_object('sub',pg_temp.v_id('user1'),'role','authenticated','aal','aal1','session_id',pg_temp.v_id('user1'))::text,true);
 set local role authenticated;
 reset role;
+delete from public.matchups where league_id=pg_temp.v_id('league');
 update public.fantasy_periods set starts_at=clock_timestamp()+interval '1 day',ends_at=clock_timestamp()+interval '2 days' where season_id='b0000000-0000-4000-8000-000000000002' and number=1;
 update public.drafts set status='complete' where league_id=pg_temp.v_id('league');
 set local role authenticated;

@@ -3,6 +3,7 @@ import { testerPage, type TesterView } from '../../../server/tester-entry';
 import { requestCookie } from '../../../server/session';
 import { authReturnPath } from '../../../lib/admin-navigation';
 import { invitationReturnPath, invitationCookie } from '../../../server/auth-invitation';
+import { allowsPreferenceStorage } from '../../../lib/cookie-preferences';
 export const GET: RequestHandler = (request) => {
   const value = new URL(request.url).searchParams.get('view');
   const view: TesterView =
@@ -21,6 +22,9 @@ export const GET: RequestHandler = (request) => {
     ],
     token,
     returnTo ? authReturnPath(returnTo) : '',
-    requestCookie(request, 'bf_theme') === 'light' ? 'light' : 'dark',
+    allowsPreferenceStorage(request.headers.get('cookie') ?? '') &&
+      requestCookie(request, 'bf_theme') === 'light'
+      ? 'light'
+      : 'dark',
   );
 };

@@ -25,6 +25,7 @@ select pg_temp.v_id(c.name||n),c.id,t.id,c.name||' athlete '||n,
 from public.competitions c join public.teams t on t.competition_id=c.id cross join generate_series(1,24)n where c.season_label='varsity-fixture';
 insert into public.player_pools(id,season_id,ruleset_id,name,is_active,rankings_approved_at)
 values(pg_temp.v_id('pool'),'b0000000-0000-4000-8000-000000000002','b0000000-0000-4000-8000-000000000004','Varsity test pool',true,now());
+update public.player_pools set is_active=false where id<>pg_temp.v_id('pool');
 insert into public.pool_competitions(pool_id,competition_id) select pg_temp.v_id('pool'),id from public.competitions where season_label='varsity-fixture';
 insert into public.athlete_seasons(athlete_id,season_id,competition_id,team_id,positions,directory_visible,draft_eligible)
 select a.id,'b0000000-0000-4000-8000-000000000002',a.competition_id,a.team_id,array[a.position],true,true from public.athletes a join public.competitions c on c.id=a.competition_id where c.season_label='varsity-fixture';
@@ -46,6 +47,12 @@ select ok(not beta_private.has_draft_window(pg_temp.v_id('pool'),8,(select start
 select ok(beta_private.has_draft_window(pg_temp.v_id('pool'),4,(select starts_at from public.fantasy_periods where season_id='b0000000-0000-4000-8000-000000000002' and number=7)),'four managers retain the eighth approved regular period');
 select ok(not beta_private.has_draft_window(pg_temp.v_id('pool'),4,(select starts_at from public.fantasy_periods where season_id='b0000000-0000-4000-8000-000000000002' and number=8)),'unknown fixtures use the period start as the strict cutoff');
 select ok(not beta_private.has_draft_window(pg_temp.v_id('pool'),5,clock_timestamp()),'unsupported league sizes have no draft window');
+select is(beta_private.league_entry_period(pg_temp.v_id('pool'),8,clock_timestamp()),
+  (select id from public.fantasy_periods where season_id='b0000000-0000-4000-8000-000000000002' and number=2),
+  'the first future regular period is selected for a completed late draft');
+select is(beta_private.draft_window_deadline(pg_temp.v_id('pool'),8),
+  (select starts_at from public.fantasy_periods where season_id='b0000000-0000-4000-8000-000000000002' and number=7),
+  'the eighth-manager deadline uses the last supported regular-period cutoff');
 
 insert into public.teams(id,competition_id,name,short_name) values(pg_temp.v_id('late-opponent'),pg_temp.v_id('mens_hockey'),'Late opponent','OPP');
 insert into public.games(id,competition_id,home_team_id,away_team_id,starts_at,lineup_lock_at,status)
@@ -69,6 +76,10 @@ reset role;
 select set_config('request.jwt.claim.sub',pg_temp.v_id('user1')::text,true);
 select set_config('request.jwt.claims',jsonb_build_object('sub',pg_temp.v_id('user1'),'role','authenticated','aal','aal1','session_id',pg_temp.v_id('user1'))::text,true);
 set local role authenticated;
+select is(public.get_league_creation_context()->>'poolId',pg_temp.v_id('pool')::text,
+  'creation context selects the one approved pool from the newest published season');
+select ok((public.get_league_creation_context()->'windows'->'8'->>'open')::boolean,
+  'creation context permits an eight-manager league while its final regular period remains usable');
 select throws_ok($$select public.schedule_league_draft(pg_temp.v_id('league'),now()+interval '1 hour',-1,'late-stale')$$,'PT409','League changed; refresh and retry','stale scheduling keeps its nonretryable conflict code');
 select throws_ok($$select public.schedule_league_draft(pg_temp.v_id('league'),now()-interval '1 minute',(select state_version from public.leagues where id=pg_temp.v_id('league')),'late-past')$$,'22023','Choose a future date while an eligible regular-season period remains','past planned dates remain invalid');
 select throws_ok($$select public.start_draft(pg_temp.v_id('league'),9,120,'late-rounds')$$,'P0001','Draft requires ten rounds and the saved pick duration','late draft cannot change the required rounds');
@@ -100,5 +111,40 @@ select is((select count(*)::integer from public.drafts where league_id=pg_temp.v
 select is((select status::text from public.leagues where id=pg_temp.v_id('league')),'drafting','starting the draft keeps the league in drafting status');
 select is((select count(*)::integer from public.matchups where league_id=pg_temp.v_id('league')),0,'no matchups exist before the late draft finishes');
 reset role;
+update public.drafts set status='complete',completed_at=clock_timestamp() where league_id=pg_temp.v_id('league') and voided_at is null;
+select is((select first_scoring_period_id from public.leagues where id=pg_temp.v_id('league')),
+  (select id from public.fantasy_periods where season_id='b0000000-0000-4000-8000-000000000002' and number=2),
+  'draft completion freezes the first usable period for later scheduling and scoring');
+select is((select (beta_private.matchup_plan(pg_temp.v_id('league'))->'periods'->0->>'number')::integer),2,
+  'the frozen entry period excludes the underway period from matchup planning');
+update public.fantasy_periods set starts_at=starts_at+interval '2 days',ends_at=ends_at+interval '2 days'
+where season_id='b0000000-0000-4000-8000-000000000002' and number=1;
+select is((beta_private.matchup_plan(pg_temp.v_id('league'))->'periods'->0->>'number')::integer,2,
+  'later calendar edits cannot move a completed league into an earlier period');
+update public.fantasy_periods set starts_at=starts_at-interval '2 days',ends_at=ends_at-interval '2 days'
+where season_id='b0000000-0000-4000-8000-000000000002' and number=1;
+select beta_private.ensure_matchup_schedule(pg_temp.v_id('league'));
+insert into public.roster_entries(id,league_id,fantasy_team_id,athlete_id,slot_code,status,acquired_at,acquisition_type)
+values(pg_temp.v_id('entry-roster'),pg_temp.v_id('league'),pg_temp.v_id('team1'),pg_temp.v_id('mens_hockey3'),'HK_F','starter',now()-interval '2 days','draft');
+insert into public.games(id,competition_id,home_team_id,away_team_id,starts_at,lineup_lock_at,status)
+values(pg_temp.v_id('entry-old-game'),pg_temp.v_id('mens_hockey'),pg_temp.v_id('mens_hockey-team'),pg_temp.v_id('late-opponent'),now()-interval '1 hour',now()-interval '1 hour','final');
+select beta_private.snapshot_locks(pg_temp.v_id('league'));
+select is((select count(*)::integer from public.game_lineup_snapshots where league_id=pg_temp.v_id('league')),0,
+  'a late league never snapshots games from its missed period');
+insert into public.game_lineup_snapshots(league_id,fantasy_team_id,game_id,athlete_id,roster_entry_id,period_id,slot_code,status,locked_at)
+select pg_temp.v_id('league'),pg_temp.v_id('team1'),pg_temp.v_id('entry-old-game'),pg_temp.v_id('mens_hockey3'),pg_temp.v_id('entry-roster'),id,'HK_F','starter',now()-interval '1 hour'
+from public.fantasy_periods where season_id='b0000000-0000-4000-8000-000000000002' and number=1;
+insert into public.normalized_player_game_stats(game_id,athlete_id,source_identity,stats)
+values(pg_temp.v_id('entry-old-game'),pg_temp.v_id('mens_hockey3'),'late-entry-fixture','{"goals":1,"assists":0,"power_play_goals":0,"short_handed_goals":0,"penalty_minutes":0}');
+select beta_private.replay_beta_game(pg_temp.v_id('entry-old-game'),'late-entry-replay');
+select is((select count(*)::integer from public.fantasy_point_events where league_id=pg_temp.v_id('league')),0,
+  'a stray historical snapshot cannot award points for a missed period');
+update public.drafts set status='paused' where league_id=pg_temp.v_id('league');
+update public.drafts set status='complete',completed_at=(select max(ends_at)+interval '1 day' from public.fantasy_periods where season_id='b0000000-0000-4000-8000-000000000002') where league_id=pg_temp.v_id('league');
+select is((select first_scoring_period_id from public.leagues where id=pg_temp.v_id('league')),null::uuid,
+  'a draft that finishes after the final cutoff completes without scoring eligibility');
+update public.fantasy_periods set starts_at=starts_at+interval '1 year',ends_at=ends_at+interval '1 year' where season_id='b0000000-0000-4000-8000-000000000002';
+select is(jsonb_array_length(beta_private.matchup_plan(pg_temp.v_id('league'))->'periods'),0,
+  'a missed final window stays closed after later schedule changes');
 select * from finish();
 rollback;

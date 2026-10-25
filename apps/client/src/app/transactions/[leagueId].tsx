@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -83,7 +84,7 @@ export default function TransactionsScreen() {
   const actionKey = (label: string) => {
     let key = actionKeys.current.get(label);
     if (!key) {
-      key = `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      key = newCommandKey();
       actionKeys.current.set(label, key);
     }
     return key;
@@ -270,7 +271,7 @@ export default function TransactionsScreen() {
     await invoke(`trade-vote:${tradeId}`, async () => {
       return betaCommand('vote_trade', {
         p_trade_id: tradeId,
-        p_idempotency_key: `trade-vote-${tradeId}`,
+        p_idempotency_key: newCommandKey(),
       });
     });
   };

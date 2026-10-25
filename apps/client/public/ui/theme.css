@@ -99,9 +99,14 @@
   --bf-panel: #101a33;
   --bf-panel-strong: #1c2d5d;
   --bf-border: #33405b;
+  --bf-control-border: #7887a6;
+  --bf-card-padding: 18px;
+  --bf-card-radius: 16px;
+  --bf-button-radius: 12px;
+  --bf-button-size: 19px;
   --bf-brand: #f20014;
   --bf-brand-strong: #f20014;
-  --bf-accent: #f20014;
+  --bf-accent: #ff6977;
   --bf-text: #ffffff;
   --bf-muted: #c8c9cb;
   --bf-link: #c8d6ff;
@@ -111,6 +116,7 @@
   --bf-black: #000000;
   --bf-navy: #1c2d5d;
   --bf-red: #f20014;
+  --bf-action: #c60012;
   --bf-gray: #c8c9cb;
   --bf-topbar: #0c1224;
   background: var(--bf-canvas);
@@ -124,7 +130,9 @@
   --bf-panel: #ffffff;
   --bf-panel-strong: #1c2d5d;
   --bf-border: #d8dbe3;
+  --bf-control-border: #6c768b;
   --bf-brand: #1c2d5d;
+  --bf-accent: #c60012;
   --bf-text: #1c2d5d;
   --bf-muted: #53607b;
   --bf-link: #355a9a;
@@ -261,7 +269,7 @@ a,
   width: 100%;
   min-width: 0;
   min-height: 48px;
-  border: 1px solid var(--bf-border);
+  border: 1px solid var(--bf-control-border);
   border-radius: 10px;
   background: var(--bf-canvas-soft);
   color: var(--bf-text);
@@ -287,7 +295,7 @@ a,
   padding: 12px 24px;
   border: 0;
   border-radius: 12px;
-  background: var(--bf-red);
+  background: var(--bf-action);
   color: #fff;
   font:
     700 19px Inter,
@@ -475,11 +483,168 @@ a,
   outline-offset: 3px;
 }
 .help-menu--public {
-  --help-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  inset: auto;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+.help-menu--public > summary {
+  width: 44px;
+  height: 44px;
+}
+.help-menu--public > summary > span {
+  color: inherit;
+  font: inherit;
+}
+.help-menu--public > .help-menu-options {
+  top: calc(100% + 12px);
+  bottom: auto;
+  max-height: calc(100dvh - 120px);
+}
+@media (max-width: 850px) {
+  body[data-bf-cookie-auto] header > span {
+    display: none;
+  }
 }
 @media (min-width: 1024px) {
   .help-menu {
     --help-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     right: calc(20px + env(safe-area-inset-right, 0px));
   }
+  .help-menu--public {
+    right: auto;
+  }
+}
+
+.cookie-settings-link {
+  font: inherit;
+  color: var(--bf-muted);
+  background: none;
+  border: 0;
+  padding: 0;
+  min-height: 44px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.bf-skip {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100000;
+  padding: 12px 16px;
+  font:
+    600 16px Inter,
+    sans-serif;
+  background: var(--bf-panel, #fff);
+  color: var(--bf-text, #1c2d5d);
+  transform: translateY(-200%);
+}
+.bf-skip:focus {
+  transform: none;
+}
+
+.draft-mode-options {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--bf-muted);
+  border-radius: 12px;
+  font: inherit;
+  color: var(--bf-text);
+}
+.draft-mode-options label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.draft-mode-options input {
+  width: 24px;
+  height: 24px;
+}
+.draft-date-fields {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.draft-date-fields label {
+  display: grid;
+  gap: 8px;
+  font:
+    600 16px Inter,
+    sans-serif;
+}
+.draft-date-fields input {
+  font:
+    16px Inter,
+    sans-serif;
+  padding: 12px;
+  min-height: 44px;
+  color: var(--bf-text);
+  background: var(--bf-canvas-soft);
+  border: 1px solid var(--bf-muted);
+  border-radius: 12px;
+}
+.draft-help {
+  font:
+    16px/1.6 Inter,
+    sans-serif;
+  color: var(--bf-muted);
+}
+.bf-help-trigger {
+  appearance: none;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--bf-control-border);
+  border-radius: 50%;
+  background: #b00020;
+  color: #fff;
+  font:
+    700 24px Inter,
+    sans-serif;
+  cursor: pointer;
+}
+.bf-help-dialog {
+  box-sizing: border-box;
+  width: min(320px, calc(100% - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  padding: var(--bf-card-padding, 18px);
+  border: 1px solid var(--bf-control-border);
+  border-radius: var(--bf-card-radius, 16px);
+  background: var(--bf-panel);
+  color: var(--bf-text);
+  font:
+    16px/1.5 Inter,
+    sans-serif;
+}
+.bf-help-dialog h2 {
+  margin: 0 0 12px;
+  font:
+    700 26px/1.2 BarlowCondensed,
+    sans-serif;
+}
+.bf-help-dialog button,
+.bf-help-dialog a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font: inherit;
+  color: inherit;
+}
+.bf-help-dialog button {
+  width: 100%;
+  border: 1px solid var(--bf-control-border);
+  background: var(--bf-canvas-soft);
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.bf-help-dialog a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.bf-help-dialog::backdrop {
+  background: rgb(0 0 0 / 55%);
 }

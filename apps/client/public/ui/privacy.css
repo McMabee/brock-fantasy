@@ -1,0 +1,107 @@
+.cookie-banner,
+.cookie-settings {
+  color: var(--bf-text, var(--color-text, #1c2d5d));
+  background: var(--bf-panel, var(--color-surface, #fff));
+  border: 1px solid var(--bf-muted, var(--color-muted, #53607b));
+  border-radius: var(--bf-card-radius, 0.5rem);
+  padding: var(--bf-card-padding, clamp(1.5rem, 5vw, 2.5rem));
+  font: inherit;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+.cookie-banner {
+  margin-block: 24px;
+}
+.cookie-banner[hidden] {
+  display: none;
+}
+.cookie-banner h2,
+.cookie-settings h2 {
+  margin: 0 0 12px;
+  font:
+    700 24px/1.2 var(--font-display, BarlowCondensed),
+    sans-serif;
+  color: inherit;
+}
+.cookie-banner p,
+.cookie-settings p {
+  margin: 0 0 16px;
+  max-width: 72ch;
+}
+.cookie-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.cookie-actions button,
+.cookie-settings label {
+  font: inherit;
+}
+.cookie-actions button {
+  min-height: 44px;
+  padding: 10px 16px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: var(--bf-button-radius, 0.25rem);
+  font-size: var(--bf-button-size, 0.875rem);
+  font-weight: 700;
+  cursor: pointer;
+}
+.cookie-actions a,
+.cookie-settings a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cookie-settings {
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+}
+.cookie-settings::backdrop {
+  background: rgb(0 0 0 / 65%);
+}
+.cookie-settings label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  margin-bottom: 16px;
+}
+.cookie-settings input {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.cookie-settings form {
+  margin: 0;
+}
+.cookie-actions :focus-visible,
+.cookie-settings :focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 4px;
+}
+@media (max-width: 600px) {
+  .cookie-actions button {
+    flex: 1 1 160px;
+  }
+}
+
+.bf-skip {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100000;
+  padding: 12px 16px;
+  font:
+    600 16px Inter,
+    sans-serif;
+  background: var(--bf-panel, var(--color-surface, #fff));
+  color: var(--bf-text, var(--color-text, #1c2d5d));
+  transform: translateY(-200%);
+}
+.bf-skip:focus {
+  transform: none;
+}

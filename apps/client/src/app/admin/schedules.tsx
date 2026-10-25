@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import { useCallback, useEffect, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { torontoDateFields, torontoDateTime } from '@brock-fantasy/domain';
@@ -205,7 +206,7 @@ function ScheduleReview({ game, onSaved }: { game: ReviewGame; onSaved: () => Pr
               }
             : {},
         p_reason: reason.trim(),
-        p_idempotency_key: `schedule-${game.id}-${game.schedule_revision}-${action}-${Date.now()}`,
+        p_idempotency_key: newCommandKey(),
       });
       setMessage(result.error);
       if (!result.error) await onSaved();

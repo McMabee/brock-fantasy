@@ -4,6 +4,23 @@ import { AppAccessUnavailable, withAvailability } from '../../../server/app-acce
 
 const ACCESS_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-bf-access' : 'bf_access';
 const commands: Readonly<Record<string, readonly string[]>> = {
+  configure_league_draft: [
+    'p_league_id',
+    'p_mode',
+    'p_scheduled_for',
+    'p_expected_version',
+    'p_idempotency_key',
+  ],
+  get_league_draft_setup: ['p_league_id'],
+  save_draft_preferences: [
+    'p_league_id',
+    'p_athlete_ids',
+    'p_expected_version',
+    'p_idempotency_key',
+  ],
+  get_service_email_preferences: [],
+  set_service_email_preferences: ['p_draft_updates'],
+  admin_get_draft_preferences: ['p_draft_id', 'p_fantasy_team_id', 'p_reason'],
   admin_set_participation: [
     'p_user_id',
     'p_role',

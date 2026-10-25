@@ -197,6 +197,7 @@ try {
     });
     await context.addCookies([
       { name: 'bf_theme', value: theme, url: origin },
+      { name: 'bf_consent', value: 'v1.preferences', url: origin },
       { name: 'bf_csrf', value: 'test-csrf', url: origin },
     ]);
     let scenario = 'populated';
@@ -1341,7 +1342,10 @@ try {
       viewport: { width: 390, height: 844 },
       reducedMotion: 'reduce',
     });
-    await context.addCookies([{ name: 'bf_theme', value: theme, url: origin }]);
+    await context.addCookies([
+      { name: 'bf_theme', value: theme, url: origin },
+      { name: 'bf_consent', value: 'v1.preferences', url: origin },
+    ]);
     const page = await context.newPage();
     for (const route of ['/auth', '/forgot-password']) {
       await page.goto(origin + route);

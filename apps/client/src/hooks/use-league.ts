@@ -29,6 +29,10 @@ interface LeagueRow {
   draft_scheduled_for: string | null;
   draft_schedule_version: number;
   draft_pick_seconds: number | null;
+  draft_mode: League['draftMode'] | null;
+  draft_setup_state: NonNullable<League['draftSetupState']>;
+  draft_block_reason: string | null;
+  first_scoring_period_id: string | null;
   roster_format: 'standard' | 'varsity';
 }
 
@@ -199,7 +203,7 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
         client
           .from('leagues')
           .select(
-            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version, draft_scheduled_for, draft_schedule_version, draft_pick_seconds, roster_format',
+            'id, competition_id, pool_id, commissioner_id, ruleset_id, name, format, status, max_members, invite_code, state_version, draft_scheduled_for, draft_schedule_version, draft_pick_seconds, draft_mode, draft_setup_state, draft_block_reason, first_scoring_period_id, roster_format',
           )
           .eq('id', leagueId)
           .single(),
@@ -266,6 +270,10 @@ export function useLeague(leagueId: string | undefined, rosterTeamId?: string): 
       stateVersion: row.state_version,
       ...(row.draft_scheduled_for ? { draftScheduledFor: row.draft_scheduled_for } : {}),
       draftScheduleVersion: row.draft_schedule_version,
+      ...(row.draft_mode ? { draftMode: row.draft_mode } : {}),
+      draftSetupState: row.draft_setup_state,
+      ...(row.draft_block_reason ? { draftBlockReason: row.draft_block_reason } : {}),
+      ...(row.first_scoring_period_id ? { firstScoringPeriodId: row.first_scoring_period_id } : {}),
       ...(row.draft_pick_seconds != null ? { draftPickSeconds: row.draft_pick_seconds } : {}),
     };
     const teamRows: TeamRow[] = teamResult.data ?? [];

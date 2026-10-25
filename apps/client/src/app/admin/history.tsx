@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import { useRef, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { ActionButton, AppShell, Card, useUiStyles } from '@/components/ui';
@@ -42,7 +43,7 @@ export default function HistoricalPublicationScreen() {
       else {
         setBatch(result.data);
         setPage(0);
-        key.current = `history-publication-${Date.now()}`;
+        key.current = newCommandKey();
         setMessage(
           'Review identities, source box scores, missing statistics and coverage before publishing.',
         );

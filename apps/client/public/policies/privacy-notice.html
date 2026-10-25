@@ -90,19 +90,32 @@
         }
       }
     </style>
+    <link rel="stylesheet" href="/ui/theme.css" />
+    <link rel="stylesheet" href="/ui/privacy.css" />
+    <script src="/ui/privacy.js" defer></script>
+    <style>
+      body {
+        font-family: Inter, system-ui, sans-serif;
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: BarlowCondensed, sans-serif;
+      }
+    </style>
   </head>
-  <body>
+  <body data-bf-cookie-auto>
     <header><a href="/">Brock Fantasy</a>, Draft for operator publication</header>
     <main>
       <h1 id="privacy-policy">Privacy policy</h1>
       <p>
         <strong>Status:</strong> Unapproved policy draft; approval and publication remain
         pending.<br />
-        <strong>Draft version:</strong> 0.5 - October 7, 2026<br />
+        <strong>Draft version:</strong> 0.6 - October 24, 2026<br />
         <strong>Effective date:</strong> [insert approved effective date]<br />
         <strong>Operator:</strong> Ty Mabee, 602 Main Street, Port Dover, ON, N0A 1N0<br />
-        <strong>Privacy contact:</strong> <a href="mailto:tymabee@proton.me">Ty Mabee</a> and
-        <a href="mailto:gt22me@brocku.ca">Tarik Merchant</a> — email both
+        <strong>Privacy contact:</strong> <a href="mailto:tymabee@proton.me">Ty Mabee</a>; Tarik
+        supports requests internally
       </p>
       <h2 id="scope-and-purposes">Scope and purposes</h2>
       <p>
@@ -138,8 +151,9 @@
           <tr>
             <td>League activity</td>
             <td>
-              Memberships, team names, invitations, draft picks and queues, lineups, trades,
-              waivers, results, and related timestamps, to run and audit competition.
+              Memberships, team names, invitations, draft picks, queues and private automatic-draft
+              preferences, lineups, trades, waivers, results, and related timestamps, to run and
+              audit competition.
             </td>
           </tr>
           <tr>
@@ -192,18 +206,26 @@
         Athlete information can be personal information even when obtained from a public source. The
         operator confirms approved source use and team collection/ownership in the
         <a href="data-rights-statement.html">data-rights statement</a>. Athlete opt-out and
-        correction requests are handled by Tarik Merchant; the monitored contact and
-        import-suppression process must be in place before launch. Institutional/source permission
-        does not record an individual athlete’s explicit consent. Athletes may contact the privacy
-        contact about accuracy or use of their information without creating an account.
+        correction requests are received by Ty Mabee, with Tarik supporting source reviews
+        internally; the monitored contact and import-suppression process must be in place before
+        launch. Institutional/source permission does not record an individual athlete’s explicit
+        consent. Athletes may contact the privacy contact about accuracy or use of their information
+        without creating an account.
+      </p>
+      <p>
+        Automatic-draft preferences are visible to their owner. Commissioners see preparation
+        status, not private lists. Authorized support access requires privileged authentication and
+        an audit reason. Preferences and execution snapshots expire 30 days after completion or
+        cancellation unless a documented hold applies.
       </p>
       <h2 id="consent-and-choices">Consent and choices</h2>
       <p>
         We explain collection purposes and obtain meaningful consent where required. Information
         necessary to authenticate you and run the features you request is a condition of using those
         features. Optional push notifications require device permission and can be disabled in
-        device settings. We currently have no marketing-email program; any future marketing would
-        require a separate appropriate consent process.
+        device settings. Optional association launch/news consent is separate from account access
+        and service notices. Marketing messages require approved sender details, appropriate consent
+        and an account-free unsubscribe route.
       </p>
       <p>
         You may withdraw consent by contacting us. We will explain any effect on the service and any
@@ -236,11 +258,11 @@
       </p>
       <p>
         We use Supabase for authentication and database services and Vercel for web hosting. Tarik
-        Merchant is the privacy owner; Ty Mabee is the operator and support/security owner. The
-        intended production site is https://brockfantasy.ca. Hosting, transactional email,
-        monitoring, backups, and any native push providers process information needed to deliver
-        their services. We limit provider access through appropriate contractual and technical
-        controls and remain accountable for our handling of information.
+        Merchant supports data reviews; Ty Mabee is the privacy, accessibility and support/security
+        owner. The intended production site is https://brockfantasy.ca. Hosting, transactional
+        email, monitoring, backups, and any native push providers process information needed to
+        deliver their services. We limit provider access through appropriate contractual and
+        technical controls and remain accountable for our handling of information.
       </p>
       <p><strong>Provider and location register:</strong></p>
       <table>
@@ -284,19 +306,22 @@
             </td>
           </tr>
           <tr>
-            <td>FormSubmit — optional feedback reports</td>
+            <td>Resend — contact and service email</td>
             <td>
-              When you submit a bug report or suggestion, FormSubmit processes your report type,
-              report details and optional reply email, and forwards them to the Brock Fantasy team.
-              Please leave passwords, recovery codes and other private account details out of
-              reports. <a href="https://formsubmit.co/privacy.pdf">Privacy information</a>.
+              Processes requested contact/feedback messages and service notices. Domain verified in
+              us-east-1 (United States), with open and click tracking disabled when checked October
+              24, 2026. A provider acceptance is not proof of inbox delivery. Do not include
+              passwords or recovery codes in messages.
+              <a href="https://resend.com/legal/privacy-policy">Privacy information</a>.
             </td>
           </tr>
           <tr>
             <td>Transactional email and monitoring</td>
             <td>
-              Resend and Better Stack Free recommended; actual accounts/configuration, locations and
-              provider terms must be confirmed before enabling them.
+              Operational monitoring and email providers process the information needed to deliver
+              their services. Provider locations, agreements, log retention and delivery must be
+              verified before release; configured monitoring alone is not evidence of alert
+              delivery.
             </td>
           </tr>
         </tbody>
@@ -368,8 +393,6 @@
         contact with questions.
       </p>
     </main>
-    <footer>
-      Requests: <a href="mailto:tymabee@proton.me,gt22me@brocku.ca">email Ty and Tarik</a>.
-    </footer>
+    <footer>Requests: <a href="mailto:tymabee@proton.me">email Ty</a>.</footer>
   </body>
 </html>

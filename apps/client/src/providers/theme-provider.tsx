@@ -12,6 +12,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { colors, palettes, type ThemeMode } from '@/theme';
+import { allowsPreferenceStorage, PREFERENCE_MAX_AGE } from '@/lib/cookie-preferences';
 
 interface ThemeContextValue {
   mode: ThemeMode;
@@ -34,12 +35,18 @@ function applyWebTheme(mode: ThemeMode): void {
   }
   root.style.backgroundColor = palettes[mode].canvas;
   document.body.style.backgroundColor = palettes[mode].canvas;
-  document.cookie = `bf_theme=${mode}; Path=/; SameSite=Lax; Max-Age=31536000`;
+  if (allowsPreferenceStorage(document.cookie))
+    document.cookie = `bf_theme=${mode}; Path=/; SameSite=Lax; Max-Age=${PREFERENCE_MAX_AGE}${location.protocol === 'https:' ? '; Secure' : ''}`;
+  else document.cookie = 'bf_theme=; Path=/; SameSite=Lax; Max-Age=0';
 }
 
 function initialMode(): ThemeMode {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return 'dark';
-  return document.cookie.split('; ').includes('bf_theme=light') ? 'light' : 'dark';
+  if (allowsPreferenceStorage(document.cookie)) {
+    if (document.cookie.split('; ').includes('bf_theme=light')) return 'light';
+    if (document.cookie.split('; ').includes('bf_theme=dark')) return 'dark';
+  }
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -77,6 +84,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (webReady) applyWebTheme(mode);
   }, [mode, webReady]);
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const changed = () => applyWebTheme(mode);
+    window.addEventListener('bf:privacy-change', changed);
+    return () => window.removeEventListener('bf:privacy-change', changed);
+  }, [mode]);
 
   const toggleMode = useCallback(
     () => setMode((current) => (current === 'light' ? 'dark' : 'light')),

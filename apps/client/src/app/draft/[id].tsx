@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import {
@@ -54,7 +55,9 @@ export default function DraftRoomScreen() {
     () => new Set(data.athletes.filter((a) => !pickedIds.has(a.id)).map((a) => a.id)),
     [data.athletes, pickedIds],
   );
+  const automatic = data.draft?.mode === 'scheduled_auto';
   const queueEnabled =
+    !automatic &&
     data.connected &&
     Boolean(data.draft && ['active', 'scheduled', 'paused'].includes(data.draft.status));
   const queue = useDraftQueue(id, data.queuedAthleteIds, availableIds, queueEnabled);
@@ -67,7 +70,7 @@ export default function DraftRoomScreen() {
   );
   const pickIndex = Math.max(0, (data.draft?.currentOverallPick ?? 1) - 1);
   const onClock = data.draft?.status === 'active' ? order[pickIndex] : undefined;
-  const myTurn = data.connected && Boolean(onClock && onClock === data.myTeamId);
+  const myTurn = !automatic && data.connected && Boolean(onClock && onClock === data.myTeamId);
   const turn = useTurnAlert(id, pickIndex + 1, myTurn);
   const remaining = expired ? 0 : 1;
   const mayPick = myTurn && !expired && !submitting;
@@ -149,7 +152,7 @@ export default function DraftRoomScreen() {
     setConfirmation(null);
     const version = data.draft?.stateVersion ?? 0;
     if (pickIntent.current?.athleteId !== athleteId || pickIntent.current.version !== version)
-      pickIntent.current = { athleteId, version, key: crypto.randomUUID() };
+      pickIntent.current = { athleteId, version, key: newCommandKey() };
     const result = await betaCommand('make_draft_pick', {
       p_draft_id: id,
       p_athlete_id: athleteId,
@@ -298,7 +301,18 @@ export default function DraftRoomScreen() {
       </ScrollView>
     </Card>
   );
-  const queuePanel = (
+  const queuePanel = automatic ? (
+    <View style={{ gap: 12 }}>
+      <Text style={styles.playerName}>Automatic drafting</Text>
+      <Text style={styles.meta}>
+        Preferences are frozen. The system commits legal picks over a few minutes. You do not need
+        to take a turn or keep this page open.
+      </Text>
+      <Text style={styles.meta}>
+        Actual completion time determines the first eligible scoring period.
+      </Text>
+    </View>
+  ) : (
     <Card style={styles.panel}>
       <Text style={styles.panelTitle}>Your queue {queue.saving ? ', Saving…' : ''}</Text>
       <Text style={styles.meta}>Autopick takes your first legal queued player.</Text>
@@ -421,12 +435,18 @@ export default function DraftRoomScreen() {
           />
         </View>
         <View style={[styles.clock, !wide && { minWidth: 110, maxWidth: 120, padding: 10 }]}>
-          <Text style={styles.meta}>ON THE CLOCK</Text>
-          <DraftClock
-            status={data.draft?.status}
-            deadline={data.draft?.pickDeadline}
-            offset={data.serverOffset}
-          />
+          <Text style={styles.meta}>{automatic ? 'SYSTEM DRAFTING' : 'ON THE CLOCK'}</Text>
+          {automatic ? (
+            <Text style={uiStyles.body}>
+              {data.draft?.status === 'paused' ? 'Paused for review' : 'Picks run automatically'}
+            </Text>
+          ) : (
+            <DraftClock
+              status={data.draft?.status}
+              deadline={data.draft?.pickDeadline}
+              offset={data.serverOffset}
+            />
+          )}
           <Text style={styles.clockTeam}>
             {onClock ? data.teams.find((t) => t.id === onClock)?.name : 'Draft waiting'}
           </Text>
@@ -737,7 +757,11 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       justifyContent: 'center',
     },
     buttonText: { fontFamily: 'Inter', color: colors.text, fontSize: 11, fontWeight: '800' },
-    draftButton: { backgroundColor: colors.red, borderColor: colors.red, paddingHorizontal: 12 },
+    draftButton: {
+      backgroundColor: colors.action,
+      borderColor: colors.action,
+      paddingHorizontal: 12,
+    },
     draftButtonText: { color: colors.white, fontSize: 19, fontWeight: '700' },
     rosterSlot: {
       borderColor: colors.border,

@@ -21,7 +21,6 @@ select pg_temp.a_id('league'),pg_temp.a_id('team'||n),pg_temp.a_id('athlete'||n)
 
 update public.fantasy_periods set starts_at=now()+make_interval(days=>number*7),ends_at=now()+make_interval(days=>number*7+6) where season_id='b0000000-0000-4000-8000-000000000002';
 update public.fantasy_periods set starts_at=now()-interval '1 day',ends_at=now()+interval '5 days' where season_id='b0000000-0000-4000-8000-000000000002' and number=1;
-insert into public.drafts(league_id,status,rounds,pick_seconds,team_order) select pg_temp.a_id('league'),'complete',10,120,array_agg(pg_temp.a_id('team'||n) order by n) from generate_series(1,4)n;
 
 select is((select count(*)::integer from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in('public','rpc_private','beta_private','registration_private') and p.prosrc~'40001'),0,'application routines never raise retryable serialization codes for business conflicts');
 select ok(not has_function_privilege('authenticated','beta_private.ensure_matchup_schedule(uuid)','execute'),'clients cannot execute the scheduling helper');
@@ -30,7 +29,7 @@ insert into public.pool_competitions(pool_id,competition_id) values('b0000000-00
 insert into public.teams(id,competition_id,name,short_name) values(pg_temp.a_id('away'),pg_temp.a_id('competition'),'Away','AWY');
 insert into public.games(id,competition_id,home_team_id,away_team_id,starts_at,status,schedule_kind)
 values(pg_temp.a_id('game'),pg_temp.a_id('competition'),pg_temp.a_id('program'),pg_temp.a_id('away'),now()+interval '1 hour','scheduled','regular');
-update public.drafts set completed_at=now() where league_id=pg_temp.a_id('league');
+insert into public.drafts(league_id,status,rounds,pick_seconds,team_order,completed_at) select pg_temp.a_id('league'),'complete',10,120,array_agg(pg_temp.a_id('team'||n) order by n),now() from generate_series(1,4)n;
 select is(jsonb_array_length(beta_private.matchup_plan(pg_temp.a_id('league'))->'periods'),8,'draft completed before first scoring game includes underway period');
 create temp table saved_plan as select beta_private.matchup_plan(pg_temp.a_id('league')) data;
 select lives_ok($$select beta_private.ensure_matchup_schedule(pg_temp.a_id('league'))$$,'missing schedule is generated');
@@ -50,12 +49,13 @@ select ok(not exists((select * from saved_matchups where period<>1 except select
 update public.matchups set starts_at=starts_at+interval '1 second' where league_id=pg_temp.a_id('league') and period=2;
 select throws_ok($$select beta_private.ensure_matchup_schedule(pg_temp.a_id('league'))$$,'PT409','Existing matchup schedule differs from canonical pairings','repair rejects mismatched existing schedules');
 update public.matchups m set starts_at=s.starts_at from saved_matchups s where m.id=s.id;
-update public.drafts set completed_at=(select lineup_lock_at from public.games where id=pg_temp.a_id('game')) where league_id=pg_temp.a_id('league');
-select is(jsonb_array_length(beta_private.matchup_plan(pg_temp.a_id('league'))->'periods'),7,'completion exactly at the first lock excludes that period');
-update public.drafts set completed_at=now()+interval '2 hours' where league_id=pg_temp.a_id('league');
-select is(jsonb_array_length(beta_private.matchup_plan(pg_temp.a_id('league'))->'periods'),7,'completion after the first game starts at the next full period');
+select is(beta_private.league_entry_period('b0000000-0000-4000-8000-000000000003',4,(select lineup_lock_at from public.games where id=pg_temp.a_id('game'))),
+  (select id from public.fantasy_periods where season_id='b0000000-0000-4000-8000-000000000002'and number=2),'completion exactly at the first lock excludes that period');
+select is(beta_private.league_entry_period('b0000000-0000-4000-8000-000000000003',4,now()+interval '2 hours'),
+  (select id from public.fantasy_periods where season_id='b0000000-0000-4000-8000-000000000002'and number=2),'completion after the first game starts at the next full period');
 update public.games set status='cancelled' where id=pg_temp.a_id('game');
-select is(jsonb_array_length(beta_private.matchup_plan(pg_temp.a_id('league'))->'periods'),7,'unknown scoring fixtures conservatively use period start');
+select is(beta_private.league_entry_period('b0000000-0000-4000-8000-000000000003',4,now()),
+  (select id from public.fantasy_periods where season_id='b0000000-0000-4000-8000-000000000002'and number=2),'unknown scoring fixtures conservatively use period start');
 update public.games set status='scheduled' where id=pg_temp.a_id('game');
 update public.drafts set completed_at=now() where league_id=pg_temp.a_id('league');
 select set_config('request.jwt.claim.sub',pg_temp.a_id('user1')::text,true);

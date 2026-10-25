@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -63,7 +64,7 @@ export default function JoinLeagueScreen() {
       attempt.current = {
         code,
         name,
-        key: `join-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        key: newCommandKey(),
       };
     }
     submitting.current = true;

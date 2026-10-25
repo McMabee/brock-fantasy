@@ -71,8 +71,8 @@ if (environment === 'staging' || environment === 'production') {
     .get('EXPO_PUBLIC_SUPPORT_EMAIL')
     .split(',')
     .map((value) => value.trim().toLowerCase());
-  if (!['tymabee@proton.me', 'gt22me@brocku.ca'].every((value) => recipients.includes(value)))
-    throw new Error('The support setting must route requests to both Ty and Tarik.');
+  if (!recipients.includes('tymabee@proton.me'))
+    throw new Error('The support setting must include the public privacy contact');
 }
 
 const response = await fetch(new URL('/auth/v1/settings', baseUrl), {

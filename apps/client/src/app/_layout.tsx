@@ -12,6 +12,7 @@ import { SessionProvider } from '@/providers/session-provider';
 import { ThemeProvider, useTheme } from '@/providers/theme-provider';
 import { usePushRegistration } from '@/hooks/use-push-registration';
 import { NotificationsProvider } from '@/providers/notifications-provider';
+import { WebAccessibility } from '@/components/web-accessibility';
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return (
     <View
@@ -97,6 +98,7 @@ function AppRuntime() {
   const reducedMotion = useReducedMotion();
   return (
     <>
+      <WebAccessibility />
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{

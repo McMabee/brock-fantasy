@@ -9,13 +9,7 @@ Deno.serve(async (request) => {
   try {
     const user = await authenticatedUser(request.headers.get('authorization'));
     const db = serviceClient();
-    await db.from('audit_log').insert({
-      actor_id: user.id,
-      action: 'account.deletion_requested',
-      entity_type: 'profile',
-      entity_id: user.id,
-    });
-    const { error } = await db.auth.admin.deleteUser(user.id);
+    const { error } = await db.rpc('erase_account', { p_user_id: user.id });
     if (error) throw error;
     return new Response(null, { status: 204, headers });
   } catch (error) {

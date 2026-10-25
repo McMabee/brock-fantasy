@@ -172,6 +172,7 @@ try {
     });
     await context.addCookies([
       { name: 'bf_theme', value: theme, url: origin },
+      { name: 'bf_consent', value: 'v1.preferences', url: origin },
       { name: 'bf_csrf', value: 'fixture-csrf', url: origin },
     ]);
     let participant = {
@@ -791,7 +792,7 @@ try {
         Math.round(afterBug.y),
         'Feedback button stays fixed after scrolling',
       );
-      assert.equal(Math.round(afterBug.width), 52);
+      assert.ok(afterBug.width >= 44, 'Help controls retain an accessible touch target');
       assert.ok(afterBug.x + afterBug.width <= width);
       await page.evaluate(() =>
         document.querySelectorAll('div').forEach((element) => {

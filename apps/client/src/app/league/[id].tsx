@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import { VarsityBadge } from '@/components/varsity-badge';
 import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
@@ -94,7 +95,7 @@ export default function LeagueScreen() {
     const result = await betaCommand('post_chat_message', {
       p_league_id: id,
       p_body: body,
-      p_idempotency_key: `chat-${Date.now()}`,
+      p_idempotency_key: newCommandKey(),
     });
     if (result.error) {
       setActionError(result.error);
@@ -173,16 +174,36 @@ export default function LeagueScreen() {
         {league?.commissionerId === user?.id &&
         leagueData.draftStatus === 'complete' &&
         !leagueData.matchups.length ? (
-          <MatchupSetup leagueId={id} teams={teams} onCreated={leagueData.reload} />
+          <MatchupSetup
+            leagueId={id}
+            teams={teams}
+            entryPeriodAvailable={Boolean(league?.firstScoringPeriodId)}
+            onCreated={leagueData.reload}
+          />
         ) : null}
         <ActionButton label="View matchups" href={`/matchups/${id}`} variant="secondary" />
+        {league?.status === 'setup' ? (
+          <ActionButton
+            label="Prepare private draft rankings"
+            href={`/draft-preferences/${id}`}
+            variant="secondary"
+          />
+        ) : null}
+        {league?.draftBlockReason ? (
+          <Text accessibilityRole="alert" style={styles.loadError}>
+            {league.draftBlockReason}. The commissioner must fix setup and choose a new future time.
+          </Text>
+        ) : null}
       </View>
-      <View accessibilityRole="tablist" style={styles.tabs}>
+      <View accessibilityRole="tablist" accessibilityLabel="League sections" style={styles.tabs}>
         {TABS.map((item) => (
           <Pressable
             key={item}
             accessibilityRole="tab"
             aria-selected={tab === item}
+            tabIndex={tab === item ? 0 : -1}
+            nativeID={`league-tab-${item}`}
+            aria-controls="league-content"
             accessibilityState={{ selected: tab === item }}
             onPress={() => setTab(item)}
             style={[styles.tab, tab === item && styles.tabActive]}
@@ -191,58 +212,64 @@ export default function LeagueScreen() {
           </Pressable>
         ))}
       </View>
-
-      {tab === 'overview' ? (
-        <Overview
-          wide={wide}
-          league={league}
-          teams={teams}
-          draftId={leagueData.draftId}
-          draftStatus={leagueData.draftStatus}
-          matchups={leagueData.matchups}
-          myTeamId={leagueData.myTeamId}
-        />
-      ) : null}
-      {tab === 'roster' ? (
-        <View style={styles.rosterContent}>
-          <View style={styles.teamSelector}>
-            {teams.map((team) => (
-              <ActionButton
-                key={team.id}
-                label={team.name}
-                variant={
-                  (viewedTeamId ?? leagueData.myTeamId) === team.id ? 'primary' : 'secondary'
-                }
-                onPress={() => setViewedTeamId(team.id)}
-              />
-            ))}
-          </View>
-          <Roster
-            varsity={league?.rosterFormat === 'varsity'}
-            entries={leagueData.roster}
-            poolId={league?.playerPoolId}
-            editable={!viewedTeamId || viewedTeamId === leagueData.myTeamId}
-            leagueId={league?.id ?? ''}
-            betaLeague={Boolean(league?.playerPoolId)}
-            teamName={
-              teams.find((team) => team.id === (viewedTeamId ?? leagueData.myTeamId))?.name ??
-              'Your roster'
-            }
+      <View
+        role="tabpanel"
+        nativeID="league-content"
+        aria-labelledby={`league-tab-${tab}`}
+        tabIndex={0}
+      >
+        {tab === 'overview' ? (
+          <Overview
+            wide={wide}
+            league={league}
+            teams={teams}
+            draftId={leagueData.draftId}
+            draftStatus={leagueData.draftStatus}
+            matchups={leagueData.matchups}
+            myTeamId={leagueData.myTeamId}
           />
-        </View>
-      ) : null}
-      {tab === 'standings' ? <Standings league={league} rows={standings} teams={teams} /> : null}
-      {tab === 'settings' ? <LeagueSettings data={leagueData} /> : null}
-      {tab === 'chat' ? (
-        <Chat
-          chatText={chatText}
-          messages={messages}
-          onChangeText={setChatText}
-          onSend={() => void sendMessage()}
-          onReport={(messageId) => void reportMessage(messageId)}
-          onMute={(authorId) => void muteAuthor(authorId)}
-        />
-      ) : null}
+        ) : null}
+        {tab === 'roster' ? (
+          <View style={styles.rosterContent}>
+            <View style={styles.teamSelector}>
+              {teams.map((team) => (
+                <ActionButton
+                  key={team.id}
+                  label={team.name}
+                  variant={
+                    (viewedTeamId ?? leagueData.myTeamId) === team.id ? 'primary' : 'secondary'
+                  }
+                  onPress={() => setViewedTeamId(team.id)}
+                />
+              ))}
+            </View>
+            <Roster
+              varsity={league?.rosterFormat === 'varsity'}
+              entries={leagueData.roster}
+              poolId={league?.playerPoolId}
+              editable={!viewedTeamId || viewedTeamId === leagueData.myTeamId}
+              leagueId={league?.id ?? ''}
+              betaLeague={Boolean(league?.playerPoolId)}
+              teamName={
+                teams.find((team) => team.id === (viewedTeamId ?? leagueData.myTeamId))?.name ??
+                'Your roster'
+              }
+            />
+          </View>
+        ) : null}
+        {tab === 'standings' ? <Standings league={league} rows={standings} teams={teams} /> : null}
+        {tab === 'settings' ? <LeagueSettings data={leagueData} /> : null}
+        {tab === 'chat' ? (
+          <Chat
+            chatText={chatText}
+            messages={messages}
+            onChangeText={setChatText}
+            onSend={() => void sendMessage()}
+            onReport={(messageId) => void reportMessage(messageId)}
+            onMute={(authorId) => void muteAuthor(authorId)}
+          />
+        ) : null}
+      </View>
     </AppShell>
   );
 }
@@ -334,7 +361,10 @@ function Overview({
                 {new Date(league.draftScheduledFor).toLocaleString('en-CA', {
                   timeZone: 'America/Toronto',
                 })}{' '}
-                (Toronto time). The commissioner starts the draft manually.
+                (Toronto time).{' '}
+                {league.draftMode === 'scheduled_auto'
+                  ? 'The system runs the draft; nobody needs to be online.'
+                  : 'The commissioner starts the live draft at the agreed time.'}
               </Text>
             ) : null}
             <View style={styles.controlActions}>

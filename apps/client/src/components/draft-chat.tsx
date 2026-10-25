@@ -1,3 +1,4 @@
+import { newCommandKey } from '../lib/command-key';
 import { useThemeColors } from '@/providers/theme-provider';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -79,7 +80,7 @@ export function DraftChat({ leagueId }: { leagueId: string | undefined }) {
     const result = await betaCommand('post_chat_message', {
       p_league_id: leagueId,
       p_body: text.trim(),
-      p_idempotency_key: crypto.randomUUID(),
+      p_idempotency_key: newCommandKey(),
     });
     if (currentLeague.current !== identity) return;
     if (result.error) setError(result.error);

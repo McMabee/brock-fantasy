@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { Platform, Pressable, Text, View } from 'react-native';
@@ -275,7 +276,7 @@ export default function BetaLineupScreen() {
         saveAttempt.current = {
           identity,
           signature,
-          key: `lineup-${leagueData.myTeamId}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          key: newCommandKey(),
         };
       }
       const result = await betaCommand('set_period_lineup', {

@@ -90,20 +90,33 @@
         }
       }
     </style>
+    <link rel="stylesheet" href="/ui/theme.css" />
+    <link rel="stylesheet" href="/ui/privacy.css" />
+    <script src="/ui/privacy.js" defer></script>
+    <style>
+      body {
+        font-family: Inter, system-ui, sans-serif;
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: BarlowCondensed, sans-serif;
+      }
+    </style>
   </head>
-  <body>
+  <body data-bf-cookie-auto>
     <header><a href="/">Brock Fantasy</a>, Draft for operator publication</header>
     <main>
       <h1 id="data-retention-schedule">Data retention schedule</h1>
       <p>
         <strong>Status:</strong> Unapproved policy draft; approval and publication remain
         pending.<br />
-        <strong>Draft version:</strong> 0.5 - October 7, 2026<br />
+        <strong>Draft version:</strong> 0.6 - October 24, 2026<br />
         <strong>Effective date:</strong> [insert approved effective date]<br />
-        <strong>Accountable owner:</strong> Tarik Merchant<br />
+        <strong>Accountable owner:</strong> Ty Mabee<br />
         <strong>Implementation/security owner:</strong> Ty Mabee<br />
-        <strong>Privacy contact:</strong> <a href="mailto:tymabee@proton.me">Ty Mabee</a> and
-        <a href="mailto:gt22me@brocku.ca">Tarik Merchant</a> — email both
+        <strong>Privacy contact:</strong> <a href="mailto:tymabee@proton.me">Ty Mabee</a>; Tarik
+        supports requests internally
       </p>
       <h2 id="rules-and-scope">Rules and scope</h2>
       <p>
@@ -318,6 +331,19 @@
           >Breach of Security Safeguards Regulations, section 6</a
         >. It is measured from determination of the breach, rather than case closure.
       </p>
+      <p>
+        Automatic-draft preferences and frozen preference snapshots: delete 30 days after completion
+        or cancellation unless a documented dispute hold applies. Ordinary committed pick results
+        follow the competition-record period above.
+      </p>
+      <p>
+        Implementation uses bounded jobs and scoped holds. Unverified registrations expire after 30
+        days; inactive-account closure requires two years without sign-in or session activity,
+        actual email acceptance and a further 30-day notice period. Manager-linked league history
+        expires 24 months after recorded season finalization. Shared athlete/source assets need
+        reviewed covered-season and licence expiry records; uncertain historical end dates are not
+        invented. Provider and mailbox copies require coordinated disposal.
+      </p>
       <h2 id="browser-and-device-storage">Browser and device storage</h2>
       <p>
         These browser lifetimes are observed in the current repository, not evidence of
@@ -357,8 +383,11 @@
           </tr>
           <tr>
             <td>Light/dark theme cookie</td>
-            <td>1 year each time set</td>
-            <td>Remember appearance; change preference or clear browser storage.</td>
+            <td>180 days, only after allowing preference storage</td>
+            <td>
+              Remember appearance only when permitted; Cookie settings withdraws permission and
+              removes the theme cookie. Theme switching also works without persistent storage.
+            </td>
           </tr>
           <tr>
             <td>Native app session storage, if distributed</td>
@@ -371,7 +400,8 @@
       </table>
       <p>
         Account deletion does not guarantee removal of every cookie or independently stored local
-        copy. The theme preference can remain until expiry or clearing.
+        copy. The theme preference can remain until expiry, clearing or withdrawal through Cookie
+        settings.
       </p>
       <h2 id="holds-disposal-and-oversight">Holds, disposal, and oversight</h2>
       <p>
@@ -400,8 +430,6 @@
         policies.
       </p>
     </main>
-    <footer>
-      Requests: <a href="mailto:tymabee@proton.me,gt22me@brocku.ca">email Ty and Tarik</a>.
-    </footer>
+    <footer>Requests: <a href="mailto:tymabee@proton.me">email Ty</a>.</footer>
   </body>
 </html>

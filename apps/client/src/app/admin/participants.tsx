@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import {
   VARSITY_PROGRAMS,
   type ParticipationRole,
@@ -69,7 +70,7 @@ export default function ParticipantsScreen() {
         p_programs: selected.programs,
         p_expected_revision: selected.revision,
         p_reason: reason.trim(),
-        p_idempotency_key: crypto.randomUUID(),
+        p_idempotency_key: newCommandKey(),
       });
       if (result.error) setMessage(result.error);
       else {

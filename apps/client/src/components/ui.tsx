@@ -24,6 +24,7 @@ import { colors, fonts, heading, radii, shadow } from '@/theme';
 import { useNotifications } from '@/hooks/use-notifications';
 import { DeveloperWatermark } from './developer-watermark';
 import { HelpMenu } from './help-menu';
+import { CookieNotice, CookieSettings } from './cookie-notice';
 
 export function AppShell({
   children,
@@ -155,6 +156,7 @@ export function AppShell({
               brand
             )}
             <View style={styles.topbarActions}>
+              <HelpMenu />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Switch to ${mode === 'dark' ? 'light' : 'dark'} mode`}
@@ -190,6 +192,7 @@ export function AppShell({
                   {sessionError}
                 </Text>
               ) : null}
+              <CookieNotice />
               {title ? (
                 <View style={styles.pageHeading}>
                   <View style={styles.pageHeadingCopy}>
@@ -205,6 +208,10 @@ export function AppShell({
               <View style={styles.footer}>
                 <Text style={styles.footerBrand}>BROCK FANTASY</Text>
                 <View style={styles.footerLinks}>
+                  <CookieSettings />
+                  <Link href="/accessibility" style={styles.footerLink}>
+                    Accessibility
+                  </Link>
                   <Pressable
                     accessibilityRole="link"
                     style={{ minHeight: 44, justifyContent: 'center' }}
@@ -251,7 +258,6 @@ export function AppShell({
         </View>
       </View>
       {!wide ? <View style={styles.bottomNav}>{navItems}</View> : null}
-      <HelpMenu />
     </SafeAreaView>
   );
 }
@@ -450,7 +456,7 @@ export const createUiStyles = (colors: ReturnType<typeof useThemeColors>) =>
     label: { fontFamily: 'Inter', color: colors.text, fontSize: 13, fontWeight: '700' },
     input: {
       backgroundColor: colors.canvasSoft,
-      borderColor: colors.border,
+      borderColor: colors.controlBorder,
       borderRadius: radii.sm,
       borderWidth: 1,
       color: colors.text,
@@ -547,7 +553,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       width: 260,
       height: 260,
       borderRadius: 130,
-      backgroundColor: colors.red,
+      backgroundColor: colors.action,
       opacity: 0.06,
       bottom: -180,
       left: -80,
@@ -636,14 +642,14 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       paddingVertical: 10,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.red,
+      backgroundColor: colors.action,
       borderWidth: 1,
-      borderColor: colors.red,
+      borderColor: colors.action,
     },
-    buttonSecondary: { backgroundColor: colors.canvasSoft, borderColor: colors.border },
-    buttonDanger: { backgroundColor: colors.red, borderColor: colors.red },
+    buttonSecondary: { backgroundColor: colors.canvasSoft, borderColor: colors.controlBorder },
+    buttonDanger: { backgroundColor: colors.action, borderColor: colors.action },
     buttonGhost: { backgroundColor: 'transparent', borderColor: 'transparent' },
-    buttonPressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
+    buttonPressed: { transform: [{ scale: 0.985 }] },
     buttonDisabled: { opacity: 0.5 },
     buttonText: {
       fontFamily: 'Inter',

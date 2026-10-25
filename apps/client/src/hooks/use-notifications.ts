@@ -1,6 +1,7 @@
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { betaCommand } from '@/lib/web-api';
+import { newCommandKey } from '@/lib/command-key';
 import { useSession } from '@/providers/session-provider';
 import { useActivePoll, useAppActive } from '@/hooks/use-active-poll';
 
@@ -125,7 +126,7 @@ export function useNotificationStore(): NotificationStore {
     async (id: string) => {
       const result = await betaCommand('mark_notification_read', {
         p_notification_id: id,
-        p_idempotency_key: 'notification-read-' + id,
+        p_idempotency_key: newCommandKey(),
       });
       if (latestScope.current !== readScope) return;
       if (result.error) setState((s) => ({ ...s, error: result.error }));

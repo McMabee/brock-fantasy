@@ -56,7 +56,7 @@ function render(id: string, content: string, status = 200, cookies: string[] = [
   });
   cookies.forEach((v) => headers.append('set-cookie', v));
   return new Response(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Staff Invitation | Brock Fantasy</title><link rel="stylesheet" href="/beta-auth/entry.css"></head><body><header><a href="https://www.brockfantasy.ca">BROCK FANTASY</a><span>STAFF INVITATION</span></header><main data-invitation="${escape(id)}"><h1>Activate Administrator Access</h1><p>Only the verified account named in Ty's invitation can continue. An authenticator is required before administrator access is granted.</p>${content}<nav><a href="/auth">Administrator sign-in</a><a href="https://www.brockfantasy.ca">Return to Landing Page</a></nav></main></body></html>`,
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Staff Invitation | Brock Fantasy</title><link rel="stylesheet" href="/beta-auth/entry.css"><link rel="stylesheet" href="/ui/privacy.css"><script src="/ui/privacy.js" defer></script></head><body data-bf-cookie-auto><header><a href="https://www.brockfantasy.ca">BROCK FANTASY</a><span>STAFF INVITATION</span></header><main data-invitation="${escape(id)}"><h1>Activate Administrator Access</h1><p>Only the verified account named in Ty's invitation can continue. An authenticator is required before administrator access is granted.</p>${content}<nav><a href="/auth">Administrator sign-in</a><a href="https://www.brockfantasy.ca">Return to Landing Page</a></nav></main></body></html>`,
     { status, headers },
   );
 }

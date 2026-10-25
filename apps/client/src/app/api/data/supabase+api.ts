@@ -50,6 +50,7 @@ const readRpc = new Set([
   'get_my_participation',
   'admin_find_participants',
   'get_league_standings',
+  'get_league_creation_context',
 ]);
 
 function forwardedHeaders(request: Request, key: string, token: string): Headers {

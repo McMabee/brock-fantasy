@@ -6,6 +6,7 @@ export type LeagueFormat = 'head_to_head' | 'points_leaderboard';
 export type LeagueStatus = 'setup' | 'drafting' | 'active' | 'complete' | 'archived';
 export type UserRole = 'user' | 'commissioner' | 'admin';
 export type DraftStatus = 'scheduled' | 'active' | 'paused' | 'complete';
+export type DraftMode = 'live' | 'scheduled_auto';
 export type MatchupStatus = 'scheduled' | 'active' | 'final';
 export type RosterStatus = 'starter' | 'bench' | 'injured_reserve';
 
@@ -84,6 +85,10 @@ export interface League {
   draftScheduledFor?: string;
   draftPickSeconds?: number;
   draftScheduleVersion?: number;
+  draftMode?: DraftMode;
+  draftSetupState?: 'unselected' | 'ready' | 'armed' | 'running' | 'blocked' | 'complete';
+  draftBlockReason?: string;
+  firstScoringPeriodId?: UUID;
   rosterFormat?: 'standard' | 'varsity';
 }
 
@@ -120,6 +125,7 @@ export interface DraftPick {
 }
 
 export interface DraftState {
+  mode?: DraftMode;
   id: UUID;
   leagueId: UUID;
   status: DraftStatus;

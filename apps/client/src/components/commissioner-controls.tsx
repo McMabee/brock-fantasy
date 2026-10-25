@@ -1,8 +1,9 @@
+import { newCommandKey } from '../lib/command-key';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
-import { torontoDateFields, torontoDateTime } from '@brock-fantasy/domain';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { DraftSetupPanel } from './draft-setup-panel';
 
 import { MatchupSetup } from './matchup-setup';
 import { ActionButton, Card, SectionTitle, useUiStyles } from '@/components/ui';
@@ -35,7 +36,6 @@ export function CommissionerControls({
 }) {
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
-  const colors = useThemeColors();
   useRequireUser();
   const router = useRouter();
   const { user } = useSession();
@@ -54,39 +54,6 @@ export function CommissionerControls({
     key: string;
   } | null>(null);
   const [confirmationName, setConfirmationName] = useState('');
-  const [plannedDate, setPlannedDate] = useState('');
-  const [plannedTime, setPlannedTime] = useState('19:00');
-  useEffect(() => {
-    const scheduled = leagueData.league?.draftScheduledFor;
-    if (scheduled) {
-      const fields = torontoDateFields(scheduled);
-      setPlannedDate(fields.date);
-      setPlannedTime(fields.time);
-    } else setPlannedDate('');
-  }, [leagueData.league?.draftScheduledFor]);
-  const saveDraftSchedule = async (clear = false) => {
-    if (!leagueId || !leagueData.league) return;
-    const scheduled = clear ? null : torontoDateTime(plannedDate, plannedTime);
-    if (!clear && !scheduled) {
-      setMessage('Choose a valid draft date and time.');
-      return;
-    }
-    setWorking(true);
-    const result = await betaCommand('schedule_league_draft', {
-      p_league_id: leagueId,
-      p_scheduled_for: scheduled,
-      p_expected_version: leagueData.league.stateVersion,
-      p_idempotency_key: crypto.randomUUID(),
-    });
-    setWorking(false);
-    if (result.error) setMessage(result.error);
-    else {
-      setMessage(
-        clear ? 'Draft schedule cleared.' : 'Draft time saved. Members will receive reminders.',
-      );
-      await leagueData.reload();
-    }
-  };
   const [deleting, setDeleting] = useState(false);
   const deletePending = useRef(false);
   const authorized = Boolean(user && leagueData.league?.commissionerId === user.id);
@@ -141,7 +108,7 @@ export function CommissionerControls({
         p_league_id: leagueId,
         p_pick_seconds: Number(pickDuration),
         p_expected_version: leagueData.league.stateVersion,
-        p_idempotency_key: crypto.randomUUID(),
+        p_idempotency_key: newCommandKey(),
       });
       if (result.error) setMessage(result.error);
       else {
@@ -166,7 +133,7 @@ export function CommissionerControls({
       p_league_id: leagueId,
       p_rounds: config.rounds,
       p_pick_seconds: config.pickSeconds,
-      p_idempotency_key: `start-draft-${Date.now()}`,
+      p_idempotency_key: newCommandKey(),
     });
     setWorking(false);
     if (result.error) setMessage(result.error);
@@ -182,7 +149,7 @@ export function CommissionerControls({
     const result = await betaCommand('set_draft_status', {
       p_draft_id: leagueData.draftId,
       p_status: action === 'pause' ? 'paused' : 'active',
-      p_idempotency_key: `draft-${action}-${Date.now()}`,
+      p_idempotency_key: newCommandKey(),
     });
     setWorking(false);
     if (result.error) setMessage(result.error);
@@ -209,7 +176,7 @@ export function CommissionerControls({
       p_league_id: leagueId,
       p_starts_at: new Date(scheduleStart).toISOString(),
       p_cycles: parsedCycles,
-      p_idempotency_key: `matchups-${Date.now()}`,
+      p_idempotency_key: newCommandKey(),
     });
     setWorking(false);
     if (result.error) setMessage(result.error);
@@ -272,68 +239,7 @@ export function CommissionerControls({
       <SectionTitle title="Draft" detail={`${leagueData.teams.length} managers`} />
       <Card style={styles.card}>
         {!leagueData.draftId ? (
-          <View style={{ gap: 12 }}>
-            <Text style={styles.title}>Planned draft time</Text>
-            <Text style={uiStyles.body}>
-              America/Toronto. Reminders use this time; you start the draft manually.
-            </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-              {Platform.OS === 'web' ? (
-                <>
-                  <label style={{ color: colors.text }}>
-                    Draft date{' '}
-                    <input
-                      aria-label="Draft date"
-                      type="date"
-                      value={plannedDate}
-                      onChange={(e) => setPlannedDate(e.currentTarget.value)}
-                      disabled={working}
-                    />
-                  </label>
-                  <label style={{ color: colors.text }}>
-                    Draft time{' '}
-                    <input
-                      aria-label="Draft time"
-                      type="time"
-                      value={plannedTime}
-                      onChange={(e) => setPlannedTime(e.currentTarget.value)}
-                      disabled={working}
-                    />
-                  </label>
-                </>
-              ) : (
-                <>
-                  <TextInput
-                    accessibilityLabel="Draft date YYYY-MM-DD"
-                    style={uiStyles.input}
-                    value={plannedDate}
-                    onChangeText={setPlannedDate}
-                    placeholder="YYYY-MM-DD"
-                  />
-                  <TextInput
-                    accessibilityLabel="Draft time HH:mm"
-                    style={uiStyles.input}
-                    value={plannedTime}
-                    onChangeText={setPlannedTime}
-                  />
-                </>
-              )}
-            </View>
-            <View style={styles.actions}>
-              <ActionButton
-                label="Save draft time"
-                onPress={() => void saveDraftSchedule()}
-                disabled={working || deleting || !plannedDate}
-                variant="secondary"
-              />
-              <ActionButton
-                label="Clear draft time"
-                onPress={() => void saveDraftSchedule(true)}
-                disabled={working || deleting || !leagueData.league?.draftScheduledFor}
-                variant="secondary"
-              />
-            </View>
-          </View>
+          <DraftSetupPanel leagueId={leagueId} onSaved={leagueData.reload} />
         ) : null}
         <Text style={styles.title}>{leagueData.league?.name ?? 'Loading league…'}</Text>
         <Text style={uiStyles.body}>
@@ -341,7 +247,9 @@ export function CommissionerControls({
             ? `${config.rounds} rounds, ${config.pickSeconds} seconds per pick, snake order`
             : 'Loading approved rules…'}
         </Text>
-        {!leagueData.draftId && leagueData.league?.status === 'setup' ? (
+        {!leagueData.draftId &&
+        leagueData.league?.status === 'setup' &&
+        leagueData.league.draftMode !== 'scheduled_auto' ? (
           <View style={styles.field}>
             <Text style={uiStyles.label}>Seconds per pick</Text>
             <Text style={uiStyles.body}>
@@ -376,12 +284,14 @@ export function CommissionerControls({
             />
           </View>
         ) : null}
-        {!leagueData.draftId ? (
+        {!leagueData.draftId && leagueData.league?.draftMode !== 'scheduled_auto' ? (
           <ActionButton
             label="Start draft"
             onPress={() => void startDraft()}
             disabled={
               !config ||
+              !leagueData.league?.draftMode ||
+              !leagueData.league?.draftMode ||
               Number(pickDuration) !== config.pickSeconds ||
               leagueData.teams.length < 2 ||
               deleting
@@ -428,6 +338,7 @@ export function CommissionerControls({
           <MatchupSetup
             leagueId={leagueId}
             teams={leagueData.teams}
+            entryPeriodAvailable={Boolean(leagueData.league?.firstScoringPeriodId)}
             onCreated={leagueData.reload}
           />
         ) : (
@@ -536,7 +447,7 @@ export function CommissionerControls({
                     leagueId: leagueData.league.id,
                     name: leagueData.league.name,
                     version: leagueData.league.stateVersion,
-                    key: `delete-league-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                    key: newCommandKey(),
                   });
                 }}
               />

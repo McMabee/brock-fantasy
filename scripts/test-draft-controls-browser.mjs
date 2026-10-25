@@ -51,6 +51,7 @@ try {
     });
     await context.addCookies([
       { name: 'bf_theme', value: theme, url: origin },
+      { name: 'bf_consent', value: 'v1.preferences', url: origin },
       { name: 'bf_csrf', value: 'fixture-csrf', url: origin },
     ]);
     let commissioner = true;
@@ -157,7 +158,7 @@ try {
           };
           if (query.searchParams.get('voided_at') === 'is.null') {
             currentDraftReads++;
-            return reply([current]);
+            return reply(query.searchParams.get('select') === 'id,status' ? current : [current]);
           }
           return reply([current, { ...current, id: 'archived-draft', voided_at: '2026-10-20' }]);
         }

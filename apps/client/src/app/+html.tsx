@@ -11,6 +11,7 @@ export default function RootHtml({ children }: PropsWithChildren) {
         <meta name="color-scheme" content="dark light" />
         <ScrollViewStyleReset />
         <link rel="stylesheet" href="/ui/theme.css" />
+        <link rel="stylesheet" href="/ui/privacy.css" />
         <link
           rel="preload"
           href="/ui/fonts/barlow-2.woff2"
@@ -18,6 +19,7 @@ export default function RootHtml({ children }: PropsWithChildren) {
           type="font/woff2"
           crossOrigin="anonymous"
         />
+        <script src="/ui/privacy.js" defer />
         <script src="/ui/theme.js" />
         <script src="/ui/help-menu.js" defer />
       </head>

@@ -19,7 +19,15 @@ type Diagnostic = {
     | 'rpc_invalid_response';
   httpStatus?: number;
 };
-const actions = new Set(['sign-in', 'sign-up', 'recover', 'refresh', 'update-password']);
+const actions = new Set([
+  'sign-in',
+  'sign-up',
+  'recover',
+  'refresh',
+  'update-password',
+  'contact',
+  'contact-status',
+]);
 
 /** Server-only: both Vercel hosts must use the same private HMAC secret. */
 export function createAuthRateLimiter(
@@ -50,7 +58,7 @@ export function createAuthRateLimiter(
     const env = readEnv();
     const local = env.EXPO_PUBLIC_APP_ENV === 'local' && env.VERCEL !== '1';
     const seconds = 60;
-    const maximum = action === 'sign-in' ? 8 : 5;
+    const maximum = action === 'contact-status' ? 30 : action === 'sign-in' ? 8 : 5;
     const window = Math.floor(now() / (seconds * 1000));
     const retryAfterSeconds = seconds - (Math.floor(now() / 1000) % seconds);
     if (local) {

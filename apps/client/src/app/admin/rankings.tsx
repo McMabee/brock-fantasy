@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import { useRef, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { BETA_PLAYER_POOL_ID } from '@brock-fantasy/domain';
@@ -35,7 +36,7 @@ export default function RankingPublicationScreen() {
       if (result.error) setMessage(result.error.message);
       else {
         setPreview(result.data as Preview);
-        key.current = `ranking-publication-${Date.now()}`;
+        key.current = newCommandKey();
         setMessage('Review every position group before publishing this snapshot.');
       }
     } catch {

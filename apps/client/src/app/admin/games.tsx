@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -287,7 +288,7 @@ export default function AdminGamesScreen() {
       p_stats: stats,
       p_reason: reason.trim(),
       p_source_identity: source.trim(),
-      p_idempotency_key: `game-revision-${selected.game.id}-${Date.now()}`,
+      p_idempotency_key: newCommandKey(),
     });
     setWorking(false);
     if (result.error) {

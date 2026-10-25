@@ -12,7 +12,7 @@ export function HelpMenu() {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const right = 16 + insets.right;
-  const bottom = (width >= 1024 ? 20 : 92) + insets.bottom;
+  const top = 96 + insets.top;
   return (
     <>
       <Pressable
@@ -21,12 +21,9 @@ export function HelpMenu() {
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen(true)}
         style={{
-          position: 'absolute',
-          right,
-          bottom,
-          width: 52,
-          height: 52,
-          borderRadius: 26,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
           backgroundColor: '#B00020',
           borderWidth: 2,
           borderColor: '#FFFFFF',
@@ -42,7 +39,13 @@ export function HelpMenu() {
           ?
         </Text>
       </Pressable>
-      <Modal visible={open} transparent animationType="none" onRequestClose={() => setOpen(false)}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="none"
+        accessibilityLabel="Help and support"
+        onRequestClose={() => setOpen(false)}
+      >
         <View style={{ flex: 1 }}>
           <Pressable
             accessibilityRole="button"
@@ -55,9 +58,9 @@ export function HelpMenu() {
             style={{
               position: 'absolute',
               right,
-              bottom: bottom + 64,
+              top,
               width: Math.min(280, width - right - 16 - insets.left),
-              maxHeight: Math.max(48, height - bottom - 80 - insets.top),
+              maxHeight: Math.max(48, height - top - 24 - insets.bottom),
               backgroundColor: colors.panel,
               borderColor: colors.border,
               borderWidth: 1,

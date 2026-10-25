@@ -1,14 +1,26 @@
+import { newCommandKey } from '../../lib/command-key';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { BETA_PLAYER_POOL_ID, LEAGUE_SIZES } from '@brock-fantasy/domain';
+import { LEAGUE_SIZES } from '@brock-fantasy/domain';
 
 import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
 import { betaCommand } from '@/lib/web-api';
 
 import { useRequireUser } from '@/hooks/use-route-access';
 import { RulesLink } from '@/components/rules-link';
+import { supabase } from '@/lib/supabase';
+
+interface LeagueCreationContext {
+  available: boolean;
+  reason?: string;
+  poolId?: string;
+  seasonLabel?: string;
+  windows?: Partial<
+    Record<string, { open: boolean; deadline: string | null; firstScoringPeriodId: string | null }>
+  >;
+}
 
 export default function NewLeagueScreen() {
   const styles = useThemedStyles(createStyles);
@@ -20,11 +32,50 @@ export default function NewLeagueScreen() {
   const [teamName, setTeamName] = useState('');
   const [size, setSize] = useState<(typeof LEAGUE_SIZES)[number]>(8);
   const [error, setError] = useState<string | null>(null);
+  const [context, setContext] = useState<LeagueCreationContext | null>(null);
+  const [contextError, setContextError] = useState<string | null>(null);
+  const [contextLoading, setContextLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const submitting = useRef(false);
-  const attempt = useRef<{ name: string; teamName: string; size: number; key: string } | null>(
-    null,
-  );
+  const attempt = useRef<{
+    name: string;
+    teamName: string;
+    size: number;
+    poolId: string;
+    key: string;
+  } | null>(null);
+  const selectedWindow = context?.windows?.[String(size)];
+
+  useEffect(() => {
+    let active = true;
+    const client = supabase;
+    if (!allowed || sessionLoading || !client) {
+      setContextLoading(Boolean(sessionLoading));
+      return () => {
+        active = false;
+      };
+    }
+    const load = async () => {
+      setContextLoading(true);
+      try {
+        const result = await client.rpc('get_league_creation_context');
+        if (!active) return;
+        if (result.error) throw result.error;
+        setContext((result.data as LeagueCreationContext | null) ?? null);
+        setContextError(null);
+      } catch {
+        if (!active) return;
+        setContext(null);
+        setContextError('The current season could not be loaded. Please refresh and try again.');
+      } finally {
+        if (active) setContextLoading(false);
+      }
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [allowed, sessionLoading]);
 
   const createLeague = async () => {
     if (submitting.current || !allowed || sessionLoading) return;
@@ -38,16 +89,22 @@ export default function NewLeagueScreen() {
       setError('Enter a fantasy team name between 3 and 60 characters.');
       return;
     }
+    if (!context?.available || !context.poolId || !selectedWindow?.open) {
+      setError(context?.reason ?? 'New leagues are not available for this manager count.');
+      return;
+    }
     if (
       attempt.current?.name !== leagueName ||
       attempt.current.teamName !== creatorTeamName ||
-      attempt.current.size !== size
+      attempt.current.size !== size ||
+      attempt.current.poolId !== context.poolId
     ) {
       attempt.current = {
         name: leagueName,
         teamName: creatorTeamName,
         size,
-        key: `create-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        poolId: context.poolId,
+        key: newCommandKey(),
       };
     }
     submitting.current = true;
@@ -57,7 +114,7 @@ export default function NewLeagueScreen() {
       const result = await betaCommand<{ league_id: string }>('create_beta_league', {
         p_name: leagueName,
         p_team_name: creatorTeamName,
-        p_pool_id: BETA_PLAYER_POOL_ID,
+        p_pool_id: context.poolId,
         p_max_members: size,
         p_idempotency_key: attempt.current.key,
       });
@@ -106,7 +163,11 @@ export default function NewLeagueScreen() {
         <View style={styles.field}>
           <Text style={uiStyles.label}>Season player pool</Text>
           <Text style={styles.poolSummary}>
-            One private league across Brock men’s and women’s hockey, basketball, and volleyball.
+            {contextLoading
+              ? 'Loading the newest published season.'
+              : context?.available
+                ? `${context.seasonLabel} includes Brock men’s and women’s hockey, basketball, and volleyball.`
+                : (context?.reason ?? 'New leagues are unavailable.')}
           </Text>
         </View>
 
@@ -117,7 +178,9 @@ export default function NewLeagueScreen() {
               <Option
                 key={leagueSize}
                 active={size === leagueSize}
-                disabled={loading}
+                disabled={
+                  loading || contextLoading || !context?.windows?.[String(leagueSize)]?.open
+                }
                 label={`${leagueSize} teams`}
                 onPress={() => setSize(leagueSize)}
               />
@@ -134,8 +197,26 @@ export default function NewLeagueScreen() {
             defaults to two minutes; commissioners can change the timer before starting the draft,
             with a minimum of 20 seconds.
           </Text>
+          {selectedWindow?.open ? (
+            <Text style={styles.poolSummary}>
+              New leagues are available until {formatDeadline(selectedWindow.deadline)} Toronto
+              time. Your draft must finish before a period’s first scoring game to join that period.
+            </Text>
+          ) : (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {contextLoading
+                ? 'Checking league availability.'
+                : (contextError ??
+                  'This manager count has no eligible regular-season period remaining.')}
+            </Text>
+          )}
           <RulesLink label="Read the league rules before creating a team" />
         </View>
+        {contextError ? (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {contextError}
+          </Text>
+        ) : null}
         {error ? (
           <Text accessibilityRole="alert" style={styles.error}>
             {error}
@@ -147,12 +228,23 @@ export default function NewLeagueScreen() {
             label="Create private league"
             onPress={() => void createLeague()}
             loading={loading}
-            disabled={!allowed || sessionLoading}
+            disabled={!allowed || sessionLoading || contextLoading || !selectedWindow?.open}
           />
         </View>
       </Card>
     </AppShell>
   );
+}
+
+function formatDeadline(value: string | null): string {
+  if (!value) return 'the next scoring-game cutoff';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Toronto',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
 }
 
 function Option({

@@ -1,5 +1,7 @@
 begin;
 select no_plan();
+select ok(position('clock_timestamp()'in pg_get_functiondef('rpc_private.get_league_creation_context()'::regprocedure))=0,
+  'stable creation-context reads use one statement timestamp');
 
 insert into auth.users(id, email, email_confirmed_at, raw_user_meta_data, created_at, updated_at)
 select id, email, now(), jsonb_build_object('display_name', 'League command fixture',
@@ -28,9 +30,12 @@ insert into public.fantasy_seasons(id, label, rule_version, trade_deadline)
 values('95000000-0000-4000-8000-000000000004', 'League commands fixture', 'fixture', now() + interval '1 year');
 insert into public.scoring_rulesets(id, name, version, status, approved_at)
 values('95000000-0000-4000-8000-000000000005', 'League command rules', 1, 'approved', now());
+update public.player_pools set is_active = false;
 insert into public.player_pools(id, season_id, name, ruleset_id, is_active)
 values('95000000-0000-4000-8000-000000000006', '95000000-0000-4000-8000-000000000004',
   'League command pool', '95000000-0000-4000-8000-000000000005', true);
+update public.player_pools set rankings_approved_at = now()
+where id = '95000000-0000-4000-8000-000000000006';
 insert into public.fantasy_periods(id, season_id, number, starts_at, ends_at, phase)
 values('95000000-0000-4000-8000-000000000007', '95000000-0000-4000-8000-000000000004', 1,
   now() + interval '1 day', now() + interval '8 days', 'regular');
@@ -56,6 +61,9 @@ select throws_ok($$select public.create_beta_league(null,
 select throws_ok($$select public.create_beta_league('League commands fixture',
   '95000000-0000-4000-8000-000000000006', 5, 'league-invalid-size', 'Personal Team')$$,
   '22023', 'Invalid league name or size', 'unsupported league sizes are rejected');
+select throws_ok($$select public.create_beta_league('League commands fixture',
+  '95000000-0000-4000-8000-000000000006', null, 'league-null-size', 'Personal Team')$$,
+  '22023', 'Invalid league name or size', 'null league sizes are rejected');
 select lives_ok($$select public.create_beta_league(' League commands fixture ',
   '95000000-0000-4000-8000-000000000006', 4, 'league-create-qa-01', ' Personal Team ')$$,
   'creation saves the supplied league and team names in one transaction');
@@ -197,6 +205,40 @@ select throws_ok($$select public.delete_league('95000000-0000-4000-8000-00000000
   'Unrelated surviving league', 1, 'league-delete-qa-01')$$,
   '22023', 'Idempotency key belongs to another league', 'a cached deletion cannot be reused for another league');
 reset role;
+
+-- - Select by published calendar order and never fall back to a stale season
+insert into public.fantasy_seasons(id,label,rule_version,trade_deadline)
+values('95000000-0000-4000-8000-000000000020','Next published season','fixture',now()+interval '2 years');
+insert into public.player_pools(id,season_id,name,ruleset_id,is_active,rankings_approved_at)
+values('95000000-0000-4000-8000-000000000021','95000000-0000-4000-8000-000000000020','Next pool','95000000-0000-4000-8000-000000000005',true,now());
+insert into public.fantasy_periods(id,season_id,number,starts_at,ends_at,phase)
+values('95000000-0000-4000-8000-000000000022','95000000-0000-4000-8000-000000000020',1,now()+interval '1 year',now()+interval '1 year 7 days','regular');
+set local role authenticated;
+select is(public.get_league_creation_context()->>'poolId','95000000-0000-4000-8000-000000000021',
+  'newest published season is selected by its regular-season calendar');
+select throws_ok($$select public.create_beta_league('Stale season fixture','95000000-0000-4000-8000-000000000006',4,'stale-season-create','Personal Team')$$,
+  'PT409','Season details changed. Refresh and try again.','stale client pool cannot create in an older season');
+reset role;
+update public.fantasy_periods set starts_at=now()-interval '2 years',ends_at=now()-interval '2 years'+interval '7 days' where id='95000000-0000-4000-8000-000000000007';
+insert into public.fantasy_periods(season_id,number,starts_at,ends_at,phase)
+values('95000000-0000-4000-8000-000000000004',2,now()+interval '1 day',now()+interval '2 days','regular');
+update public.fantasy_periods set starts_at=now()-interval '2 days',ends_at=now()-interval '1 day' where id='95000000-0000-4000-8000-000000000022';
+set local role authenticated;
+select ok(not(public.get_league_creation_context()->'windows'->'4'->>'open')::boolean,
+  'an exhausted newest season closes registration despite an older open pool');
+select throws_ok($$select public.create_beta_league('Closed season fixture','95000000-0000-4000-8000-000000000021',4,'closed-season-create','Personal Team')$$,
+  '22023','No eligible regular-season periods remain for a new league','no regular scoring window rejects league creation');
+reset role;
+update public.fantasy_periods set starts_at=now()+interval '1 day',ends_at=now()+interval '2 days' where id='95000000-0000-4000-8000-000000000022';
+insert into public.fantasy_periods(season_id,number,starts_at,ends_at,phase)
+values('95000000-0000-4000-8000-000000000020',2,now()-interval '1 hour',now()+interval '1 hour','semifinal');
+select ok(not beta_private.has_draft_window('95000000-0000-4000-8000-000000000021',4,clock_timestamp()),
+  'playoff start closes entry even when a regular fixture is moved later');
+select is(beta_private.league_entry_period('95000000-0000-4000-8000-000000000021',4,clock_timestamp()),null::uuid,
+  'drafts completed during playoffs cannot gain scoring eligibility');
+update public.fantasy_seasons set status='complete' where id='95000000-0000-4000-8000-000000000020';
+select is((select pool_id from beta_private.current_league_pool()),'95000000-0000-4000-8000-000000000021'::uuid,
+  'completed newest season never silently falls back to an older published season');
 
 select * from finish();
 rollback;

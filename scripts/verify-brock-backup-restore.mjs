@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { erasureReplaySql } from './lib/erasure-replay.mjs';
 const root = path.resolve(process.argv[2] ?? 'D:/Brock Fantasy');
 const source = process.argv[3] ?? 'Local';
 if (!['Local', 'Offsite'].includes(source)) throw new Error('Unknown backup source.');
@@ -28,6 +29,7 @@ const evidence = {
   exportsHashVerified: false,
   databaseRestored: false,
   applicationJourneysVerified: false,
+  deletedRecordReplayVerified: false,
   offsiteRecoveryVerified: false,
   cleanupVerified: false,
 };
@@ -241,6 +243,12 @@ try {
       throw new Error('Named operator role-management capability was not restored.');
     evidence.operatorRoleManagementRestored = true;
   }
+  if (process.env.BROCK_ERASURE_MANIFEST_PATH) {
+    const manifest = JSON.parse(await readFile(process.env.BROCK_ERASURE_MANIFEST_PATH, 'utf8'));
+    await sql(erasureReplaySql(manifest));
+    evidence.deletedRecordReplayVerified = true;
+    evidence.deletedRecordReplayEntries = manifest.entries.length;
+  }
   evidence.databaseRestored = true;
   evidence.offsiteRecoveryVerified = offsite;
   evidence.independentRecoveryPasswordVerified =
@@ -256,7 +264,10 @@ try {
   evidence.finishedAt = new Date().toISOString();
   evidence.elapsedSeconds = (Date.now() - started) / 1000;
   evidence.limitations = [
-    'Database integrity only: no website/Auth API/draft/scoring journeys or deleted-record replay were tested.',
+    'Database integrity only: website/Auth API/draft/scoring journeys were not tested',
+    evidence.deletedRecordReplayVerified
+      ? 'Fresh deletion manifest replayed before the isolated restore was destroyed'
+      : 'Deletion replay is required before a restored backup can serve application traffic',
     evidence.independentRecoveryPasswordVerified
       ? 'Operator supplied the password-manager recovery key; this drill still used the current workstation, not a separate recovery environment.'
       : 'Independently retrieved password-manager recovery key not verified in this drill.',

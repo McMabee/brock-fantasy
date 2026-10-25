@@ -1,3 +1,4 @@
+import { newCommandKey } from '../lib/command-key';
 import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import type { DraftState } from '@brock-fantasy/domain';
@@ -34,7 +35,7 @@ export function DraftStatusControls({
     const nextStatus = paused ? 'active' : 'paused';
     // - Reuse the command key after an interrupted response to prevent duplicate changes
     if (intent.current?.status !== nextStatus)
-      intent.current = { status: nextStatus, key: crypto.randomUUID() };
+      intent.current = { status: nextStatus, key: newCommandKey() };
     try {
       const result = await betaCommand('set_draft_status', {
         p_draft_id: draftId,

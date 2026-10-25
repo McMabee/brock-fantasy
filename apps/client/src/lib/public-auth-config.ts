@@ -69,10 +69,10 @@ export function validatePublicAuthConfig(values: PublicAuthConfig): void {
     .map((value) => value.trim().toLowerCase());
   if (
     !recipients.every((value) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/u.test(value)) ||
-    !['tymabee@proton.me', 'gt22me@brocku.ca'].every((value) => recipients.includes(value))
+    !recipients.includes('tymabee@proton.me')
   ) {
     throw new Error(
-      'EXPO_PUBLIC_SUPPORT_EMAIL must include both Ty and Tarik, separated by commas.',
+      'EXPO_PUBLIC_SUPPORT_EMAIL must include the public privacy contact, tymabee@proton.me.',
     );
   }
 }

@@ -1,3 +1,4 @@
+import { newCommandKey } from '../lib/command-key';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { betaCommand } from '@/lib/web-api';
 
@@ -38,7 +39,7 @@ export function useDraftQueue(
     const currentGeneration = generation.current;
     attempt.current ??= {
       ids: desired.current.filter((id) => latestAvailable.current.has(id)),
-      key: crypto.randomUUID(),
+      key: newCommandKey(),
     };
     const sent = attempt.current;
     const result = await betaCommand<{ queue?: string[] }>('set_draft_queue', {

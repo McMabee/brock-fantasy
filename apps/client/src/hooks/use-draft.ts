@@ -135,6 +135,7 @@ export function useDraft(draftId: string | undefined): DraftViewState {
             connected: true,
             draft: {
               id: d.id,
+              mode: d.mode ?? 'live',
               leagueId: d.league_id,
               status: d.status,
               rounds: d.rounds,
@@ -181,6 +182,7 @@ export function useDraft(draftId: string | undefined): DraftViewState {
           return {
             draft: {
               id: d.id,
+              mode: d.mode ?? 'live',
               leagueId: d.league_id,
               status: d.status,
               rounds: d.rounds,

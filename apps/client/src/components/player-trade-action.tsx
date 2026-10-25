@@ -1,3 +1,4 @@
+import { newCommandKey } from '../lib/command-key';
 import { useEffect, useRef, useState } from 'react';
 import { Modal, ScrollView, Text, View } from 'react-native';
 import { ActionButton, Card, useUiStyles } from './ui';
@@ -67,7 +68,7 @@ export function PlayerTradeAction({
     if (pending.current?.signature !== signature)
       pending.current = {
         signature,
-        key: `profile-trade-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        key: newCommandKey(),
       };
     try {
       const result = await betaCommand<{ trade_id: string }>('propose_trade', {
@@ -112,6 +113,7 @@ export function PlayerTradeAction({
         </Text>
       ) : null}
       <Modal
+        accessibilityLabel="Propose a trade"
         visible={open}
         transparent
         animationType="fade"

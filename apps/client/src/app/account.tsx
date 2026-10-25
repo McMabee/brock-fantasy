@@ -80,12 +80,14 @@ export default function AccountScreen() {
       </View>
 
       <SectionTitle title="Privacy and deletion" />
+      <ActionButton label="Draft email preferences" href="/email-preferences" variant="secondary" />
       <Card style={styles.deleteCard}>
         <View style={styles.deleteCopy}>
           <Text style={styles.deleteTitle}>Delete your account</Text>
           <Text style={uiStyles.body}>
-            This removes your profile and personal memberships. Competition records that must remain
-            auditable are anonymized according to the retention policy.
+            This removes your profile and personal memberships. Some competition history, chat,
+            names, and audit records can remain identifiable. The deletion notice explains the
+            retained records, review process, and backup handling.
           </Text>
         </View>
         <View style={styles.deleteAction}>

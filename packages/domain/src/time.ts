@@ -25,10 +25,15 @@ export function torontoDateTime(date: string, time: string): string | null {
     const [y, m, d] = actual.date.split('-').map(Number);
     const [h, min] = actual.time.split(':').map(Number);
     const difference = target - Date.UTC(y!, m! - 1, d, h, min);
-    if (difference === 0)
-      return actual.date === date && actual.time === time
-        ? new Date(candidate).toISOString()
-        : null;
+    if (difference === 0) {
+      if (actual.date !== date || actual.time !== time) return null;
+      // - Reject ambiguous repeated times instead of silently choosing a daylight-saving offset
+      for (const offset of [-3_600_000, 3_600_000]) {
+        const alternate = torontoDateFields(new Date(candidate + offset).toISOString());
+        if (alternate.date === date && alternate.time === time) return null;
+      }
+      return new Date(candidate).toISOString();
+    }
     candidate += difference;
   }
   return null;

@@ -1,3 +1,4 @@
+import { newCommandKey } from '../../lib/command-key';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput } from 'react-native';
@@ -40,7 +41,7 @@ export default function AdminAccountsScreen() {
     if (busy || !canManage) return;
     setBusy(true);
     setMessage(null);
-    inviteKey.current ??= `admin-invite-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    inviteKey.current ??= newCommandKey();
     const result = await inviteAdministrator(email.trim(), reason.trim(), inviteKey.current);
     if (result.data) {
       inviteKey.current = null;
@@ -78,7 +79,7 @@ export default function AdminAccountsScreen() {
       p_user_id: account.id,
       p_enabled: false,
       p_reason: reason.trim(),
-      p_idempotency_key: `admin-role-${account.id}-${Date.now()}`,
+      p_idempotency_key: newCommandKey(),
     });
     if (data) {
       setAccount({ ...account, isAdmin: false, invitationPending: false });

@@ -27,9 +27,9 @@ export default function AccountDeletionScreen() {
           to request deletion after identity verification.
         </Text>
         <Text style={uiStyles.body}>
-          Email both Ty Mabee and Tarik Merchant. Support hours are Monday to Friday, 8 a.m. to 5
-          p.m. Toronto time. Verified manual deletion requests have a target of 30 calendar days and
-          remain open until an administrator closes them.
+          Email Ty Mabee; Tarik supports reviews internally. Volunteer response times vary. Verified
+          manual deletion requests have a target of 30 calendar days and remain open until an
+          administrator closes them.
         </Text>
         <View style={styles.actions}>
           <ActionButton

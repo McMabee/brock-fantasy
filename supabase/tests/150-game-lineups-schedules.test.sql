@@ -90,6 +90,12 @@ select is((select count(*)::integer from public.sync_errors where error_code='MI
 insert into public.roster_entries(league_id,fantasy_team_id,athlete_id,slot_code,status,acquired_at,acquisition_type)
 values('98000000-0000-4000-8000-000000000006','98000000-0000-4000-8000-000000000011','98000000-0000-4000-8000-000000000010','HK_F','starter',clock_timestamp()-interval '2 hours','draft'),
 ('98000000-0000-4000-8000-000000000006','98000000-0000-4000-8000-000000000011','98000000-0000-4000-8000-000000000020','BN','bench',clock_timestamp()-interval '2 hours','draft');
+-- - Only published scoring periods admit game snapshots and fantasy points
+insert into public.fantasy_teams(id,league_id,owner_id,name)
+values('98000000-0000-4000-8000-000000000030','98000000-0000-4000-8000-000000000006','98000000-0000-4000-8000-000000000002','Scoring fixture opponent');
+insert into public.matchups(league_id,period,starts_at,ends_at,home_team_id,away_team_id)
+select '98000000-0000-4000-8000-000000000006',number,starts_at,ends_at,'98000000-0000-4000-8000-000000000011','98000000-0000-4000-8000-000000000030'
+from public.fantasy_periods where season_id='b0000000-0000-4000-8000-000000000002'and number in(1,2);
 select beta_private.snapshot_locks('98000000-0000-4000-8000-000000000006');
 select is((select count(*)::integer from public.game_lineup_snapshots),2,'game snapshot captures both starters and bench');
 select ok(not beta_private.is_locked('98000000-0000-4000-8000-000000000006','98000000-0000-4000-8000-000000000010'),'finished first game does not lock the period');
