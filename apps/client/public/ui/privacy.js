@@ -22,7 +22,7 @@
   let dialog;
   let opener;
   const notice =
-    '<h2>Cookies and your choices</h2><p>We use necessary cookies for sign-in and security. With your permission, we also remember settings such as your theme. We do not use advertising or analytics trackers.</p><div class="cookie-actions"><button type="button" data-bf-cookie-choice="necessary">Necessary only</button><button type="button" data-bf-cookie-choice="preferences">Allow preferences</button><button type="button" data-bf-cookie-settings>Manage preferences</button><a href="/policies/cookie-policy.html">Cookie policy</a></div>';
+    '<h2>Cookies and your choices</h2><p>We use necessary cookies for sign-in and security. With your permission, we also remember settings such as your theme. We do not use advertising or analytics trackers.</p><div class="cookie-actions"><button type="button" data-bf-cookie-choice="necessary">Necessary only</button><button type="button" data-bf-cookie-choice="preferences">Allow preferences</button><button type="button" data-bf-cookie-settings>Manage preferences</button><a href="/cookies">Cookie policy</a></div>';
   function sync() {
     const banners = document.querySelectorAll('[data-bf-cookie-banner][data-bf-cookie-ready]');
     for (const banner of banners) {
@@ -52,7 +52,7 @@
       dialog.className = 'cookie-settings';
       dialog.setAttribute('aria-labelledby', 'bf-cookie-title');
       dialog.innerHTML =
-        '<form method="dialog"><h2 id="bf-cookie-title">Cookie preferences</h2><p>Necessary cookies keep sign-in, account recovery, security, and these choices working. They are always available when needed.</p><label><input type="checkbox" name="preferences"> Remember my settings, including theme</label><p>Advertising, analytics, and profiling are not used. You can change this choice at any time.</p><div class="cookie-actions"><button type="button" data-bf-cookie-save>Save preferences</button><button type="button" data-bf-cookie-choice="necessary">Necessary only</button><button value="cancel">Cancel</button></div><p><a href="/policies/cookie-policy.html">Read the cookie policy</a></p></form>';
+        '<form method="dialog"><h2 id="bf-cookie-title">Cookie preferences</h2><p>Necessary cookies keep sign-in, account recovery, security, and these choices working. They are always available when needed.</p><label><input type="checkbox" name="preferences"> Remember my settings, including theme</label><p>Advertising, analytics, and profiling are not used. You can change this choice at any time.</p><div class="cookie-actions"><button type="button" data-bf-cookie-save>Save preferences</button><button type="button" data-bf-cookie-choice="necessary">Necessary only</button><button value="cancel">Cancel</button></div><p><a href="/cookies">Read the cookie policy</a></p></form>';
       dialog.addEventListener('close', () => {
         const target =
           opener?.isConnected && !opener.closest('[hidden]')

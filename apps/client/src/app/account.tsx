@@ -80,7 +80,13 @@ export default function AccountScreen() {
       </View>
 
       <SectionTitle title="Privacy and deletion" />
-      <ActionButton label="Draft email preferences" href="/email-preferences" variant="secondary" />
+      <View style={styles.preferenceActions}>
+        <ActionButton
+          label="Draft email preferences"
+          href="/email-preferences"
+          variant="secondary"
+        />
+      </View>
       <Card style={styles.deleteCard}>
         <View style={styles.deleteCopy}>
           <Text style={styles.deleteTitle}>Delete your account</Text>
@@ -134,6 +140,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     profileCopy: { flex: 1 },
     profileName: { ...heading, fontSize: 18, color: colors.text },
     profileEmail: { fontFamily: 'Inter', color: colors.muted, fontSize: 12, marginTop: 4 },
+    preferenceActions: { alignItems: 'flex-start', marginBottom: 24 },
     deleteCard: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, alignItems: 'center' },
     deleteCopy: { flex: 1, minWidth: 260, gap: 8 },
     deleteTitle: { fontFamily: 'Inter', color: colors.danger, fontSize: 17, fontWeight: '800' },

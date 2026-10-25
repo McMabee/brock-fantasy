@@ -527,6 +527,13 @@ a,
   cursor: pointer;
   text-decoration: underline;
 }
+#root .cookie-settings-link {
+  color: var(--bf-link);
+  font:
+    700 11px/44px Inter,
+    system-ui,
+    sans-serif;
+}
 .bf-skip {
   position: fixed;
   top: 8px;

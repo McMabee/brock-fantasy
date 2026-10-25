@@ -75,6 +75,9 @@
   height: 24px;
   flex-shrink: 0;
 }
+.cookie-settings .cookie-actions + p {
+  margin: 16px 0 0;
+}
 .cookie-settings form {
   margin: 0;
 }

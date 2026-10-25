@@ -4,7 +4,9 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build:web",
   "outputDirectory": "apps/client/dist/client",
-  "proxy": { "entrypoint": "proxy.ts" },
+  "proxy": {
+    "entrypoint": "proxy.ts"
+  },
   "functions": {
     "api/index.js": {
       "maxDuration": 120,
@@ -15,6 +17,13 @@
     {
       "source": "/(.*)",
       "destination": "/api/index"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/policies/cookie-policy.html",
+      "destination": "/cookies",
+      "permanent": true
     }
   ]
 }
