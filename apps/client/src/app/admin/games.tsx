@@ -46,6 +46,18 @@ interface EditableStatLine {
   stats: Readonly<Record<string, number>>;
 }
 
+interface PublishedRevision {
+  game_id: string;
+  state_version: number;
+  replay: { events_inserted: number; incomplete: boolean };
+  players: readonly {
+    athlete_id: string;
+    fantasy_points: number | null;
+    complete: boolean;
+    missing_stats: readonly string[];
+  }[];
+}
+
 interface ScorePreview {
   players: readonly {
     athlete_id: string;
@@ -130,6 +142,32 @@ export default function AdminGamesScreen() {
   const [preview, setPreview] = useState<ScorePreview | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [published, setPublished] = useState<PublishedRevision | null>(null);
+  const confirmationDialog = useRef<HTMLDialogElement>(null);
+  const publicationKey = useRef<string | null>(null);
+  const publishing = useRef(false);
+  const feedback = useRef<View>(null);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && (message || published)) {
+      // - Bring publication feedback into view at the end of long team stat forms
+      const element = feedback.current as unknown as HTMLElement | null;
+      element?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [message, published]);
+
+  useEffect(() => {
+    if (confirming) confirmationDialog.current?.showModal();
+    else confirmationDialog.current?.close();
+  }, [confirming]);
+
+  const resetPublication = () => {
+    publicationKey.current = null;
+    setPublished(null);
+    setMessage(null);
+    setConfirming(false);
+  };
   const [loadingGames, setLoadingGames] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const selectionRequest = useRef(0);
@@ -165,6 +203,7 @@ export default function AdminGamesScreen() {
   }, [gameDate, games, programFilter, query]);
 
   const selectGame = async (game: AdminGame) => {
+    resetPublication();
     const requestId = ++selectionRequest.current;
     setLoadingDetail(true);
     setSelected(null);
@@ -209,6 +248,7 @@ export default function AdminGamesScreen() {
   };
 
   const updateStat = (athleteId: string, key: string, rawValue: string) => {
+    resetPublication();
     setPreview(null);
     setStatLines((current) =>
       current.map((line) => {
@@ -226,6 +266,7 @@ export default function AdminGamesScreen() {
   };
 
   const toggleAthlete = (athleteId: string) => {
+    resetPublication();
     setPreview(null);
     setIncludedAthleteIds((current) => {
       const next = new Set(current);
@@ -244,6 +285,7 @@ export default function AdminGamesScreen() {
     }
     setWorking(true);
     setMessage(null);
+    setPreview(null);
     const result = await betaCommand<ScorePreview>('preview_game_revision', {
       p_game_id: selected.game.id,
       p_expected_version: selected.game.state_version,
@@ -251,11 +293,16 @@ export default function AdminGamesScreen() {
     });
     setWorking(false);
     if (result.error) setMessage(result.error);
-    else setPreview(result.data);
+    else if (!result.data?.players?.length)
+      setMessage('No scoring preview was returned. Try again.');
+    else {
+      setPreview(result.data);
+      publicationKey.current = newCommandKey();
+    }
   };
 
-  const publishRevision = async () => {
-    if (!selected) return;
+  const publishRevision = async (confirmed = false) => {
+    if (!selected || publishing.current) return;
     if (!preview) {
       setMessage('Preview the current stat lines before publishing.');
       return;
@@ -265,44 +312,93 @@ export default function AdminGamesScreen() {
     const away = Number(awayScore);
     if (
       !stats.length ||
+      !homeScore.trim() ||
       !Number.isInteger(home) ||
       home < 0 ||
+      !awayScore.trim() ||
       !Number.isInteger(away) ||
       away < 0 ||
       reason.trim().length < 8 ||
-      source.trim().length < 3
+      source.trim().length < 3 ||
+      source.trim().length > 2048
     ) {
       setMessage(
-        'Include at least one player, provide non-negative scores, an 8-character reason, and a source reference.',
+        'Include at least one player, provide non-negative whole-number scores, a reason of at least 8 characters, and a source reference of 3-2048 characters.',
       );
+      return;
+    }
+    if (!confirmed) {
+      setMessage(null);
+      setConfirming(true);
       return;
     }
     setWorking(true);
     setMessage(null);
-    const result = await betaCommand<{ state_version: number }>('publish_game_revision', {
-      p_game_id: selected.game.id,
-      p_expected_version: selected.game.state_version,
-      p_status: status,
-      p_home_score: home,
-      p_away_score: away,
-      p_stats: stats,
-      p_reason: reason.trim(),
-      p_source_identity: source.trim(),
-      p_idempotency_key: newCommandKey(),
-    });
-    setWorking(false);
-    if (result.error) {
-      setMessage(result.error);
-      return;
+    publishing.current = true;
+    // - Retain the same receipt key when a response is lost after the server commits
+    publicationKey.current ??= newCommandKey();
+    try {
+      const result = await betaCommand<PublishedRevision>('publish_game_revision', {
+        p_game_id: selected.game.id,
+        p_expected_version: selected.game.state_version,
+        p_status: status,
+        p_home_score: home,
+        p_away_score: away,
+        p_stats: stats,
+        p_reason: reason.trim(),
+        p_source_identity: source.trim(),
+        p_idempotency_key: publicationKey.current,
+      });
+      if (result.error) {
+        setMessage(result.error);
+        return;
+      }
+      if (!result.data || !Array.isArray(result.data.players)) {
+        setMessage(
+          'Publication could not be confirmed. Retry to retrieve the saved result safely.',
+        );
+        return;
+      }
+      setPublished(result.data);
+      setPreview(null);
+      setSelected({
+        ...selected,
+        game: {
+          ...selected.game,
+          status,
+          home_score: home,
+          away_score: away,
+          state_version: result.data.state_version,
+          manual_override: true,
+          stats_complete: !result.data.replay.incomplete,
+        },
+        stats: stats.map((line) => ({
+          athlete_id: line.athlete_id as string,
+          stats: line.stats as Record<string, unknown>,
+        })),
+      });
+      await loadGames();
+    } catch {
+      setMessage('Publication could not be confirmed. Retry to retrieve the saved result safely.');
+    } finally {
+      publishing.current = false;
+      setWorking(false);
+      setConfirming(false);
     }
-    setMessage('Revision published and scoring replay queued atomically.');
-    await loadGames();
-    setSelected(null);
   };
 
   const statsByAthlete = useMemo(
     () => new Map(statLines.map((line) => [line.athleteId, line.stats])),
     [statLines],
+  );
+
+  const athleteNames = useMemo(
+    () => new Map(selected?.athletes.map((athlete) => [athlete.id, athlete.display_name]) ?? []),
+    [selected],
+  );
+  const previouslyCreditedIds = useMemo(
+    () => new Set(selected?.stats.map((line) => line.athlete_id) ?? []),
+    [selected],
   );
 
   if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
@@ -316,10 +412,57 @@ export default function AdminGamesScreen() {
         Choose a game, add the players credited in it, and enter their individual statistics.
         Preview fantasy points before saving.
       </Text>
-      {message ? (
+      {!selected && message ? (
         <Text accessibilityRole="alert" style={styles.message}>
           {message}
         </Text>
+      ) : null}
+      {Platform.OS === 'web' ? (
+        <dialog
+          ref={confirmationDialog}
+          aria-label="Confirm score publication"
+          onCancel={() => setConfirming(false)}
+          onClose={() => setConfirming(false)}
+          style={{
+            background: colors.panel,
+            color: colors.text,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 16,
+            padding: 24,
+            width: 'min(520px, calc(100vw - 48px))',
+            maxHeight: '80vh',
+            overflow: 'auto',
+          }}
+        >
+          <View style={{ gap: 16 }}>
+            <SectionTitle title="Publish these scores?" />
+            <Text style={uiStyles.body}>
+              {selected?.game.home?.name ?? 'Home'} {homeScore} - {awayScore}{' '}
+              {selected?.game.away?.name ?? 'Away'}
+              {'\n'}Status: {status.replace('_', ' ')} - {includedAthleteIds.size} player stat lines
+            </Text>
+            <Text style={uiStyles.body}>
+              Player Current Points and eligible fantasy-team scores will be recalculated
+              immediately.
+              {preview?.players.some((player) => player.missing_stats.length)
+                ? '\nIncomplete player lines will be saved with points pending until the missing statistics are supplied.'
+                : ''}
+            </Text>
+            <View style={styles.actions}>
+              <ActionButton
+                label="Cancel publication"
+                variant="secondary"
+                disabled={working}
+                onPress={() => setConfirming(false)}
+              />
+              <ActionButton
+                label="Confirm publication"
+                loading={working}
+                onPress={() => void publishRevision(true)}
+              />
+            </View>
+          </View>
+        </dialog>
       ) : null}
       <View style={styles.layout}>
         <Card style={styles.searchPane}>
@@ -446,6 +589,7 @@ export default function AdminGamesScreen() {
                         value,
                       )
                     ) {
+                      resetPublication();
                       setStatus(value as AdminGame['status']);
                     }
                   }}
@@ -453,14 +597,20 @@ export default function AdminGamesScreen() {
                 <Field
                   label="Home score"
                   value={homeScore}
-                  onChange={setHomeScore}
+                  onChange={(value) => {
+                    resetPublication();
+                    setHomeScore(value);
+                  }}
                   numeric
                   disabled={working}
                 />
                 <Field
                   label="Away score"
                   value={awayScore}
-                  onChange={setAwayScore}
+                  onChange={(value) => {
+                    resetPublication();
+                    setAwayScore(value);
+                  }}
                   numeric
                   disabled={working}
                 />
@@ -478,9 +628,7 @@ export default function AdminGamesScreen() {
                   <View style={styles.statLines}>
                     {selected.athletes.map((athlete) => {
                       const included = includedAthleteIds.has(athlete.id);
-                      const previouslyCredited = selected.stats.some(
-                        (line) => line.athlete_id === athlete.id,
-                      );
+                      const previouslyCredited = previouslyCreditedIds.has(athlete.id);
                       const values = statsByAthlete.get(athlete.id) ?? {};
                       return (
                         <View key={athlete.id} style={styles.statLine}>
@@ -553,15 +701,21 @@ export default function AdminGamesScreen() {
                 />
               )}
               <Field
-                label="Reason for revision"
+                label="Reason for revision (at least 8 characters)"
                 value={reason}
-                onChange={setReason}
+                onChange={(value) => {
+                  resetPublication();
+                  setReason(value);
+                }}
                 disabled={working}
               />
               <Field
-                label="Official source or manual reference"
+                label="Official source or manual reference (3-2048 characters)"
                 value={source}
-                onChange={setSource}
+                onChange={(value) => {
+                  resetPublication();
+                  setSource(value);
+                }}
                 disabled={working}
               />
               <View style={styles.actions}>
@@ -573,19 +727,50 @@ export default function AdminGamesScreen() {
                   disabled={loadingDetail || !selected.sport}
                 />
                 <ActionButton
-                  label="Publish audited revision"
-                  onPress={() => void publishRevision()}
+                  label="Publish scores"
+                  onPress={() => void publishRevision(false)}
                   loading={working}
-                  disabled={!preview || !selected.sport}
+                  disabled={!selected.sport}
                 />
+              </View>
+              <View ref={feedback}>
+                {message ? (
+                  <Text
+                    accessibilityRole="alert"
+                    accessibilityLiveRegion="assertive"
+                    style={styles.message}
+                  >
+                    {message}
+                  </Text>
+                ) : null}
+                {published ? (
+                  <View style={styles.preview}>
+                    <Text
+                      accessibilityRole="alert"
+                      accessibilityLiveRegion="polite"
+                      style={uiStyles.body}
+                    >
+                      Scores published. Revision {published.state_version} saved.{' '}
+                      {published.players.filter((player) => player.complete).length} player lines
+                      scored; {published.players.filter((player) => !player.complete).length}{' '}
+                      pending. Eligible fantasy-team scores recalculated.
+                    </Text>
+                    {published.players.map((player) => (
+                      <Text key={player.athlete_id} style={styles.previewLine}>
+                        {athleteNames.get(player.athlete_id) ?? player.athlete_id}:{' '}
+                        {player.complete
+                          ? `${player.fantasy_points} FP for this game`
+                          : `Pending - missing ${player.missing_stats.join(', ')}`}
+                      </Text>
+                    ))}
+                  </View>
+                ) : null}
               </View>
               {preview ? (
                 <View style={styles.preview}>
                   {preview.players.map((player) => (
                     <Text key={player.athlete_id} style={styles.previewLine}>
-                      {selected.athletes.find((athlete) => athlete.id === player.athlete_id)
-                        ?.display_name ?? player.athlete_id}
-                      ,{' '}
+                      {athleteNames.get(player.athlete_id) ?? player.athlete_id},{' '}
                       {player.missing_stats.length
                         ? `incomplete: ${player.missing_stats.join(', ')}`
                         : `${player.previous_points} → ${player.projected_points} (${player.point_difference! >= 0 ? '+' : ''}${player.point_difference})`}

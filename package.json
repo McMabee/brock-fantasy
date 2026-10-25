@@ -22,6 +22,7 @@
     "test": "pnpm --filter @brock-fantasy/domain test && pnpm test:import",
     "test:import": "node --experimental-strip-types --test scripts/lib/*.test.mjs",
     "test:ui": "node --experimental-strip-types scripts/test-ui-browser.mjs",
+    "test:scoring:browser": "node scripts/test-admin-scoring-browser.mjs",
     "test:draft-controls:browser": "node --experimental-strip-types scripts/test-draft-controls-browser.mjs",
     "test:draft-status:api:local": "node --experimental-strip-types scripts/test-draft-status-api-local.mjs",
     "test:matchup-recovery:local": "node --experimental-strip-types scripts/test-matchup-recovery-local.mjs --browser",

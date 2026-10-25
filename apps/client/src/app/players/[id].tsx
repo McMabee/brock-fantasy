@@ -1,8 +1,8 @@
 import { HistoricalGameLogs } from '@/components/historical-game-logs';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { formatFantasyPoints } from '@brock-fantasy/domain';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BETA_SEASON, gameProjection, playerMetrics } from '@brock-fantasy/domain';
@@ -99,7 +99,7 @@ export default function PlayerScreen() {
   const [adp, setAdp] = useState<PlayerAdp | undefined>(undefined);
   const [adpError, setAdpError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadPlayer = useCallback(() => {
     const client = supabase;
     if (!client || !id || !access.allowed) return;
     let cancelled = false;
@@ -203,6 +203,7 @@ export default function PlayerScreen() {
       cancelled = true;
     };
   }, [id, access.allowed, user?.id]);
+  useFocusEffect(loadPlayer);
 
   const logs = useMemo(() => {
     // - Join canonical stats by game so multiple fantasy leagues cannot multiply athlete points
