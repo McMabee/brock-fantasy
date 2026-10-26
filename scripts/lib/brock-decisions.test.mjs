@@ -161,7 +161,7 @@ test('goalie attribution preserves exact individual evidence and the separate hi
   );
   const shootouts = lines.filter((line) => line.creditContext.shootout);
   assert.equal(shootouts.length, 1);
-  assert.ok(shootouts.every((line) => line.stats.shutouts === 1));
+  assert.ok(shootouts.every((line) => line.stats.shutouts === 0));
   assert.ok(shootouts.some((line) => line.stats.losses === 1 && line.stats.goals_allowed > 0));
   const noDecision = lines.find((line) => line.playedAt === '2026-10-12');
   assert.equal(noDecision.teamResult, 'L');
@@ -170,7 +170,7 @@ test('goalie attribution preserves exact individual evidence and the separate hi
   const points = lines
     .filter((line) => line.phase === 'regular_season')
     .reduce((sum, line) => sum + line.calculatedPoints, 0);
-  assert.equal(Math.round(points * 1000) / 1000, 60.8);
+  assert.equal(Math.round(points * 1000) / 1000, 45.8);
 });
 
 test('changed goalie cells fail attribution instead of inheriting a reviewed athlete', () => {
@@ -199,7 +199,7 @@ test('changed goalie cells fail attribution instead of inheriting a reviewed ath
   );
 });
 
-test('shared shootout appearances never receive SO; empty-net intervals do not disqualify a sole goalie', () => {
+test('shootouts with goals allowed never receive shutout credit', () => {
   const row = evidence.rows.find((item) => /\(SO\)/u.test(item.officialScheduleText));
   const shared = structuredClone(evidence);
   shared.rows
@@ -222,6 +222,7 @@ test('shared shootout appearances never receive SO; empty-net intervals do not d
     { rowNumber: row.sourceRowNumber, raw: row.supplied },
     [],
   );
-  assert.equal(solo.stats.shutouts, 1);
+  assert.equal(solo.stats.shutouts, 0);
+  assert.equal(solo.creditContext.shutoutBasis, 'none');
   assert.equal(solo.sourceMinutes, '65:37:00');
 });

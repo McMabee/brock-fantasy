@@ -198,7 +198,7 @@ export function scoreBetaGame(
     else normalized[key] = value;
   }
   if (category === 'goalie') {
-    for (const key of ['losses', 'full_game_solo', 'shootout']) {
+    for (const key of ['losses', 'full_game_solo']) {
       if (input[key] == null) missing.push(key);
       else normalized[key] = input[key]!;
     }
@@ -214,14 +214,13 @@ export function scoreBetaGame(
   if (category === 'goalie') {
     if ((normalized.wins ?? 0) + (normalized.losses ?? 0) > 1)
       throw new Error('A goalie cannot receive both a win and a loss');
-    if (['full_game_solo', 'shootout', 'goals_allowed'].every((key) => normalized[key] != null)) {
+    if (['full_game_solo', 'goals_allowed'].every((key) => normalized[key] != null)) {
       normalized.shutouts =
-        normalized.full_game_solo === 1 &&
-        (normalized.shootout === 1 || normalized.goals_allowed === 0)
-          ? 1
-          : 0;
+        normalized.full_game_solo === 1 && normalized.goals_allowed === 0 ? 1 : 0;
       if (input.shutouts != null && input.shutouts !== normalized.shutouts)
-        throw new Error('Shutout credit conflicts with full-game solo participation');
+        throw new Error(
+          'Shutout flag must match zero goals allowed and full-game solo participation',
+        );
     }
   }
   if (category === 'skater')

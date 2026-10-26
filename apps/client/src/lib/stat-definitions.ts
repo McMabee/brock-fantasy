@@ -8,7 +8,7 @@ const meanings: Readonly<Record<string, string>> = {
   wins: 'Official wins credited to the goalie',
   goals_allowed: 'Opponent goals charged to the goalie',
   saves: 'Shots stopped by the goalie',
-  shutouts: 'Qualifying goalie shutouts under the league’s complete-game and shootout rules',
+  shutouts: 'Games with no goals allowed by the only goalie used, allowing brief empty-net time',
   points: 'Basketball points scored from field goals and free throws',
   offensive_rebounds: 'Rebounds collected after a missed shot by the athlete’s own team',
   defensive_rebounds: 'Rebounds collected after an opponent’s missed shot',

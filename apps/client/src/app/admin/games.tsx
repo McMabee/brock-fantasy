@@ -103,14 +103,14 @@ const GOALIE_STAT_KEYS = [
   'goals_allowed',
   'saves',
   'full_game_solo',
-  'shootout',
+  'shutouts',
 ] as const;
 
 function displayStat(key: string): string {
   if (key === 'wins') return 'individual win (0 or 1)';
   if (key === 'losses') return 'individual loss (0 or 1)';
   if (key === 'full_game_solo') return 'only goalie used, allowing empty-net time (0 or 1)';
-  if (key === 'shootout') return 'game went to shootout (0 or 1)';
+  if (key === 'shutouts') return 'shutout — no goals allowed (0 or 1)';
   if (key === 'foul_out') return 'scorekeeper-declared foul out (0 or 1)';
   return key.replace(/_/gu, ' ');
 }
@@ -615,6 +615,10 @@ export default function AdminGamesScreen() {
                   disabled={working}
                 />
               </View>
+              <Text style={uiStyles.body}>
+                Set Status to Final when the game has ended. Saving scores alone does not release
+                players from their game lock.
+              </Text>
               {selected.sport ? (
                 <>
                   <Text style={uiStyles.label}>
@@ -661,7 +665,7 @@ export default function AdminGamesScreen() {
                                     'wins',
                                     'losses',
                                     'full_game_solo',
-                                    'shootout',
+                                    'shutouts',
                                     'foul_out',
                                   ].includes(key) ? (
                                     <Choice

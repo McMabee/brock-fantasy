@@ -49,10 +49,12 @@ try {
         { name: 'bf_csrf', value: 'fixture-csrf', url: origin },
       ]);
       const athleteId = '11111111-1111-4111-8111-111111111111';
+      const goalieId = '22222222-2222-4222-8222-222222222222';
       let saved = null;
       let version = 1;
       let loseResponse = true;
       const requests = [];
+      const previews = [];
       const stats = {
         goals: 1,
         assists: 0,
@@ -93,10 +95,12 @@ try {
                 stats: saved ? [{ athlete_id: athleteId, stats }] : [],
                 athletes: [
                   { id: athleteId, display_name: 'Scoring fixture defender', position: 'D' },
+                  { id: goalieId, display_name: 'Scoring fixture goalie', position: 'G' },
                 ],
               })
             : reply({ games: [fixtureGame()] });
-        if (url.pathname.endsWith('/preview_game_revision'))
+        if (url.pathname.endsWith('/preview_game_revision')) {
+          previews.push(route.request().postDataJSON());
           return reply({
             players: [
               {
@@ -108,6 +112,7 @@ try {
               },
             ],
           });
+        }
         if (url.pathname.endsWith('/publish_game_revision')) {
           const payload = route.request().postDataJSON();
           requests.push(payload);
@@ -172,6 +177,43 @@ try {
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto(origin + '/admin/games');
       await page.getByRole('button', { name: /Brock vs Toronto/ }).click();
+      await expect(page.getByText(/Set Status to Final when the game has ended/)).toBeVisible();
+      await page
+        .getByRole('switch', { name: 'Include Scoring fixture goalie', exact: true })
+        .click();
+      const shutout = page.getByRole('combobox', {
+        name: 'shutout — no goals allowed',
+        exact: true,
+      });
+      await expect(shutout).toBeVisible();
+      await expect(page.getByRole('combobox', { name: /game went to shootout/ })).toHaveCount(0);
+      await shutout.selectOption('1');
+      await expect(shutout).toHaveValue('1');
+      await page.getByRole('combobox', { name: 'individual win', exact: true }).selectOption('1');
+      await page.getByRole('combobox', { name: 'individual loss', exact: true }).selectOption('0');
+      await page
+        .getByRole('combobox', { name: 'only goalie used, allowing empty-net time', exact: true })
+        .selectOption('1');
+      await page.getByRole('textbox', { name: 'goals allowed', exact: true }).fill('0');
+      await page.getByRole('textbox', { name: 'saves', exact: true }).fill('25');
+      await page.getByRole('button', { name: 'Preview scoring differences', exact: true }).click();
+      await expect.poll(() => previews.length).toBe(1);
+      assert.deepEqual(previews[0].p_stats, [
+        {
+          athlete_id: goalieId,
+          stats: {
+            shutouts: 1,
+            wins: 1,
+            losses: 0,
+            full_game_solo: 1,
+            goals_allowed: 0,
+            saves: 25,
+          },
+        },
+      ]);
+      await page
+        .getByRole('switch', { name: 'Include Scoring fixture goalie', exact: true })
+        .click();
       await page
         .getByRole('switch', { name: 'Include Scoring fixture defender', exact: true })
         .click();

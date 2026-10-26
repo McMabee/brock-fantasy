@@ -55,11 +55,10 @@ export function historicalGoalieDefinition(decisions, sourceHash, evidence, row,
   const saves = Number(row.raw.Saves);
   const wins = match.officialDecision === 'W' ? 1 : 0;
   const losses = match.officialDecision === 'L' ? 1 : 0;
-  // Operator confirms empty-net intervals are permitted: the only goalie used
-  // qualifies even when individual time is below the full elapsed game time.
+  // - Allow empty-net intervals when the same goalie handles the whole game
   const fullSoloGame = soleGoalie;
-  // Full-game solo participation overrides every shutout scenario, including SO.
-  const shutouts = fullSoloGame && (shootout || goalsAllowed === 0) ? 1 : 0;
+  // - Award shutout credit only for a solo game with zero goals allowed
+  const shutouts = fullSoloGame && goalsAllowed === 0 ? 1 : 0;
   return {
     type: 'historical_goalie_stat_candidate',
     program: definition.program,
@@ -88,7 +87,7 @@ export function historicalGoalieDefinition(decisions, sourceHash, evidence, row,
       shootout,
       shootoutParticipant: shootout && soleGoalie ? true : null,
       soloCompleteGame: fullSoloGame,
-      shutoutBasis: shutouts ? (shootout ? 'solo_shootout_bonus' : 'solo_zero_goals') : 'none',
+      shutoutBasis: shutouts ? 'solo_zero_goals' : 'none',
     },
     calculatedPoints:
       Math.round((wins * 10 - goalsAllowed * 2 + saves * 0.4 + shutouts * 15) * 1000) / 1000,

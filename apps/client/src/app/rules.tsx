@@ -279,9 +279,9 @@ export default function RulesScreen() {
                 setting, ball-handling and blocking errors.
               </Paragraph>
               <Paragraph title="Goalies and corrections">
-                Shutout credit requires full-game solo participation and either no goals allowed or
-                the qualifying shootout flag. Missing required stats leave the game score
-                unavailable until completed; missing is not zero. Corrected official stats can
+                Shutout credit requires full-game solo participation and no goals allowed. Going to
+                a shootout does not award shutout credit. Missing required stats leave the game
+                score unavailable until completed; missing is not zero. Corrected official stats can
                 update previously displayed points.
               </Paragraph>
             </Card>

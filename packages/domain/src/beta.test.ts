@@ -30,17 +30,16 @@ describe('approved beta rules', () => {
         goals_allowed: 0,
         saves: 25,
         full_game_solo: 1,
-        shootout: 0,
+        shutouts: 1,
       }).total,
     ).toBe(35);
     expect(scoreBetaGame('hockey', ['G'], { goals_allowed: 0, saves: 25 }).missing).toEqual([
       'wins',
       'losses',
       'full_game_solo',
-      'shootout',
     ]);
   });
-  it('requires full-game solo participation for every shutout, including shootouts', () => {
+  it('requires zero goals allowed and full-game solo participation for shutout credit', () => {
     const base = {
       wins: 1,
       losses: 0,
@@ -49,8 +48,8 @@ describe('approved beta rules', () => {
       full_game_solo: 1,
       shootout: 1,
     };
-    expect(scoreBetaGame('hockey', ['G'], base).total).toBe(31);
-    expect(scoreBetaGame('hockey', ['G'], { ...base, wins: 0, losses: 1 }).total).toBe(21);
+    expect(scoreBetaGame('hockey', ['G'], base).total).toBe(16);
+    expect(scoreBetaGame('hockey', ['G'], { ...base, wins: 0, losses: 1 }).total).toBe(6);
     expect(scoreBetaGame('hockey', ['G'], { ...base, full_game_solo: 0 }).total).toBe(16);
     expect(scoreBetaGame('hockey', ['G'], { ...base, wins: 0, full_game_solo: 0 }).total).toBe(6);
     expect(
@@ -69,7 +68,22 @@ describe('approved beta rules', () => {
     );
     expect(() =>
       scoreBetaGame('hockey', ['G'], { ...base, full_game_solo: 0, shutouts: 1 }),
-    ).toThrow('Shutout credit conflicts');
+    ).toThrow('Shutout flag must match');
+    expect(() => scoreBetaGame('hockey', ['G'], { ...base, shutouts: 1 })).toThrow(
+      'Shutout flag must match',
+    );
+    expect(() =>
+      scoreBetaGame('hockey', ['G'], { ...base, goals_allowed: 0, shutouts: 0 }),
+    ).toThrow('Shutout flag must match');
+    expect(
+      scoreBetaGame('hockey', ['G'], {
+        wins: 1,
+        losses: 0,
+        goals_allowed: 0,
+        saves: 25,
+        full_game_solo: 1,
+      }).total,
+    ).toBe(35);
   });
   it('uses all individual volleyball errors without double counting aggregate errors', () => {
     const line = {

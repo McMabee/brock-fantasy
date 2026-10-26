@@ -8,8 +8,8 @@ select is((select sum(points) from beta_private.score_beta_stat_line('b0000000-0
 select is((select sum(points) from beta_private.score_beta_stat_line('b0000000-0000-4000-8000-000000000004', 'hockey', array['G'], fixture.stats::jsonb)), fixture.expected, fixture.label)
 from (values
   ('{"wins":1,"losses":0,"goals_allowed":0,"saves":25,"full_game_solo":1,"shootout":0}',35::numeric,'ordinary solo zero-GA game earns SO'),
-  ('{"wins":1,"losses":0,"goals_allowed":2,"saves":25,"full_game_solo":1,"shootout":1}',31::numeric,'solo shootout winner earns W and SO with nonzero GA'),
-  ('{"wins":0,"losses":1,"goals_allowed":2,"saves":25,"full_game_solo":1,"shootout":1}',21::numeric,'solo shootout loser earns SO and retains L without an invented loss coefficient'),
+  ('{"wins":1,"losses":0,"goals_allowed":2,"saves":25,"full_game_solo":1,"shootout":1}',16::numeric,'shootout winner with goals allowed earns no shutout bonus'),
+  ('{"wins":0,"losses":1,"goals_allowed":2,"saves":25,"full_game_solo":1,"shootout":1}',6::numeric,'shootout loser with goals allowed earns no shutout bonus'),
   ('{"wins":0,"losses":1,"goals_allowed":2,"saves":25,"full_game_solo":0,"shootout":1}',6::numeric,'shared shootout goalie receives no SO'),
   ('{"wins":0,"losses":0,"goals_allowed":0,"saves":25,"full_game_solo":0,"shootout":0}',10::numeric,'shared zero-GA goalie receives no SO'),
   ('{"wins":1,"losses":0,"goals_allowed":2,"saves":25,"full_game_solo":1,"shootout":0}',16::numeric,'ordinary goals against prevent SO')
@@ -18,7 +18,7 @@ from (values
 select ok(exists(select 1 from beta_private.score_beta_stat_line('b0000000-0000-4000-8000-000000000004', 'hockey', array['G'], '{"wins":0,"losses":0,"goals_allowed":0,"saves":25,"shootout":0}') where not complete), 'missing full-game participation stays incomplete');
 select throws_ok($test$ select * from beta_private.score_beta_stat_line('b0000000-0000-4000-8000-000000000004', 'hockey', array['G'], '{"wins":0,"losses":0,"goals_allowed":0,"saves":25,"full_game_solo":2,"shootout":0}') $test$, '22023', 'full_game_solo must be 0 or 1', 'full-game flag rejects invalid values');
 select throws_ok($test$ select * from beta_private.score_beta_stat_line('b0000000-0000-4000-8000-000000000004', 'hockey', array['G'], '{"wins":1,"losses":1,"goals_allowed":0,"saves":25,"full_game_solo":1,"shootout":1}') $test$, '22023', 'A goalie cannot receive both a win and a loss', 'individual win and loss are exclusive');
-select throws_ok($test$ select * from beta_private.score_beta_stat_line('b0000000-0000-4000-8000-000000000004', 'hockey', array['G'], '{"wins":0,"losses":0,"goals_allowed":0,"saves":25,"full_game_solo":0,"shootout":1,"shutouts":1}') $test$, '22023', 'Shutout credit conflicts with full-game solo participation', 'entered SO cannot override full-game rule');
+select throws_ok($test$ select * from beta_private.score_beta_stat_line('b0000000-0000-4000-8000-000000000004', 'hockey', array['G'], '{"wins":0,"losses":0,"goals_allowed":0,"saves":25,"full_game_solo":0,"shootout":1,"shutouts":1}') $test$, '22023', 'Shutout flag must match zero goals allowed and full-game solo participation', 'entered SO cannot override full-game rule');
 select throws_ok($test$ select * from beta_private.score_beta_stat_line('b0000000-0000-4000-8000-000000000004', 'basketball', array['BC'], '{"points":0,"offensive_rebounds":0,"defensive_rebounds":0,"assists":0,"blocks":0,"steals":0,"turnovers":0,"fouls":0,"foul_out":2}') $test$, '22023', 'foul_out must be 0 or 1', 'scorekeeper FO is a binary flag');
 
 select is((select sum(points) from beta_private.score_beta_stat_line('b0000000-0000-4000-8000-000000000004', 'volleyball', array['HT'], '{"kills":10,"aces":2,"solo_blocks":1,"assisted_blocks":2,"assists":40,"digs":8,"errors":15}')), 26.5::numeric, 'complete aggregate volleyball errors are accepted');
