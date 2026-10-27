@@ -1,6 +1,7 @@
 import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import {
   ActionButton,
@@ -16,6 +17,8 @@ import { useOperations } from '@/hooks/use-operations';
 import { useRequireAdmin } from '@/hooks/use-route-access';
 import { AdminAccess } from '@/components/admin-access';
 import { useAdminAccountManager } from '@/hooks/use-admin-account-manager';
+import { useAdminLeagueRead } from '@/hooks/use-admin-leagues';
+import type { AdminLeagueSummary } from '@/lib/admin-leagues';
 
 export default function AdminScreen() {
   const styles = useThemedStyles(createStyles);
@@ -23,6 +26,12 @@ export default function AdminScreen() {
   const access = useRequireAdmin();
   const canManageAccounts = useAdminAccountManager(access.allowed);
   const operations = useOperations(access.allowed);
+  const leagues = useAdminLeagueRead<AdminLeagueSummary>(
+    'admin_get_league_summary',
+    {},
+    access.allowed,
+  );
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const wide = width >= 1280;
   if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
@@ -33,11 +42,24 @@ export default function AdminScreen() {
       action={<Pill label="ADMIN, MFA REQUIRED" tone="warning" />}
     >
       <View style={styles.metrics}>
-        <Metric
-          value={String(operations.competitionCount)}
-          label="Competitions"
-          detail="Configured"
-        />
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="Leagues registered, view league directory"
+          onPress={() => router.push('/admin/leagues')}
+          style={{ flex: 1, minWidth: 190 }}
+        >
+          <Metric
+            value={leagues.data ? String(leagues.data.openCount) : '—'}
+            label="Leagues registered"
+            detail={
+              leagues.error
+                ? 'Unavailable · View leagues'
+                : leagues.loading && !leagues.data
+                  ? 'Loading leagues…'
+                  : `Open leagues · ${leagues.data?.currentSeasonLabel ?? 'No current season'}`
+            }
+          />
+        </Pressable>
         <Metric
           value={
             operations.syncRows[0]?.finishedAt

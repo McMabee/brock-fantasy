@@ -43,6 +43,8 @@
     "test:draft-concurrency:local": "node scripts/test-draft-concurrency-local.mjs",
     "test:web-auth:local": "node scripts/test-web-auth-throttle.mjs",
     "test:admin:local": "node --experimental-strip-types scripts/test-admin-local.mjs",
+    "test:admin-leagues:local": "node scripts/test-admin-leagues-local.mjs",
+    "test:admin-leagues:browser": "node scripts/test-admin-leagues-browser.mjs",
     "test:beta-boundary": "node scripts/test-beta-boundary.mjs",
     "test:registration:local": "node scripts/test-registration-migrations.mjs",
     "test:roster-rest:local": "node --experimental-strip-types scripts/test-league-roster-rest.mjs",

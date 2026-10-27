@@ -20,7 +20,6 @@ export interface AuditEvent {
 }
 
 interface OperationsState {
-  competitionCount: number;
   unresolvedErrors: number;
   syncRows: readonly SyncHealthRow[];
   auditEvents: readonly AuditEvent[];
@@ -48,7 +47,6 @@ interface AuditRow {
 export function useOperations(enabled = true): OperationsState {
   const { user } = useSession();
   const [state, setState] = useState<OperationsState>({
-    competitionCount: 0,
     unresolvedErrors: 0,
     syncRows: [],
     auditEvents: [],
@@ -59,7 +57,6 @@ export function useOperations(enabled = true): OperationsState {
   useEffect(() => {
     if (!supabase || !user || !enabled) {
       setState({
-        competitionCount: 0,
         unresolvedErrors: 0,
         syncRows: [],
         auditEvents: [],
@@ -72,8 +69,7 @@ export function useOperations(enabled = true): OperationsState {
     setState((current) => ({ ...current, loading: true, error: null }));
     const client = supabase;
     const load = async () => {
-      const [competitions, errors, syncs, audit] = await Promise.all([
-        client.from('competitions').select('id', { count: 'exact', head: true }),
+      const [errors, syncs, audit] = await Promise.all([
         client
           .from('sync_errors')
           .select('id', { count: 'exact', head: true })
@@ -89,14 +85,13 @@ export function useOperations(enabled = true): OperationsState {
           .order('created_at', { ascending: false })
           .limit(12),
       ]);
-      const error = competitions.error ?? errors.error ?? syncs.error ?? audit.error;
+      const error = errors.error ?? syncs.error ?? audit.error;
       if (cancelled) return;
       if (error) {
         setState((current) => ({ ...current, loading: false, error: error.message }));
         return;
       }
       setState({
-        competitionCount: competitions.count ?? 0,
         unresolvedErrors: errors.count ?? 0,
         syncRows: (syncs.data as SyncRow[]).map((row) => ({
           id: row.id,

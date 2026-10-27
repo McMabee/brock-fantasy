@@ -1,9 +1,9 @@
-import { usePathname, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
-import { adminReturnPath } from '@/lib/admin-navigation';
+import { adminLeaguePath, adminReturnPath } from '@/lib/admin-navigation';
 import { webRequest } from '@/lib/web-request';
 import { useSession } from '@/providers/session-provider';
 
@@ -20,6 +20,10 @@ export function useRequireUser(returnTo?: string) {
 export function useRequireAdmin() {
   const router = useRouter();
   const pathname = usePathname();
+  const params = useLocalSearchParams();
+  const returnTo = pathname.startsWith('/admin/leagues')
+    ? adminLeaguePath(pathname, params)
+    : pathname;
   const { user, loading } = useSession();
   const [access, setAccess] = useState<{
     userId: string | null;
@@ -30,7 +34,7 @@ export function useRequireAdmin() {
   useEffect(() => {
     if (loading) return;
     let cancelled = false;
-    const next = adminReturnPath(pathname);
+    const next = adminReturnPath(returnTo);
     if (!user) {
       router.replace({ pathname: '/auth', params: { next } });
       return;
@@ -88,7 +92,7 @@ export function useRequireAdmin() {
     return () => {
       cancelled = true;
     };
-  }, [loading, pathname, router, user]);
+  }, [loading, returnTo, router, user]);
   return {
     allowed: Boolean(user && access.userId === user.id && access.allowed),
     loading: loading || Boolean(user && access.userId !== user.id) || access.checking,
