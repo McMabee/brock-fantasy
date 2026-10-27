@@ -161,6 +161,18 @@ try {
       return Response.json([{ id: 'competition-fixture', sport: { code: 'hockey' } }]);
     if (target.includes('/rest/v1/teams?'))
       return Response.json([{ id: teamId, name: 'Team fixture' }]);
+    if (
+      [
+        'admin_list_varsity_participants',
+        'admin_get_participant',
+        'admin_get_participant_scan',
+        'admin_run_participant_scan',
+        'admin_review_participant_match',
+      ].some((name) => target.endsWith(`/rest/v1/rpc/${name}`))
+    ) {
+      assert.equal(headers.get('authorization'), `Bearer ${jwt('aal2')}`);
+      return Response.json({ forwarded: true });
+    }
     throw new Error(`Unexpected upstream request: ${method} ${new URL(target).pathname}`);
   };
   const request = async (
@@ -230,6 +242,50 @@ try {
     assert.equal(calls.length, before);
   }
   results.push('MFA enrollment enforces canonical origin and CSRF');
+
+  for (const name of [
+    'admin_list_varsity_participants',
+    'admin_get_participant',
+    'admin_get_participant_scan',
+  ]) {
+    const path = encodeURIComponent(`/rest/v1/rpc/${name}`);
+    result = await request(`/api/data/supabase?path=${path}`, {
+      aal: 'aal2',
+      method: 'POST',
+      body: {},
+    });
+    assert.equal(result.response.status, 200);
+    assert.equal(result.data.forwarded, true);
+  }
+  for (const name of ['admin_run_participant_scan', 'admin_review_participant_match']) {
+    const path = `/api/command/${name}`;
+    result = await request(path, {
+      aal: 'aal2',
+      method: 'POST',
+      body: { p_idempotency_key: 'scan-http-key' },
+    });
+    assert.equal(result.response.status, 200);
+    assert.equal(result.data.forwarded, true);
+    for (const change of [{ origin: 'https://evil.example' }, { csrf: false }]) {
+      result = await request(path, {
+        aal: 'aal2',
+        method: 'POST',
+        body: { p_idempotency_key: 'scan-http-key' },
+        ...change,
+      });
+      assert.equal(result.response.status, 403);
+    }
+    result = await request(path, { aal: 'aal2', method: 'POST', body: { unexpected: 'blocked' } });
+    assert.equal(result.response.status, 400);
+    result = await request(
+      `/api/data/supabase?path=${encodeURIComponent(`/rest/v1/rpc/${name}`)}`,
+      { aal: 'aal2', method: 'POST', body: {} },
+    );
+    assert.equal(result.response.status, 403);
+  }
+  results.push(
+    'Participant reads and commands forward the administrator token; mutations require Origin/CSRF, reject unexpected inputs and cannot bypass through the read proxy',
+  );
 
   entries = [{ id: factorId, status: 'unverified', factor_type: 'totp' }];
   result = await request('/api/admin/mfa', {

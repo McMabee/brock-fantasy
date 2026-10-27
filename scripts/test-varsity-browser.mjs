@@ -359,6 +359,17 @@ try {
             displayName: participant.display_name,
           });
         if (table === 'admin_find_participants') return reply([participant]);
+        if (table === 'admin_get_participant') return reply(participant);
+        if (table === 'admin_list_varsity_participants') return reply([participant]);
+        if (table === 'admin_get_participant_scan')
+          return reply({
+            enabled: false,
+            activeReferenceVersionId: null,
+            history: [],
+            run: null,
+            newRegistrations: 0,
+            matches: [],
+          });
         if (table === 'preview_preseason_rankings')
           return reply({
             input_hash: 'ranking-hash',

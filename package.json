@@ -7,6 +7,9 @@
     "node": ">=22.12"
   },
   "scripts": {
+    "import:participant-references": "node scripts/import-participant-references.mjs",
+    "test:participant-scans:local": "node scripts/test-participant-scans-local.mjs",
+    "test:participant-scans:browser": "node scripts/test-participant-scans-browser.mjs",
     "dev": "pnpm --filter @brock-fantasy/client start",
     "web": "pnpm --filter @brock-fantasy/client web",
     "android": "pnpm --filter @brock-fantasy/client android",

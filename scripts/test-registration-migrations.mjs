@@ -326,6 +326,16 @@ try {
     databaseContainer: container,
     executeSql: (input) => sql(db, input),
   });
+  if (process.env.BROCK_TEST_PARTICIPANT_SCANS === '1') {
+    const scanDatabase = await scaffold('participant_scans');
+    await migrate(scanDatabase, migrations);
+    const { verifyParticipantScansLocal } = await import('./lib/participant-scans-local.mjs');
+    await verifyParticipantScansLocal({
+      database: scanDatabase,
+      databaseContainer: container,
+      executeSql: (input) => sql(scanDatabase, input),
+    });
+  }
 } finally {
   for (const db of created) {
     assert.ok(db.startsWith(`${prefix}_`) && /^bf_registration_[a-z0-9_]+$/u.test(db));
