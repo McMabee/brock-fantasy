@@ -1,6 +1,7 @@
+import { AuditEventList } from '@/components/admin-operations';
 import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import {
@@ -36,11 +37,7 @@ export default function AdminScreen() {
   const wide = width >= 1280;
   if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
-    <AppShell
-      eyebrow="Restricted"
-      title="Operations centre"
-      action={<Pill label="ADMIN, MFA REQUIRED" tone="warning" />}
-    >
+    <AppShell eyebrow="Restricted" title="Operations centre">
       <View style={styles.metrics}>
         <Pressable
           accessibilityRole="link"
@@ -62,21 +59,36 @@ export default function AdminScreen() {
         </Pressable>
         <Metric
           value={
-            operations.syncRows[0]?.finishedAt
-              ? relativeTime(operations.syncRows[0].finishedAt)
-              : '—'
+            operations.latestSync?.finishedAt ? relativeTime(operations.latestSync.finishedAt) : '—'
+          }
+          onPress={() =>
+            router.push({
+              pathname: '/admin/syncs',
+              params: { kind: operations.latestSync?.jobKind ?? 'player' },
+            })
           }
           label="Latest sync"
-          detail={operations.syncRows[0]?.provider ?? 'No completed run'}
+          detail={operations.latestSync?.provider ?? 'No completed run'}
         />
         <Metric
           value={String(operations.unresolvedErrors)}
+          onPress={() => router.push('/admin/alerts')}
           label="Ingestion alerts"
           detail="Needs review"
           warning={operations.unresolvedErrors > 0}
         />
         <Metric
           value={String(operations.syncRows.filter((row) => row.status === 'failed').length)}
+          onPress={() =>
+            router.push({
+              pathname: '/admin/syncs',
+              params: {
+                status: 'failed',
+                kind:
+                  operations.syncRows.find((row) => row.status === 'failed')?.jobKind ?? 'player',
+              },
+            })
+          }
           label="Failed recent runs"
           detail="Latest 12 runs"
         />
@@ -88,7 +100,7 @@ export default function AdminScreen() {
 
       <View style={[styles.grid, wide && styles.gridWide]}>
         <View style={styles.main}>
-          <SectionTitle title="Sports data health" detail="Provider and fixture ingestion" />
+          <SectionTitle title="Sports data health" />
           <Card style={styles.tableCard}>
             {operations.syncRows.map((row) => (
               <View key={row.id} style={styles.syncRow}>
@@ -112,17 +124,10 @@ export default function AdminScreen() {
 
           <SectionTitle title="Recent audit events" />
           <Card>
-            {operations.auditEvents.map((event) => (
-              <View key={event.id} style={styles.auditRow}>
-                <Text style={styles.auditKind}>{event.action.toUpperCase()}</Text>
-                <View style={styles.auditCopy}>
-                  <Text style={styles.auditDetail}>
-                    {event.entityType}, {event.entityId}
-                  </Text>
-                  <Text style={styles.auditActor}>{relativeTime(event.createdAt)}</Text>
-                </View>
-              </View>
-            ))}
+            <ScrollView style={{ maxHeight: 420 }} accessibilityLabel="40 recent audit events">
+              <AuditEventList events={operations.auditEvents} />
+              <ActionButton label="Show all" href="/admin/audit" variant="secondary" />
+            </ScrollView>
             {!operations.loading && operations.auditEvents.length === 0 ? (
               <Text style={uiStyles.body}>No audit events have been recorded.</Text>
             ) : null}
@@ -138,10 +143,6 @@ export default function AdminScreen() {
               variant="secondary"
             />
             <Text style={styles.actionTitle}>Game scores and player statistics</Text>
-            <Text style={uiStyles.body}>
-              Select a scheduled game, enter individual player statistics, and review the scoring
-              preview.
-            </Text>
             <ActionButton label="Update game scores and stats" href="/admin/games" />
             <ActionButton
               label="Schedule confirmations, overrides & projection alerts"
@@ -158,7 +159,7 @@ export default function AdminScreen() {
               href="/admin/rankings"
               variant="secondary"
             />
-            <Text style={uiStyles.label}>Advanced tools</Text>
+            <Text style={styles.actionTitle}>Advanced tools</Text>
             <ActionButton
               label="Import provider snapshot"
               href="/admin/import"
@@ -191,19 +192,33 @@ function Metric({
   label,
   detail,
   warning = false,
+  onPress,
 }: {
   value: string;
   label: string;
   detail: string;
   warning?: boolean;
+  onPress?: () => void;
 }) {
   const styles = useThemedStyles(createStyles);
-  return (
+  const card = (
     <Card style={styles.metric}>
       <Text style={[styles.metricValue, warning && styles.metricWarning]}>{value}</Text>
       <Text style={styles.metricLabel}>{label}</Text>
       <Text style={styles.metricDetail}>{detail}</Text>
     </Card>
+  );
+  return onPress ? (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`View ${label}`}
+      onPress={onPress}
+      style={{ flex: 1, minWidth: 190 }}
+    >
+      {card}
+    </Pressable>
+  ) : (
+    card
   );
 }
 

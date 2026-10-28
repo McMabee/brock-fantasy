@@ -51,8 +51,9 @@ const teams = [
   { id: id(102), name: 'Member Team', owner_id: id(901), owner_name: 'Fixture Member' },
 ];
 const allowed = new Set([
+  'admin_get_operations_summary',
   'admin_get_league_summary',
-  'admin_list_leagues',
+  'admin_list_leagues_filtered',
   'admin_get_league_section',
   'admin_get_league_roster',
   'admin_get_league_chat',
@@ -121,6 +122,8 @@ try {
         }
         if (rpc === 'get_notification_snapshot')
           return reply({ notifications: [], unreadCount: 0 });
+        if (rpc === 'admin_get_operations_summary')
+          return reply({ unresolvedErrors: 0, syncRows: [], auditEvents: [], latestSync: null });
         if (denied) return reply({ message: 'Administrator MFA required', code: '42501' }, 403);
         if (unavailable) return reply({ message: 'Temporary failure', code: 'XX000' }, 500);
         const args = route.request().postDataJSON();
@@ -131,30 +134,36 @@ try {
             openCount: 27,
             seasons: ['2026-27', '2025-26'],
           });
-        if (rpc === 'admin_list_leagues') {
-          let rows =
-            args.p_season === 'previous'
-              ? [
-                  {
-                    ...leagueRows[0],
-                    name: 'Previous League',
-                    status: 'complete',
-                    season_label: '2025-26',
-                  },
-                ]
-              : leagueRows;
-          if (args.p_status !== 'all' && args.p_status !== 'open')
-            rows = rows.filter((row) => row.status === args.p_status);
-          if (args.p_status === 'open')
-            rows = rows.filter((row) => ['setup', 'drafting', 'active'].includes(row.status));
+        if (rpc === 'admin_list_leagues_filtered') {
+          const previousLeague = {
+            ...leagueRows[0],
+            name: 'Previous League',
+            status: 'complete',
+            season_label: '2025-26',
+          };
+          let rows = [...leagueRows, previousLeague].filter(
+            (row) =>
+              (!args.p_seasons.length ||
+                args.p_seasons.includes(row.season_label) ||
+                (args.p_seasons.includes('current') && row.season_label === '2026-27') ||
+                (args.p_seasons.includes('previous') && row.season_label === '2025-26')) &&
+              (!args.p_statuses.length ||
+                args.p_statuses.includes(row.status) ||
+                (args.p_statuses.includes('open') &&
+                  ['setup', 'drafting', 'active'].includes(row.status))),
+          );
           if (args.p_query)
-            rows =
+            rows = rows.filter((row) =>
               args.p_query === 'member@example.test'
-                ? leagueRows.slice(0, 1)
-                : rows.filter((row) => row.name.toLowerCase().includes(args.p_query.toLowerCase()));
+                ? row.id === leagueRows[0].id && row.season_label === '2026-27'
+                : row.name.toLowerCase().includes(args.p_query.toLowerCase()),
+            );
+          const filteredCount = rows.length;
           if (args.p_before_id) rows = rows.filter((row) => row.id < args.p_before_id);
           return reply({
             items: rows.slice(0, 25),
+            filteredCount,
+            totalCount: 28,
             hasMore: rows.length > 25,
             nextCursor: rows.length
               ? { at: created, id: rows[Math.min(24, rows.length - 1)].id }
@@ -278,23 +287,27 @@ try {
     await expect(visibleText('Page 2', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: /^View Fixture League/u })).toHaveCount(2);
     await page.getByRole('link', { name: 'View Fixture League 2', exact: true }).click();
-    await expect(visibleText('ADMIN VIEW · READ ONLY')).toBeVisible();
+    await expect(visibleText('ADMIN VIEW · READ ONLY')).toHaveCount(0);
     await page
       .getByRole('button', { name: 'League section: Members and teams', exact: true })
       .click();
     await expect(visibleText('member@example.test', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'League section: Rosters', exact: true }).click();
-    await expect(visibleText('Saved Athlete · #19', { exact: true })).toBeVisible();
+    await expect(visibleText('Saved Athlete #19', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Set lineup' })).toHaveCount(0);
     await expect(visibleText('Free agents, waivers & trades', { exact: true })).toHaveCount(0);
-    await visibleText('Saved Athlete · #19', { exact: true }).scrollIntoViewIfNeeded();
+    await visibleText('Saved Athlete #19', { exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${output}/${name}-roster.png`, fullPage: true });
     await page.getByRole('button', { name: 'Team roster: Member Team', exact: true }).click();
     await expect(visibleText('Roster is empty', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'League section: Standings', exact: true }).click();
-    await expect(page.getByLabel('League standings')).toContainText('180');
+    await expect(page.getByRole('table', { name: 'League standings', exact: true })).toContainText(
+      '180',
+    );
     await page.getByRole('button', { name: 'League section: Matchups', exact: true }).click();
-    await expect(visibleText('Score: 90 – 60 · final · regular', { exact: true })).toBeVisible();
+    await expect(page.getByRole('table', { name: 'Period 1 matchups', exact: true })).toContainText(
+      '90 – 60',
+    );
     await page.getByRole('button', { name: 'League section: Chat', exact: true }).click();
     await expect(visibleText('Hidden by moderation', { exact: true })).toBeVisible();
     await expect(visibleText(/^Retained message \d+$/u)).toHaveCount(50);
@@ -345,14 +358,16 @@ try {
     );
     await page.getByRole('link', { name: 'Back to league directory', exact: true }).click();
     await expect(visibleText('Page 2', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Season: Previous', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Season: Current', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Season: Previous', exact: true }).click();
     await expect(visibleText('No leagues found', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Status: Completed', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Status: Completed', exact: true }).click();
     await expect(
       page.getByRole('link', { name: 'View Previous League', exact: true }),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'Season: Current', exact: true }).click();
-    await page.getByRole('button', { name: 'Status: Open', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Season: Previous', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Season: Current', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Status: Completed', exact: true }).click();
     await page
       .getByRole('textbox', { name: 'Find a league, team, or member' })
       .fill('member@example.test');
@@ -381,7 +396,7 @@ try {
     await expect(visibleText('Roster is empty', { exact: true })).toBeVisible();
     deferRoster();
     slowRoster = false;
-    await expect(visibleText('Saved Athlete · #19', { exact: true })).toHaveCount(0);
+    await expect(visibleText('Saved Athlete #19', { exact: true })).toHaveCount(0);
     denied = true;
     await page.getByRole('button', { name: 'Refresh', exact: true }).click();
     await expect(

@@ -8,6 +8,7 @@ import {
 import { ActionButton, Card, useUiStyles } from './ui';
 import { useThemeColors } from '@/providers/theme-provider';
 import type { Participant } from '@/lib/participant-scans';
+import { AdminSelect } from './admin-ui';
 
 export const participantRoles: Readonly<Record<ParticipationRole, string>> = {
   none: 'Neither',
@@ -70,13 +71,21 @@ export function ParticipantDirectory({
           setPage(0);
         }}
       />
-      <Text style={ui.label}>Role</Text>
-      {(['athlete', 'coach', 'athlete_coach'] as const).map((value) =>
-        filterButton(participantRoles[value], role === value, () => {
-          setRole(role === value ? null : value);
+      <AdminSelect
+        label="Role"
+        value={role ?? ''}
+        options={[
+          { value: '', label: 'All roles' },
+          ...(['athlete', 'coach', 'athlete_coach'] as const).map((value) => ({
+            value,
+            label: participantRoles[value],
+          })),
+        ]}
+        onChange={(value) => {
+          setRole(value ? (value as ParticipationRole) : null);
           setPage(0);
-        }),
-      )}
+        }}
+      />
       <Text style={ui.label}>Program</Text>
       {(Object.keys(VARSITY_PROGRAMS) as VarsityProgram[]).map((value) =>
         filterButton(VARSITY_PROGRAMS[value], program === value, () => {

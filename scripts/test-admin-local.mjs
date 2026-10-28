@@ -163,6 +163,17 @@ try {
       return Response.json([{ id: teamId, name: 'Team fixture' }]);
     if (
       [
+        'admin_get_operations',
+        'admin_get_operations_summary',
+        'admin_list_leagues_filtered',
+        'admin_get_ranking_seasons',
+        'admin_get_ranking_review',
+        'admin_list_participant_requests',
+        'get_my_participant_request',
+        'admin_request_participant_confirmation',
+        'submit_participant_confirmation',
+        'admin_review_participant_confirmation',
+        'admin_publish_preseason_review',
         'admin_list_varsity_participants',
         'admin_get_participant',
         'admin_get_participant_scan',
@@ -244,6 +255,13 @@ try {
   results.push('MFA enrollment enforces canonical origin and CSRF');
 
   for (const name of [
+    'admin_get_operations',
+    'admin_get_operations_summary',
+    'admin_list_leagues_filtered',
+    'admin_get_ranking_seasons',
+    'admin_get_ranking_review',
+    'admin_list_participant_requests',
+    'get_my_participant_request',
     'admin_list_varsity_participants',
     'admin_get_participant',
     'admin_get_participant_scan',
@@ -283,6 +301,63 @@ try {
     );
     assert.equal(result.response.status, 403);
   }
+  for (const [command, body] of [
+    [
+      'admin_request_participant_confirmation',
+      { p_match_id: invitationId, p_idempotency_key: 'fixture-confirmation-request' },
+    ],
+    [
+      'submit_participant_confirmation',
+      {
+        p_request_id: invitationId,
+        p_role: 'none',
+        p_programs: [],
+        p_explanation: '',
+        p_idempotency_key: 'fixture-confirmation-response',
+      },
+    ],
+    [
+      'admin_review_participant_confirmation',
+      {
+        p_request_id: invitationId,
+        p_approve: true,
+        p_reason: 'Reviewed recipient response',
+        p_expected_updated_at: '2026-10-28T12:00:00Z',
+        p_idempotency_key: 'fixture-confirmation-review',
+      },
+    ],
+    [
+      'admin_publish_preseason_review',
+      {
+        p_pool_id: invitationId,
+        p_expected_hash: 'fixture-hash',
+        p_reason: 'Reviewed publication inputs',
+        p_idempotency_key: 'fixture-ranking-review',
+      },
+    ],
+  ]) {
+    result = await request(`/api/command/${command}`, { aal: 'aal2', method: 'POST', body });
+    assert.equal(result.response.status, 200);
+    assert.equal(result.data.forwarded, true);
+    for (const change of [
+      { origin: 'https://evil.example' },
+      { csrf: false },
+      { body: { ...body, p_user_id: userId } },
+    ]) {
+      const before = calls.length;
+      result = await request(`/api/command/${command}`, {
+        aal: 'aal2',
+        method: 'POST',
+        body,
+        ...change,
+      });
+      assert.ok([400, 403].includes(result.response.status));
+      assert.equal(calls.length, before);
+    }
+  }
+  results.push(
+    'Admin centre reads preserve caller JWTs; confirmation and ranking commands enforce origin, CSRF and exact argument allowlists',
+  );
   results.push(
     'Participant reads and commands forward the administrator token; mutations require Origin/CSRF, reject unexpected inputs and cannot bypass through the read proxy',
   );

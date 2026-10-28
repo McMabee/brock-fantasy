@@ -7,6 +7,8 @@
     "node": ">=22.12"
   },
   "scripts": {
+    "test:admin-centre:local": "node scripts/test-admin-centre-local.mjs",
+    "test:admin-centre:browser": "node scripts/test-admin-centre-browser.mjs",
     "import:participant-references": "node scripts/import-participant-references.mjs",
     "test:participant-scans:local": "node scripts/test-participant-scans-local.mjs",
     "test:participant-scans:browser": "node scripts/test-participant-scans-browser.mjs",

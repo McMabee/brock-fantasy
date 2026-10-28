@@ -1,128 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useAdminLeagueRead } from './use-admin-leagues';
+import type { OperationsSummary } from '@/lib/admin-operations';
 
-import { supabase } from '@/lib/supabase';
-import { useSession } from '@/providers/session-provider';
-
-export interface SyncHealthRow {
-  id: string;
-  provider: string;
-  status: string;
-  finishedAt: string | null;
-  changed: number;
-}
-
-export interface AuditEvent {
-  id: string;
-  action: string;
-  entityType: string;
-  entityId: string;
-  createdAt: string;
-}
-
-interface OperationsState {
-  unresolvedErrors: number;
-  syncRows: readonly SyncHealthRow[];
-  auditEvents: readonly AuditEvent[];
-  loading: boolean;
-  error: string | null;
-}
-
-interface SyncRow {
-  id: string;
-  provider: string;
-  status: string;
-  finished_at: string | null;
-  inserted_count: number;
-  updated_count: number;
-}
-
-interface AuditRow {
-  id: number;
-  action: string;
-  entity_type: string;
-  entity_id: string;
-  created_at: string;
-}
-
-export function useOperations(enabled = true): OperationsState {
-  const { user } = useSession();
-  const [state, setState] = useState<OperationsState>({
-    unresolvedErrors: 0,
-    syncRows: [],
-    auditEvents: [],
-    loading: true,
-    error: null,
-  });
-
-  useEffect(() => {
-    if (!supabase || !user || !enabled) {
-      setState({
-        unresolvedErrors: 0,
-        syncRows: [],
-        auditEvents: [],
-        loading: false,
-        error: null,
-      });
-      return;
-    }
-    let cancelled = false;
-    setState((current) => ({ ...current, loading: true, error: null }));
-    const client = supabase;
-    const load = async () => {
-      const [errors, syncs, audit] = await Promise.all([
-        client
-          .from('sync_errors')
-          .select('id', { count: 'exact', head: true })
-          .is('resolved_at', null),
-        client
-          .from('sync_runs')
-          .select('id, provider, status, finished_at, inserted_count, updated_count')
-          .order('started_at', { ascending: false })
-          .limit(12),
-        client
-          .from('audit_log')
-          .select('id, action, entity_type, entity_id, created_at')
-          .order('created_at', { ascending: false })
-          .limit(12),
-      ]);
-      const error = errors.error ?? syncs.error ?? audit.error;
-      if (cancelled) return;
-      if (error) {
-        setState((current) => ({ ...current, loading: false, error: error.message }));
-        return;
-      }
-      setState({
-        unresolvedErrors: errors.count ?? 0,
-        syncRows: (syncs.data as SyncRow[]).map((row) => ({
-          id: row.id,
-          provider: row.provider,
-          status: row.status,
-          finishedAt: row.finished_at,
-          changed: row.inserted_count + row.updated_count,
-        })),
-        auditEvents: (audit.data as AuditRow[]).map((row) => ({
-          id: String(row.id),
-          action: row.action,
-          entityType: row.entity_type,
-          entityId: row.entity_id,
-          createdAt: row.created_at,
-        })),
-        loading: false,
-        error: null,
-      });
-    };
-    void load().catch(() => {
-      if (!cancelled)
-        setState((current) => ({
-          ...current,
-          loading: false,
-          error: 'Unable to load operations data.',
-        }));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled, user]);
-
-  return state;
+export function useOperations(enabled = true) {
+  const read = useAdminLeagueRead<OperationsSummary>('admin_get_operations_summary', {}, enabled);
+  return {
+    latestSync: read.data?.latestSync
+      ? {
+          provider: read.data.latestSync.provider,
+          finishedAt: read.data.latestSync.finished_at,
+          jobKind: read.data.latestSync.job_kind,
+        }
+      : null,
+    unresolvedErrors: read.data?.unresolvedErrors ?? 0,
+    syncRows: (read.data?.syncRows ?? []).map((row) => ({
+      id: row.id,
+      provider: row.provider ?? 'Unknown source',
+      jobKind: row.job_kind ?? 'player',
+      status: row.status ?? 'running',
+      finishedAt: row.finished_at ?? null,
+      changed: (row.inserted_count ?? 0) + (row.updated_count ?? 0),
+    })),
+    auditEvents: read.data?.auditEvents ?? [],
+    loading: read.loading,
+    error: read.error,
+  };
 }

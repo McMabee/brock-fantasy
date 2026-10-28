@@ -3,12 +3,14 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 type Environment = Record<string, string | undefined>;
 interface EmailJob {
   id: string;
-  kind: 'contact' | 'draft' | 'account';
+  kind: 'contact' | 'draft' | 'account' | 'participation';
   leaseToken: string;
   attempts: number;
   userId: string | null;
   email: string | null;
   payload: {
+    requestId?: string;
+    expiresAt?: string;
     kind?: string;
     name?: string;
     replyEmail?: string;
@@ -172,6 +174,12 @@ export async function dispatchServiceEmails(
       to = config.recipients;
       subject = `Brock Fantasy ${message.kind ?? 'contact'}: ${message.title ?? 'Contact request'}`;
       text = `Contact request\n\nName: ${message.name || 'Not provided'}\nReply address: ${message.replyEmail || 'Not provided'}\nPage: ${message.page || 'Not provided'}\n\n${message.message ?? ''}\n\nRequest reference: ${job.id}`;
+    } else if (job.kind === 'participation') {
+      if (!job.email || !job.userId || !uuid.test(message.requestId ?? ''))
+        throw new Error('Invalid confirmation email job');
+      to = [job.email];
+      subject = 'Confirm your varsity participation status';
+      text = `A Brock Fantasy administrator has asked you to confirm your varsity role and programs.\n\nConfirm your status: ${config.origin}/participation/confirm/${message.requestId}\n\nSign in with the account that received this email. You can confirm or correct the suggested information, including selecting Neither. An administrator reviews your response before changing your participation status.\n\nThis request expires in seven days. This is an account service notice. For help, contact tymabee@proton.me`;
     } else if (job.kind === 'account') {
       if (!job.email || !job.userId) throw new Error('Invalid account email job');
       to = [job.email];

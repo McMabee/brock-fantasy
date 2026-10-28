@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { RequestConfirmationButton } from './participant-requests';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { VARSITY_PROGRAMS } from '@brock-fantasy/domain';
 import { ActionButton, Card, useUiStyles } from './ui';
@@ -324,6 +325,11 @@ export function ParticipantScanPanel({
                     setReview(match);
                     setReason('');
                   }}
+                />
+                <RequestConfirmationButton
+                  match={match}
+                  enabled={Boolean(snapshot?.confirmationEnabled) && !stale}
+                  onRefresh={onRefresh}
                 />
               </View>
             ))}

@@ -18,7 +18,7 @@ export function LeagueChoices({
   const colors = useThemeColors();
   return (
     <View style={{ gap: 8 }}>
-      <Text accessibilityRole="header" style={ui.label}>
+      <Text accessibilityRole="header" style={ui.title}>
         {label}
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -54,11 +54,13 @@ export function LeagueRefresh({
   updatedAt,
   error,
   refresh,
+  summary,
 }: {
   loading: boolean;
   updatedAt: string | null;
   error: string | null;
   refresh: () => Promise<void>;
+  summary?: string | undefined;
 }) {
   const ui = useUiStyles();
   return (
@@ -73,8 +75,63 @@ export function LeagueRefresh({
         <Text style={ui.body}>
           {updatedAt ? `Updated ${adminDate(updatedAt)}` : 'Waiting for data'}
         </Text>
+        {summary ? <Text style={ui.body}>{summary}</Text> : null}
       </View>
       {error ? <ErrorState message={error} onRetry={() => void refresh()} /> : null}
+    </View>
+  );
+}
+
+export function LeagueMultiChoices({
+  label,
+  choices,
+  selected,
+  onChange,
+}: {
+  label: string;
+  choices: readonly { value: string; label: string }[];
+  selected: readonly string[];
+  onChange: (values: string[]) => void;
+}) {
+  const ui = useUiStyles();
+  const colors = useThemeColors();
+  return (
+    <View style={{ gap: 8 }}>
+      <Text accessibilityRole="header" style={ui.title}>
+        {label}
+      </Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {choices.map((choice) => {
+          const checked = selected.includes(choice.value);
+          return (
+            <Pressable
+              key={choice.value}
+              accessibilityRole="checkbox"
+              accessibilityLabel={`${label}: ${choice.label}`}
+              aria-checked={checked}
+              accessibilityState={{ checked }}
+              onPress={() =>
+                onChange(
+                  checked
+                    ? selected.filter((value) => value !== choice.value)
+                    : [...selected, choice.value],
+                )
+              }
+              style={{
+                minHeight: 44,
+                justifyContent: 'center',
+                paddingHorizontal: 14,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: checked ? colors.red : colors.border,
+                backgroundColor: checked ? colors.canvasSoft : colors.panel,
+              }}
+            >
+              <Text style={[ui.body, { fontWeight: checked ? '800' : '400' }]}>{choice.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }

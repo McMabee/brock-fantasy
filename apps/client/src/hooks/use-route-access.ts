@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
-import { adminLeaguePath, adminReturnPath } from '@/lib/admin-navigation';
+import { adminPagePath, adminReturnPath } from '@/lib/admin-navigation';
 import { webRequest } from '@/lib/web-request';
 import { useSession } from '@/providers/session-provider';
 
@@ -21,9 +21,7 @@ export function useRequireAdmin() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useLocalSearchParams();
-  const returnTo = pathname.startsWith('/admin/leagues')
-    ? adminLeaguePath(pathname, params)
-    : pathname;
+  const returnTo = adminPagePath(pathname, params);
   const { user, loading } = useSession();
   const [access, setAccess] = useState<{
     userId: string | null;

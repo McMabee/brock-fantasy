@@ -1,3 +1,5 @@
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ParticipantRequests } from '@/components/participant-requests';
 import { newCommandKey } from '../../lib/command-key';
 import {
   VARSITY_PROGRAMS,
@@ -33,6 +35,9 @@ const roles: Readonly<Record<ParticipationRole, string>> = {
 
 export default function ParticipantsScreen() {
   const access = useRequireAdmin();
+  const params = useLocalSearchParams<{ view?: string }>();
+  const router = useRouter();
+  const requestsView = params.view === 'requests';
   const ui = useUiStyles();
   const colors = useThemeColors();
   const [query, setQuery] = useState('');
@@ -213,286 +218,311 @@ export default function ParticipantsScreen() {
   return (
     <AppShell eyebrow="Account administration" title="Varsity participants" workspace>
       <View style={{ gap: 16 }}>
-        <ActionButton
-          label="Refresh shared participant data"
-          variant="secondary"
-          loading={shared.refreshing}
-          onPress={() => void shared.refresh()}
-        />
-        {shared.error ? (
-          <Text accessibilityRole="alert" style={ui.body}>
-            {shared.error}
-          </Text>
-        ) : null}
-        {!wide ? (
-          <View
-            accessibilityRole="tablist"
-            style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}
-          >
-            {['Participants', 'Search and edit', 'Scan'].map((name, index) =>
-              Platform.OS === 'web' ? (
-                <button
-                  key={name}
-                  id={`participant-tab-${index}`}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === name}
-                  aria-controls={`participant-panel-${index}`}
-                  tabIndex={tab === name ? 0 : -1}
-                  onClick={() => setTab(name)}
-                  onKeyDown={(event) => {
-                    const next =
-                      event.key === 'ArrowRight'
-                        ? (index + 1) % 3
-                        : event.key === 'ArrowLeft'
-                          ? (index + 2) % 3
-                          : event.key === 'Home'
-                            ? 0
-                            : event.key === 'End'
-                              ? 2
-                              : null;
-                    if (next === null) return;
-                    event.preventDefault();
-                    setTab(['Participants', 'Search and edit', 'Scan'][next] ?? 'Search and edit');
-                    document.getElementById(`participant-tab-${next}`)?.focus();
-                  }}
-                  style={{
-                    minHeight: 44,
-                    padding: 12,
-                    border: `1px solid ${tab === name ? colors.red : colors.border}`,
-                    borderRadius: 10,
-                    background: 'transparent',
-                    color: ui.body.color,
-                    font: 'inherit',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {name}
-                </button>
-              ) : (
-                <Pressable
-                  key={name}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: tab === name }}
-                  aria-selected={tab === name}
-                  onPress={() => setTab(name)}
-                  style={{
-                    minHeight: 44,
-                    padding: 12,
-                    borderWidth: 1,
-                    borderRadius: 10,
-                    borderColor: tab === name ? colors.red : colors.border,
-                  }}
-                >
-                  <Text style={ui.body}>{name}</Text>
-                </Pressable>
-              ),
-            )}
-          </View>
-        ) : null}
-        <View style={{ flexDirection: wide ? 'row' : 'column', gap: 16, alignItems: 'flex-start' }}>
-          <View
-            nativeID="participant-panel-0"
-            style={{
-              display: wide || tab === 'Participants' ? 'flex' : 'none',
-              width: wide ? undefined : '100%',
-              flex: wide ? 0.23 : undefined,
-              minWidth: 0,
-            }}
-          >
-            <ParticipantDirectory
-              participants={shared.participants}
-              onSelect={(id) => select(id)}
+        <ActionButton label="Back to Operations Centre" href="/admin" variant="secondary" />
+        <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+          <ActionButton
+            label="Participants workspace"
+            variant={requestsView ? 'secondary' : 'primary'}
+            onPress={() => router.setParams({ view: undefined })}
+          />
+          <ActionButton
+            label="Requests"
+            variant={requestsView ? 'primary' : 'secondary'}
+            onPress={() => router.setParams({ view: 'requests' })}
+          />
+        </View>
+        {requestsView ? (
+          <ParticipantRequests enabled={access.allowed} />
+        ) : (
+          <>
+            <ActionButton
+              label="Refresh shared participant data"
+              variant="secondary"
+              loading={shared.refreshing}
+              onPress={() => void shared.refresh()}
             />
-          </View>
-          <View
-            nativeID="participant-panel-1"
-            style={{
-              display: wide || tab === 'Search and edit' ? 'flex' : 'none',
-              width: wide ? undefined : '100%',
-              flex: wide ? 0.4 : undefined,
-              minWidth: 0,
-              gap: 20,
-            }}
-          >
-            <Card style={{ gap: 14 }}>
-              <Text style={ui.body}>
-                Find an account by name or email. Athletes and coaches trigger the varsity league
-                format and cannot acquire athletes from their own programs.
-              </Text>
-              <TextInput
-                accessibilityLabel="Find participant by name or email"
-                editable={!working}
-                value={query}
-                onChangeText={setQuery}
-                onSubmitEditing={() => void search()}
-                placeholder="Name or email"
-                placeholderTextColor={colors.muted}
-                style={ui.input}
-                maxLength={320}
-              />
-              <ActionButton
-                label="Find accounts"
-                onPress={() => void search()}
-                disabled={query.trim().length < 2}
-                loading={working}
-              />
-            </Card>
-            {message ? (
+            {shared.error ? (
               <Text accessibilityRole="alert" style={ui.body}>
-                {message}
+                {shared.error}
               </Text>
             ) : null}
-            {rows.map((row) => (
-              <Pressable
-                key={row.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Edit participation for ${row.display_name}`}
-                disabled={working}
-                onPress={() => select(row.id)}
+            {!wide ? (
+              <View
+                accessibilityRole="tablist"
+                style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}
               >
-                <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={ui.title}>{row.display_name}</Text>
-                    <Text style={ui.body}>
-                      {row.email}, {roles[row.role]}
-                    </Text>
-                  </View>
-                  <VarsityBadge visible={row.role !== 'none'} />
-                </Card>
-              </Pressable>
-            ))}
-            {selected ? (
-              <Card style={{ gap: 16 }}>
-                {Platform.OS === 'web' ? (
-                  <h2
-                    id="participant-editor-heading"
-                    tabIndex={-1}
-                    style={{ margin: 0, fontSize: ui.title.fontSize, color: ui.title.color }}
-                  >
-                    {selected.display_name}
-                  </h2>
-                ) : (
-                  <Text accessibilityRole="header" style={ui.title}>
-                    {selected.display_name}
-                  </Text>
-                )}
-                <Text style={ui.body}>{selected.email}</Text>
-                {suggestion ? (
-                  <Text accessibilityRole="alert" style={ui.body}>
-                    {suggestion}
-                  </Text>
-                ) : null}
-                <Text style={ui.body}>Supporting staff use the Varsity coach classification.</Text>
-                <View
-                  accessibilityRole="radiogroup"
-                  accessibilityLabel="Varsity participation"
-                  style={{ gap: 10 }}
-                >
-                  {(Object.keys(roles) as ParticipationRole[]).map((role) => (
-                    <Pressable
-                      key={role}
-                      accessibilityRole="radio"
-                      disabled={working}
-                      aria-checked={selected.role === role}
-                      accessibilityState={{ checked: selected.role === role }}
-                      onPress={() =>
-                        setSelected({
-                          ...selected,
-                          role,
-                          programs: role === 'none' ? [] : selected.programs,
-                        })
-                      }
+                {['Participants', 'Search and edit', 'Scan'].map((name, index) =>
+                  Platform.OS === 'web' ? (
+                    <button
+                      key={name}
+                      id={`participant-tab-${index}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === name}
+                      aria-controls={`participant-panel-${index}`}
+                      tabIndex={tab === name ? 0 : -1}
+                      onClick={() => setTab(name)}
+                      onKeyDown={(event) => {
+                        const next =
+                          event.key === 'ArrowRight'
+                            ? (index + 1) % 3
+                            : event.key === 'ArrowLeft'
+                              ? (index + 2) % 3
+                              : event.key === 'Home'
+                                ? 0
+                                : event.key === 'End'
+                                  ? 2
+                                  : null;
+                        if (next === null) return;
+                        event.preventDefault();
+                        setTab(
+                          ['Participants', 'Search and edit', 'Scan'][next] ?? 'Search and edit',
+                        );
+                        document.getElementById(`participant-tab-${next}`)?.focus();
+                      }}
                       style={{
+                        minHeight: 44,
+                        padding: 12,
+                        border: `1px solid ${tab === name ? colors.red : colors.border}`,
+                        borderRadius: 10,
+                        background: 'transparent',
+                        color: ui.body.color,
+                        font: 'inherit',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {name}
+                    </button>
+                  ) : (
+                    <Pressable
+                      key={name}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: tab === name }}
+                      aria-selected={tab === name}
+                      onPress={() => setTab(name)}
+                      style={{
+                        minHeight: 44,
                         padding: 12,
                         borderWidth: 1,
                         borderRadius: 10,
-                        borderColor: selected.role === role ? colors.red : colors.border,
+                        borderColor: tab === name ? colors.red : colors.border,
                       }}
                     >
-                      <Text style={ui.body}>{roles[role]}</Text>
+                      <Text style={ui.body}>{name}</Text>
                     </Pressable>
-                  ))}
-                </View>
-                {selected.role !== 'none' ? (
-                  <View style={{ gap: 10 }}>
-                    <Text style={ui.label}>Every program they play for or coach</Text>
-                    {(Object.keys(VARSITY_PROGRAMS) as VarsityProgram[]).map((program) => (
-                      <Pressable
-                        key={program}
-                        accessibilityRole="checkbox"
-                        disabled={working}
-                        aria-checked={selected.programs.includes(program)}
-                        accessibilityState={{ checked: selected.programs.includes(program) }}
-                        onPress={() =>
-                          setSelected({
-                            ...selected,
-                            programs: selected.programs.includes(program)
-                              ? selected.programs.filter((item) => item !== program)
-                              : [...selected.programs, program],
-                          })
-                        }
-                        style={{ minHeight: 44, justifyContent: 'center' }}
-                      >
-                        <Text style={ui.body}>
-                          {selected.programs.includes(program) ? '☑' : '☐'}{' '}
-                          {VARSITY_PROGRAMS[program]}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
+                  ),
+                )}
+              </View>
+            ) : null}
+            <View
+              style={{ flexDirection: wide ? 'row' : 'column', gap: 16, alignItems: 'flex-start' }}
+            >
+              <View
+                nativeID="participant-panel-0"
+                style={{
+                  display: wide || tab === 'Participants' ? 'flex' : 'none',
+                  width: wide ? undefined : '100%',
+                  flex: wide ? 0.23 : undefined,
+                  minWidth: 0,
+                }}
+              >
+                <ParticipantDirectory
+                  participants={shared.participants}
+                  onSelect={(id) => select(id)}
+                />
+              </View>
+              <View
+                nativeID="participant-panel-1"
+                style={{
+                  display: wide || tab === 'Search and edit' ? 'flex' : 'none',
+                  width: wide ? undefined : '100%',
+                  flex: wide ? 0.4 : undefined,
+                  minWidth: 0,
+                  gap: 20,
+                }}
+              >
+                <Card style={{ gap: 14 }}>
+                  <Text style={ui.body}>
+                    Find an account by name or email. Athletes and coaches trigger the varsity
+                    league format and cannot acquire athletes from their own programs.
+                  </Text>
+                  <TextInput
+                    accessibilityLabel="Find participant by name or email"
+                    editable={!working}
+                    value={query}
+                    onChangeText={setQuery}
+                    onSubmitEditing={() => void search()}
+                    placeholder="Name or email"
+                    placeholderTextColor={colors.muted}
+                    style={ui.input}
+                    maxLength={320}
+                  />
+                  <ActionButton
+                    label="Find accounts"
+                    onPress={() => void search()}
+                    disabled={query.trim().length < 2}
+                    loading={working}
+                  />
+                </Card>
+                {message ? (
+                  <Text accessibilityRole="alert" style={ui.body}>
+                    {message}
+                  </Text>
                 ) : null}
-                <Text style={ui.body}>
-                  Existing athletes and earned points stay on record. Conflicting teammates must be
-                  replaced before the next lineup save and cannot score in games starting after this
-                  correction.
-                </Text>
-                <TextInput
-                  accessibilityLabel="Reason for participation correction"
-                  editable={!working}
-                  placeholder="Reason for this correction"
-                  placeholderTextColor={colors.muted}
-                  value={reason}
-                  onChangeText={setReason}
-                  maxLength={500}
-                  multiline
-                  style={ui.input}
+                {rows.map((row) => (
+                  <Pressable
+                    key={row.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit participation for ${row.display_name}`}
+                    disabled={working}
+                    onPress={() => select(row.id)}
+                  >
+                    <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={ui.title}>{row.display_name}</Text>
+                        <Text style={ui.body}>
+                          {row.email}, {roles[row.role]}
+                        </Text>
+                      </View>
+                      <VarsityBadge visible={row.role !== 'none'} />
+                    </Card>
+                  </Pressable>
+                ))}
+                {selected ? (
+                  <Card style={{ gap: 16 }}>
+                    {Platform.OS === 'web' ? (
+                      <h2
+                        id="participant-editor-heading"
+                        tabIndex={-1}
+                        style={{ margin: 0, fontSize: ui.title.fontSize, color: ui.title.color }}
+                      >
+                        {selected.display_name}
+                      </h2>
+                    ) : (
+                      <Text accessibilityRole="header" style={ui.title}>
+                        {selected.display_name}
+                      </Text>
+                    )}
+                    <Text style={ui.body}>{selected.email}</Text>
+                    {suggestion ? (
+                      <Text accessibilityRole="alert" style={ui.body}>
+                        {suggestion}
+                      </Text>
+                    ) : null}
+                    <Text style={ui.body}>
+                      Supporting staff use the Varsity coach classification.
+                    </Text>
+                    <View
+                      accessibilityRole="radiogroup"
+                      accessibilityLabel="Varsity participation"
+                      style={{ gap: 10 }}
+                    >
+                      {(Object.keys(roles) as ParticipationRole[]).map((role) => (
+                        <Pressable
+                          key={role}
+                          accessibilityRole="radio"
+                          disabled={working}
+                          aria-checked={selected.role === role}
+                          accessibilityState={{ checked: selected.role === role }}
+                          onPress={() =>
+                            setSelected({
+                              ...selected,
+                              role,
+                              programs: role === 'none' ? [] : selected.programs,
+                            })
+                          }
+                          style={{
+                            padding: 12,
+                            borderWidth: 1,
+                            borderRadius: 10,
+                            borderColor: selected.role === role ? colors.red : colors.border,
+                          }}
+                        >
+                          <Text style={ui.body}>{roles[role]}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                    {selected.role !== 'none' ? (
+                      <View style={{ gap: 10 }}>
+                        <Text style={ui.label}>Every program they play for or coach</Text>
+                        {(Object.keys(VARSITY_PROGRAMS) as VarsityProgram[]).map((program) => (
+                          <Pressable
+                            key={program}
+                            accessibilityRole="checkbox"
+                            disabled={working}
+                            aria-checked={selected.programs.includes(program)}
+                            accessibilityState={{ checked: selected.programs.includes(program) }}
+                            onPress={() =>
+                              setSelected({
+                                ...selected,
+                                programs: selected.programs.includes(program)
+                                  ? selected.programs.filter((item) => item !== program)
+                                  : [...selected.programs, program],
+                              })
+                            }
+                            style={{ minHeight: 44, justifyContent: 'center' }}
+                          >
+                            <Text style={ui.body}>
+                              {selected.programs.includes(program) ? '☑' : '☐'}{' '}
+                              {VARSITY_PROGRAMS[program]}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    ) : null}
+                    <Text style={ui.body}>
+                      Existing athletes and earned points stay on record. Conflicting teammates must
+                      be replaced before the next lineup save and cannot score in games starting
+                      after this correction.
+                    </Text>
+                    <TextInput
+                      accessibilityLabel="Reason for participation correction"
+                      editable={!working}
+                      placeholder="Reason for this correction"
+                      placeholderTextColor={colors.muted}
+                      value={reason}
+                      onChangeText={setReason}
+                      maxLength={500}
+                      multiline
+                      style={ui.input}
+                    />
+                    <ActionButton
+                      label="Save participation"
+                      onPress={() => void save()}
+                      loading={working}
+                      disabled={
+                        reason.trim().length < 8 ||
+                        !parseParticipation(selected.role, selected.programs)
+                      }
+                    />
+                  </Card>
+                ) : (
+                  <EmptyState
+                    title="Select an account"
+                    body="Choose a search result to review or correct participation."
+                  />
+                )}
+              </View>
+              <View
+                nativeID="participant-panel-2"
+                style={{
+                  display: wide || tab === 'Scan' ? 'flex' : 'none',
+                  width: wide ? undefined : '100%',
+                  flex: wide ? 0.37 : undefined,
+                  minWidth: 0,
+                }}
+              >
+                <ParticipantScanPanel
+                  snapshot={shared.snapshot}
+                  scanId={shared.scanId}
+                  onRunChange={shared.setScanId}
+                  onRefresh={shared.refresh}
+                  onSelect={(id, match) => select(id, match)}
                 />
-                <ActionButton
-                  label="Save participation"
-                  onPress={() => void save()}
-                  loading={working}
-                  disabled={
-                    reason.trim().length < 8 ||
-                    !parseParticipation(selected.role, selected.programs)
-                  }
-                />
-              </Card>
-            ) : (
-              <EmptyState
-                title="Select an account"
-                body="Choose a search result to review or correct participation."
-              />
-            )}
-          </View>
-          <View
-            nativeID="participant-panel-2"
-            style={{
-              display: wide || tab === 'Scan' ? 'flex' : 'none',
-              width: wide ? undefined : '100%',
-              flex: wide ? 0.37 : undefined,
-              minWidth: 0,
-            }}
-          >
-            <ParticipantScanPanel
-              snapshot={shared.snapshot}
-              scanId={shared.scanId}
-              onRunChange={shared.setScanId}
-              onRefresh={shared.refresh}
-              onSelect={(id, match) => select(id, match)}
-            />
-          </View>
-        </View>
+              </View>
+            </View>
+          </>
+        )}
       </View>
     </AppShell>
   );

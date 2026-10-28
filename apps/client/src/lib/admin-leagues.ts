@@ -48,6 +48,8 @@ export interface AdminLeagueRow {
   season_label: string;
 }
 export interface AdminLeaguePage {
+  filteredCount: number;
+  totalCount: number;
   items: AdminLeagueRow[];
   hasMore: boolean;
   nextCursor: LeagueCursor | null;
@@ -110,6 +112,7 @@ export interface AdminLeagueSnapshot {
   items: (AdminLeagueMember | AdminLeagueStanding | AdminLeagueMatchup)[];
 }
 export interface AdminLeagueRosterEntry {
+  bio?: Record<string, unknown>;
   id: string;
   athlete_id: string;
   slot_code: string;
@@ -118,6 +121,25 @@ export interface AdminLeagueRosterEntry {
   position: string;
   jersey_number: string | null;
   program_name: string;
+}
+
+export function leagueFilterValues(value: string | undefined, fallback: string): string[] {
+  if (value === undefined) return [fallback];
+  return value === 'all' || value === ''
+    ? []
+    : [...new Set(value.split(',').filter(Boolean))].slice(0, 32);
+}
+
+export function groupLeagueMatchups(
+  rows: readonly AdminLeagueMatchup[],
+): [number, AdminLeagueMatchup[]][] {
+  const groups = new Map<number, AdminLeagueMatchup[]>();
+  for (const row of rows) {
+    const group = groups.get(row.period);
+    if (group) group.push(row);
+    else groups.set(row.period, [row]);
+  }
+  return [...groups].sort(([left], [right]) => left - right);
 }
 export interface AdminLeagueMessage {
   id: string;

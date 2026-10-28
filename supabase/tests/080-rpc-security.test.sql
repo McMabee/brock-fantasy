@@ -4,7 +4,7 @@ select no_plan();
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'rpc_private' and p.proname not in ('can_use_app','require_app_access','is_admin_account_email','issue_account_signup_handoff')
-), 84, 'existing commands, participant scans, and league explorer have private implementations');
+), 95, 'existing commands and admin centre additions have private implementations');
 select is((
   select count(*)::integer from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.prosecdef

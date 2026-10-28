@@ -1,6 +1,8 @@
+import { AdminTable } from '@/components/admin-ui';
+import { DraftPlayerPhoto } from '@/components/player-photo';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { AdminAccess } from '@/components/admin-access';
 import { AdminLeagueChat } from '@/components/admin-league-chat';
 import { LeagueChoices, LeagueFact, LeagueRefresh } from '@/components/admin-league-ui';
@@ -10,7 +12,6 @@ import {
   Card,
   EmptyState,
   LoadingState,
-  Pill,
   useUiStyles,
 } from '@/components/ui';
 import { VarsityBadge } from '@/components/varsity-badge';
@@ -22,6 +23,7 @@ import { positionLabel, rosterSlotLabel } from '@/lib/roster-guide';
 import {
   adminDate,
   LEAGUE_SECTIONS,
+  groupLeagueMatchups,
   LEAGUE_STATUS_LABELS,
   type AdminLeagueSnapshot,
   type AdminLeagueRosterEntry,
@@ -84,18 +86,13 @@ export default function AdminLeagueDetail() {
   const league = snapshot.data?.league;
   const directoryParams = { ...params, tab: undefined, teamId: undefined };
   return (
-    <AppShell
-      eyebrow="Operations centre"
-      title={league?.name ?? 'League inspection'}
-      action={<Pill label="ADMIN VIEW · READ ONLY" tone="warning" />}
-    >
+    <AppShell eyebrow="Operations centre" title={league?.name ?? 'League inspection'}>
       <View style={{ gap: 18 }}>
         <ActionButton
           label="Back to league directory"
           href={adminLeaguePath('/admin/leagues', directoryParams)}
           variant="secondary"
         />
-        <Text style={ui.body}>Inspect league information in read-only admin view</Text>
         <LeagueChoices
           label="League section"
           choices={LEAGUE_SECTIONS.map((value) => ({ value, label: sectionLabels[value]! }))}
@@ -189,7 +186,7 @@ export default function AdminLeagueDetail() {
                 <View
                   style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}
                 >
-                  <Text accessibilityRole="header" style={ui.label}>
+                  <Text accessibilityRole="header" style={ui.title}>
                     {member.display_name}
                   </Text>
                   <VarsityBadge visible={member.is_varsity} />
@@ -208,14 +205,20 @@ export default function AdminLeagueDetail() {
               </Card>
             ))}
             <Card style={{ gap: 12 }}>
-              <Text accessibilityRole="header" style={ui.label}>
+              <Text accessibilityRole="header" style={ui.title}>
                 All teams
               </Text>
-              {teams?.map((team) => (
-                <Text key={team.id} style={ui.body}>
-                  {team.name} · {team.owner_name}
-                </Text>
-              ))}
+              <AdminTable
+                label="All teams"
+                columns={[
+                  { label: 'Team Name', width: 230 },
+                  { label: 'Manager', width: 220 },
+                ]}
+                rows={(teams ?? []).map((team) => ({
+                  id: team.id,
+                  cells: [team.name, team.owner_name],
+                }))}
+              />
             </Card>
           </View>
         ) : null}
@@ -240,76 +243,89 @@ export default function AdminLeagueDetail() {
             {roster.data?.length === 0 ? (
               <EmptyState title="Roster is empty" body="This team has no current saved athletes." />
             ) : null}
-            {roster.data?.map((entry) => (
-              <Card key={entry.id} style={{ gap: 8 }}>
-                <Text accessibilityRole="header" style={ui.label}>
-                  {entry.display_name}
-                  {entry.jersey_number ? ` · #${entry.jersey_number}` : ''}
-                </Text>
-                <Text style={ui.body}>
-                  {entry.program_name} · {positionLabel(entry.position)} ·{' '}
-                  {rosterSlotLabel(entry.slot_code, league?.roster_format === 'varsity')}
-                </Text>
-                <Pill
-                  label={
-                    entry.status === 'injured_reserve'
-                      ? 'Injured reserve'
-                      : entry.status === 'starter'
-                        ? 'Starter'
-                        : 'Bench'
-                  }
-                />
-              </Card>
-            ))}
+            {['starter', 'bench', 'injured_reserve'].map((status) => {
+              const entries =
+                roster.data?.filter((entry) =>
+                  status === 'bench'
+                    ? !['starter', 'injured_reserve'].includes(entry.status)
+                    : entry.status === status,
+                ) ?? [];
+              if (!entries.length) return null;
+              return (
+                <Card key={status} style={{ gap: 12 }}>
+                  <Text accessibilityRole="header" style={ui.title}>
+                    {status === 'starter'
+                      ? 'Starters'
+                      : status === 'bench'
+                        ? 'Bench'
+                        : 'Injured reserve'}
+                  </Text>
+                  <AdminTable
+                    label={`${status} roster`}
+                    columns={[
+                      { label: 'Athlete', width: 250 },
+                      { label: 'Program', width: 190 },
+                      { label: 'Position', width: 170 },
+                      { label: 'Lineup slot', width: 200 },
+                    ]}
+                    rows={entries.map((entry) => ({
+                      id: entry.id,
+                      cells: [
+                        <View
+                          key="athlete"
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+                        >
+                          <DraftPlayerPhoto
+                            player={{ displayName: entry.display_name, bio: entry.bio ?? {} }}
+                          />
+                          <Text style={ui.body}>
+                            {entry.display_name}
+                            {entry.jersey_number ? ` #${entry.jersey_number}` : ''}
+                          </Text>
+                        </View>,
+                        entry.program_name,
+                        positionLabel(entry.position),
+                        rosterSlotLabel(entry.slot_code, league?.roster_format === 'varsity'),
+                      ],
+                    }))}
+                  />
+                </Card>
+              );
+            })}
           </View>
         ) : null}
         {snapshot.data && section === 'standings' ? (
           snapshot.data.items.length ? (
             <Card>
-              <ScrollView horizontal accessibilityLabel="League standings">
-                <View>
-                  <View style={{ flexDirection: 'row' }}>
-                    {[
-                      'Rank',
-                      'Team',
-                      'W',
-                      'L',
-                      'T',
-                      'Points for',
-                      'Points against',
-                      'Standing points',
-                    ].map((label, index) => (
-                      <Text
-                        key={label}
-                        style={[ui.label, { width: index === 1 ? 200 : 110, padding: 10 }]}
-                      >
-                        {label}
-                      </Text>
-                    ))}
-                  </View>
-                  {(snapshot.data.items as AdminLeagueStanding[]).map((row) => (
-                    <View key={row.fantasy_team_id} style={{ flexDirection: 'row' }}>
-                      {[
-                        row.rank,
-                        teamNames.get(row.fantasy_team_id) ?? 'Unavailable team',
-                        row.wins,
-                        row.losses,
-                        row.ties,
-                        row.points_for,
-                        row.points_against,
-                        row.standing_points,
-                      ].map((value, index) => (
-                        <Text
-                          key={index}
-                          style={[ui.body, { width: index === 1 ? 200 : 110, padding: 10 }]}
-                        >
-                          {value}
-                        </Text>
-                      ))}
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
+              <AdminTable
+                label="League standings"
+                columns={[
+                  'Rank',
+                  'Team',
+                  'W',
+                  'L',
+                  'T',
+                  'Points for',
+                  'Points against',
+                  'Standing points',
+                ].map((label, index) => ({
+                  label,
+                  width: index === 1 ? 230 : index === 7 ? 180 : 130,
+                }))}
+                rows={(snapshot.data.items as AdminLeagueStanding[]).map((row) => ({
+                  id: row.fantasy_team_id,
+                  cells: [
+                    row.rank,
+                    teamNames.get(row.fantasy_team_id) ?? 'Unavailable team',
+                    row.wins,
+                    row.losses,
+                    row.ties,
+                    row.points_for,
+                    row.points_against,
+                    row.standing_points,
+                  ],
+                }))}
+              />
             </Card>
           ) : (
             <EmptyState
@@ -326,22 +342,39 @@ export default function AdminLeagueDetail() {
                 body="No matchup schedule has been saved for this league."
               />
             ) : null}
-            {(snapshot.data.items as AdminLeagueMatchup[]).map((matchup) => (
-              <Card key={matchup.id} style={{ gap: 9 }}>
-                <Text accessibilityRole="header" style={ui.label}>
-                  Period {matchup.period} ·{' '}
-                  {teamNames.get(matchup.home_team_id) ?? 'Unavailable team'} vs{' '}
-                  {teamNames.get(matchup.away_team_id) ?? 'Unavailable team'}
-                </Text>
-                <Text style={ui.body}>
-                  {adminDate(matchup.starts_at)} – {adminDate(matchup.ends_at)}
-                </Text>
-                <Text style={ui.body}>
-                  Score: {matchup.home_points} – {matchup.away_points} · {matchup.status}
-                  {matchup.stage ? ` · ${matchup.stage}` : ''}
-                </Text>
-              </Card>
-            ))}
+            {groupLeagueMatchups(snapshot.data.items as AdminLeagueMatchup[]).map(
+              ([period, matchups]) => (
+                <Card key={period} style={{ gap: 12 }}>
+                  <Text accessibilityRole="header" style={ui.title}>
+                    Period {period}
+                  </Text>
+                  <Text style={ui.body}>
+                    {adminDate(matchups[0]?.starts_at ?? null)} –{' '}
+                    {adminDate(matchups[0]?.ends_at ?? null)}
+                  </Text>
+                  <AdminTable
+                    label={`Period ${period} matchups`}
+                    columns={[
+                      { label: 'Home team', width: 230 },
+                      { label: 'Score', width: 150 },
+                      { label: 'Away team', width: 230 },
+                      { label: 'Status', width: 150 },
+                      { label: 'Stage', width: 150 },
+                    ]}
+                    rows={matchups.map((matchup) => ({
+                      id: matchup.id,
+                      cells: [
+                        teamNames.get(matchup.home_team_id) ?? 'Unavailable team',
+                        `${matchup.home_points} – ${matchup.away_points}`,
+                        teamNames.get(matchup.away_team_id) ?? 'Unavailable team',
+                        matchup.status.replaceAll('_', ' '),
+                        matchup.stage || '—',
+                      ],
+                    }))}
+                  />
+                </Card>
+              ),
+            )}
           </View>
         ) : null}
         {section === 'chat' && snapshot.data ? (

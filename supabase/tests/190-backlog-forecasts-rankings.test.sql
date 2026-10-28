@@ -19,7 +19,7 @@ insert into public.fantasy_teams(id,league_id,owner_id,name) select pg_temp.b_id
 insert into public.roster_entries(league_id,fantasy_team_id,athlete_id,slot_code,status,acquisition_type)
 select pg_temp.b_id('league'),pg_temp.b_id('team'||n),pg_temp.b_id('athlete'||n),'HK_F','starter','draft' from generate_series(1,2)n;
 
-update public.player_pools set is_active=true where id='b0000000-0000-4000-8000-000000000003';
+update public.player_pools set is_active=true,rankings_approved_at=now() where id='b0000000-0000-4000-8000-000000000003';
 insert into public.pool_competitions(pool_id,competition_id) values('b0000000-0000-4000-8000-000000000003',pg_temp.b_id('competition'));
 insert into public.athlete_season_summaries(athlete_id,season_label,source,fantasy_points,games_played,kind)
 select pg_temp.b_id('athlete'||n),'2026-27','backlog fixture',case when n<3 then 100 else null end,20,'supplied_projection' from generate_series(1,3)n;

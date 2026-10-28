@@ -34,6 +34,13 @@ const tables = new Set([
   'waiver_claims',
 ]);
 const readRpc = new Set([
+  'admin_get_operations',
+  'admin_get_operations_summary',
+  'admin_list_leagues_filtered',
+  'admin_get_ranking_seasons',
+  'admin_get_ranking_review',
+  'admin_list_participant_requests',
+  'get_my_participant_request',
   'admin_get_league_summary',
   'admin_list_leagues',
   'admin_get_league_section',

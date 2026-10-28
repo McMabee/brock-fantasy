@@ -17,6 +17,12 @@ export interface ParticipantReference {
   sources: { file: string; rowNumber: number; title: string | null; supportingStaff: boolean }[];
 }
 export interface ParticipantMatch {
+  confirmation_request?: {
+    id: string;
+    status: string;
+    created_at: string;
+    delivery_status: string | null;
+  } | null;
   id: string;
   user_id: string;
   reference_id: string;
@@ -49,6 +55,7 @@ export interface ParticipantScanRun {
   result_count: number;
 }
 export interface ParticipantScanSnapshot {
+  confirmationEnabled?: boolean;
   enabled: boolean;
   activeReferenceVersionId: string | null;
   history: ParticipantScanRun[];

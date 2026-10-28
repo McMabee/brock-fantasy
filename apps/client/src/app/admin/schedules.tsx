@@ -1,5 +1,7 @@
+import { VARSITY_PROGRAMS, type VarsityProgram } from '@brock-fantasy/domain';
+import { AdminDateInput, AdminPanel, AdminToggle, adminMultiline } from '@/components/admin-ui';
 import { newCommandKey } from '../../lib/command-key';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { torontoDateFields, torontoDateTime } from '@brock-fantasy/domain';
 import {
@@ -54,6 +56,11 @@ export default function ScheduleReviewScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [search, setSearch] = useState('');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [programs, setPrograms] = useState<VarsityProgram[]>([]);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [page, setPage] = useState(0);
   const load = useCallback(async () => {
     if (!access.allowed) return;
     const result = await betaCommand<ReviewData>('get_schedule_review', {});
@@ -63,15 +70,35 @@ export default function ScheduleReviewScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+  const invalidRange = Boolean(from && to && from > to);
+  const filtered = useMemo(() => {
+    const normalize = (value: string) =>
+      value
+        .normalize('NFKD')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/gu, '');
+    const needle = normalize(search);
+    return (data?.games ?? []).filter((game) => {
+      const day = torontoDateFields(game.starts_at).date;
+      return (
+        !invalidRange &&
+        (showAll || !game.schedule_confirmed || game.schedule_override) &&
+        (!programs.length || programs.includes(game.program as VarsityProgram)) &&
+        (!from || day >= from) &&
+        (!to || day <= to) &&
+        (!needle ||
+          normalize(
+            `${VARSITY_PROGRAMS[game.program as VarsityProgram] ?? game.program} ${game.home} ${game.away} ${day}`,
+          ).includes(needle))
+      );
+    });
+  }, [data, showAll, programs, from, to, search, invalidRange]);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(filtered.length / 25) - 1));
   if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
     <AppShell eyebrow="Administrator, MFA required" title="Schedule confirmation and overrides">
       <View style={{ gap: 20 }}>
-        <Text style={ui.body}>
-          Official changes apply immediately. Review pending fixtures below. Overrides persist
-          through automatic syncs until explicitly cleared. Started-game timing and recorded points
-          are protected.
-        </Text>
+        <ActionButton label="Back to Operations Centre" href="/admin" variant="secondary" />
         <ActionButton
           label="Refresh schedule reviews"
           onPress={() => void load()}
@@ -120,46 +147,118 @@ export default function ScheduleReviewScreen() {
               accessibilityLabel="Find schedule fixture"
               placeholder="Filter by program, opponent or date"
               value={search}
-              onChangeText={setSearch}
+              onChangeText={(value) => {
+                setSearch(value);
+                setPage(0);
+              }}
               style={ui.input}
             />
-            <ActionButton
-              label={
-                showAll
-                  ? 'Show pending confirmations and overrides'
-                  : 'Show all fixtures to override'
-              }
-              variant="secondary"
-              onPress={() => setShowAll((current) => !current)}
-            />
+            <ActionButton label="Filter" variant="secondary" onPress={() => setFilterOpen(true)} />
+            <AdminPanel
+              title="Schedule filters"
+              open={filterOpen}
+              onClose={() => setFilterOpen(false)}
+            >
+              <Text style={ui.title}>Programs</Text>
+              {Object.entries(VARSITY_PROGRAMS).map(([program, label]) => (
+                <AdminToggle
+                  key={program}
+                  label={label}
+                  selected={programs.includes(program as VarsityProgram)}
+                  onPress={() => {
+                    setPrograms((current) =>
+                      current.includes(program as VarsityProgram)
+                        ? current.filter((value) => value !== program)
+                        : [...current, program as VarsityProgram],
+                    );
+                    setPage(0);
+                  }}
+                />
+              ))}
+              <AdminDateInput
+                label="From date"
+                value={from}
+                onChange={(value) => {
+                  setFrom(value);
+                  setPage(0);
+                }}
+              />
+              <AdminDateInput
+                label="To date"
+                value={to}
+                onChange={(value) => {
+                  setTo(value);
+                  setPage(0);
+                }}
+              />
+              {invalidRange ? (
+                <Text accessibilityRole="alert" style={ui.body}>
+                  The From date must be on or before the To date.
+                </Text>
+              ) : null}
+              <AdminToggle
+                label="Needs review"
+                selected={!showAll}
+                onPress={() => {
+                  setShowAll(!showAll);
+                  setPage(0);
+                }}
+              />
+              <ActionButton
+                label="Clear filters"
+                variant="secondary"
+                onPress={() => {
+                  setPrograms([]);
+                  setFrom('');
+                  setTo('');
+                  setShowAll(false);
+                  setPage(0);
+                }}
+              />
+              <ActionButton
+                label="Done"
+                onPress={() => setFilterOpen(false)}
+                disabled={invalidRange}
+              />
+            </AdminPanel>
             <SectionTitle
-              title="Pending confirmations and pinned overrides"
-              detail={`${data.games.filter((game) => !game.schedule_confirmed || game.schedule_override).length} need review, ${data.games.length} total fixtures`}
+              title={showAll ? 'Schedule fixtures' : 'Pending confirmations and pinned overrides'}
+              detail={`${filtered.length} matching fixtures, ${data.games.length} total fixtures`}
             />
             <View style={{ gap: 18 }}>
-              {data.games
-                .filter(
-                  (game) =>
-                    (showAll || !game.schedule_confirmed || game.schedule_override) &&
-                    `${game.program} ${game.home} ${game.away} ${game.starts_at}`
-                      .toLowerCase()
-                      .includes(search.trim().toLowerCase()),
-                )
-                .slice(0, 100)
-                .map((game) => (
-                  <ScheduleReview
-                    key={`${game.id}:${game.schedule_revision}`}
-                    game={game}
-                    onSaved={load}
-                  />
-                ))}
+              {filtered.slice(currentPage * 25, (currentPage + 1) * 25).map((game) => (
+                <ScheduleReview
+                  key={`${game.id}:${game.schedule_revision}`}
+                  game={game}
+                  onSaved={load}
+                />
+              ))}
+            </View>
+            {!filtered.length ? (
+              <Text style={ui.body}>No fixtures match your search and filters.</Text>
+            ) : null}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+              <Text style={ui.body}>
+                Page {currentPage + 1} of {Math.max(1, Math.ceil(filtered.length / 25))}
+              </Text>
+              <ActionButton
+                label="Previous fixtures"
+                variant="secondary"
+                disabled={currentPage === 0}
+                onPress={() => setPage(currentPage - 1)}
+              />
+              <ActionButton
+                label="Next fixtures"
+                variant="secondary"
+                disabled={(currentPage + 1) * 25 >= filtered.length}
+                onPress={() => setPage(currentPage + 1)}
+              />
             </View>
             {!data.games.some((game) => !game.schedule_confirmed || game.schedule_override) ? (
               <Text style={ui.body}>All schedules are confirmed and no overrides are pinned</Text>
             ) : null}
           </>
         )}
-        <ActionButton label="Back to operations" href="/admin" variant="ghost" />
       </View>
     </AppShell>
   );
@@ -317,7 +416,7 @@ function ScheduleReview({ game, onSaved }: { game: ReviewGame; onSaved: () => Pr
         placeholder="Reason and verification evidence"
         maxLength={500}
         multiline
-        style={ui.input}
+        style={[ui.input, adminMultiline]}
       />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <ActionButton

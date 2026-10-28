@@ -167,7 +167,28 @@ corrections; do not reset drafts, memberships, rosters or scoring to roll back s
   change; the broader import suite also has missing private source fixtures and an
   existing official-schedule assertion failure
 
-The supplied-file preview contains 154 separate references and five duplicate-name
-groups. It has not been published. Reviewed identity mappings and the retained
-suppression file remain inputs to the first real import. No hosted migration,
-reference publication, deployment, enablement or commit was performed.
+At the end of the initial implementation, the supplied-file preview contained 154
+separate references and five duplicate-name groups. Hosted publication and release
+work had not yet been performed
+
+## Production rollout on October 27, 2026
+
+- Production already serves the participant-scan commit `648bb41` and subsequent league-explorer commit `1380784`
+- Migration `20261027162933_shared_participant_scans.sql` is applied, including the independent hourly cleanup schedule
+- The original two-athlete suppression inventory was recovered from the protected October 8 publication manifest and supplied explicitly to the importer
+- All 154 references are published with preview hash `ce8049126df85d6d53f0497b06918e465d9559a7b3ac7ff9e6958c6a52be8524`
+- The five duplicate-name groups remain separate under the documented default, with no inferred identity merges
+- Hosted security advisors report no errors
+- A transaction-only hosted database-role rehearsal verifies shared results between two admin identities, shared dismissal and undo, and a scan duration of approximately 57 ms
+- Every rehearsal write, including temporary scan activation and review events, was rolled back
+- The participant directory and manual correction tools have their hosted database support available
+- The user confirmed that the production admin views load, and scans are enabled for the live shared acceptance test
+- Activation was verified in a separate hosted query and recorded in the audit log
+- The genuine two-admin browser scan/review journey remains pending, distinct from the completed database-role rehearsal
+- Detailed receipts and reference evidence remain in protected local storage rather than Git or browser output
+
+## Participant confirmation requests
+
+The October 28 admin centre changes add per-account confirmation email requests and a shared Requests view. Recipients sign in to the focused confirmation page, submit their role/programs for review, and remain unclassified until an MFA administrator approves the exact reply. Approved Neither replies dismiss only the linked suggestion
+
+Requests expire after seven days and share a per-account 24-hour send limit across administrators. The new release gate is installed disabled. See [admin centre improvements](admin-centre-improvements.md) for retention, concurrency, mail dispatch, and hosted acceptance details

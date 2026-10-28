@@ -326,6 +326,14 @@ try {
     databaseContainer: container,
     executeSql: (input) => sql(db, input),
   });
+  if (process.env.BROCK_TEST_ADMIN_CENTRE_CONCURRENCY === '1') {
+    const { verifyParticipantRequestConcurrency } =
+      await import('./lib/participant-request-concurrency-local.mjs');
+    await verifyParticipantRequestConcurrency({
+      database: db,
+      executeSql: (input) => sql(db, input),
+    });
+  }
   if (process.env.BROCK_TEST_PARTICIPANT_SCANS === '1') {
     const scanDatabase = await scaffold('participant_scans');
     await migrate(scanDatabase, migrations);

@@ -11,12 +11,13 @@ import {
   Pill,
   useUiStyles,
 } from '@/components/ui';
-import { LeagueChoices, LeagueFact, LeagueRefresh } from '@/components/admin-league-ui';
+import { LeagueMultiChoices, LeagueFact, LeagueRefresh } from '@/components/admin-league-ui';
 import { useRequireAdmin } from '@/hooks/use-route-access';
 import { useAdminLeagueRead } from '@/hooks/use-admin-leagues';
 import { adminLeaguePath } from '@/lib/admin-navigation';
 import {
   adminDate,
+  leagueFilterValues,
   LEAGUE_STATUS_FILTERS,
   LEAGUE_STATUS_LABELS,
   type AdminLeaguePage,
@@ -34,8 +35,10 @@ export default function AdminLeagueDirectory() {
   const router = useRouter();
   const ui = useUiStyles();
   const colors = useThemeColors();
-  const season = typeof params.season === 'string' ? params.season : 'current';
-  const status = LEAGUE_STATUS_FILTERS.find((value) => value === params.status) ?? 'open';
+  const season = params.season ?? 'current';
+  const status = params.status ?? 'open';
+  const seasons = leagueFilterValues(params.season, 'current');
+  const statuses = leagueFilterValues(params.status, 'open');
   const query = typeof params.q === 'string' ? params.q.slice(0, 320) : '';
   const [draft, setDraft] = useState(query);
   useEffect(() => setDraft(query), [query]);
@@ -47,10 +50,10 @@ export default function AdminLeagueDirectory() {
     () => setDeniedScope(readScope),
   );
   const page = useAdminLeagueRead<AdminLeaguePage>(
-    'admin_list_leagues',
+    'admin_list_leagues_filtered',
     {
-      p_season: season,
-      p_status: status,
+      p_seasons: seasons,
+      p_statuses: statuses,
       p_query: query,
       p_before_at: params.beforeAt ?? null,
       p_before_id: params.beforeId ?? null,
@@ -74,39 +77,30 @@ export default function AdminLeagueDirectory() {
       />
     );
   return (
-    <AppShell
-      eyebrow="Operations centre"
-      title="League directory"
-      action={<Pill label="ADMIN VIEW · READ ONLY" tone="warning" />}
-    >
+    <AppShell eyebrow="Operations centre" title="League directory">
       <View style={{ gap: 18 }}>
-        <ActionButton label="Operations centre" href="/admin" variant="secondary" />
+        <ActionButton label="Back to Operations Centre" href="/admin" variant="secondary" />
         <Card style={{ gap: 18 }}>
-          <Text style={ui.body}>
-            Open leagues · {summary.data?.currentSeasonLabel ?? 'No current season'}
-            {summary.data ? ` · ${summary.data.openCount} registered` : ''}
-          </Text>
           {summary.error ? (
             <Text accessibilityRole="alert" style={ui.body}>
               {summary.error}
             </Text>
           ) : null}
-          <LeagueChoices
+          <LeagueMultiChoices
             label="Season"
-            selected={season}
-            onSelect={(value) => change({ season: value })}
+            selected={seasons}
+            onChange={(values) => change({ season: values.join(',') || 'all' })}
             choices={[
               { value: 'current', label: 'Current' },
               { value: 'previous', label: 'Previous' },
-              { value: 'all', label: 'All seasons' },
               ...(summary.data?.seasons ?? []).map((label) => ({ value: label, label })),
             ]}
           />
-          <LeagueChoices
+          <LeagueMultiChoices
             label="Status"
-            selected={status}
-            onSelect={(value) => change({ status: value })}
-            choices={LEAGUE_STATUS_FILTERS.map((value) => ({
+            selected={statuses}
+            onChange={(values) => change({ status: values.join(',') || 'all' })}
+            choices={LEAGUE_STATUS_FILTERS.filter((value) => value !== 'all').map((value) => ({
               value,
               label: LEAGUE_STATUS_LABELS[value]!,
             }))}
@@ -139,6 +133,11 @@ export default function AdminLeagueDirectory() {
         </Card>
         <LeagueRefresh
           {...page}
+          summary={
+            page.data
+              ? `Showing ${page.data.filteredCount} of ${page.data.totalCount} total leagues`
+              : undefined
+          }
           refresh={async () => {
             await Promise.all([page.refresh(), summary.refresh()]);
           }}
