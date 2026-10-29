@@ -253,7 +253,7 @@ function PreferencesEditor({ leagueId }: { leagueId: string }) {
       </Card>
       <SectionTitle title="Add preferences" />
       <TextInput
-        style={ui.input}
+        style={[ui.input, { marginBottom: 16 }]}
         accessibilityLabel="Search athletes for private rankings"
         value={search}
         onChangeText={setSearch}
