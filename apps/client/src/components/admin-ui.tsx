@@ -142,13 +142,16 @@ export function AdminTable({
   label,
   columns,
   rows,
+  centered = false,
 }: {
   label: string;
-  columns: readonly { label: string; width?: number }[];
+  columns: readonly { label: string; width?: number; align?: 'left' | 'center' | 'right' }[];
   rows: readonly { id: string; cells: readonly ReactNode[] }[];
+  centered?: boolean;
 }) {
   const colors = useThemeColors();
   const ui = useUiStyles();
+  const tableWidth = columns.reduce((sum, col) => sum + (col.width ?? 130), 0);
   return (
     <ScrollView
       horizontal
@@ -156,13 +159,14 @@ export function AdminTable({
       tabIndex={0}
       accessibilityLabel={label}
       style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}
+      contentContainerStyle={centered ? { flexGrow: 1, justifyContent: 'center' } : undefined}
     >
       {Platform.OS === 'web' ? (
         <table
           aria-label={label}
           style={{
-            width: '100%',
-            minWidth: columns.reduce((sum, col) => sum + (col.width ?? 130), 0),
+            width: centered ? tableWidth : '100%',
+            minWidth: tableWidth,
             borderCollapse: 'collapse',
             color: colors.text,
             fontFamily: 'Inter',
@@ -178,7 +182,7 @@ export function AdminTable({
                   style={{
                     minWidth: col.width ?? 130,
                     padding: '12px 10px',
-                    textAlign: 'left',
+                    textAlign: col.align ?? 'left',
                     whiteSpace: 'nowrap',
                     fontSize: 13,
                     borderBottom: `1px solid ${colors.border}`,
@@ -198,6 +202,7 @@ export function AdminTable({
                     style={{
                       padding: '14px 10px',
                       verticalAlign: 'top',
+                      textAlign: columns[index]?.align ?? 'left',
                       borderBottom: `1px solid ${colors.border}`,
                     }}
                   >

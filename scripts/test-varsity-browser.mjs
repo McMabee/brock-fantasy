@@ -769,6 +769,23 @@ try {
       await upcoming.getByText('LIVE · vs. Live Opponents', { exact: true }).waitFor();
       await upcoming.getByText('@ Next Opponents', { exact: true }).waitFor();
       const text = await upcoming.innerText();
+      assert.ok(['🏒', '🏀', '🏐'].every((icon) => text.includes(icon)));
+      if (width === 1440) {
+        await expect
+          .poll(
+            async () => {
+              const tableBox = await upcoming.boundingBox();
+              const regionBox = await page
+                .getByRole('region', { name: 'Upcoming Brock games', exact: true })
+                .boundingBox();
+              return Math.abs(tableBox.x + tableBox.width / 2 - regionBox.x - regionBox.width / 2);
+            },
+            {
+              message: 'The fixture table is horizontally centered after responsive layout settles',
+            },
+          )
+          .toBeLessThan(2);
+      }
       assert.ok(
         text.includes('EDT') && text.includes('EST'),
         'Toronto formatting handles both sides of the daylight-saving change',
@@ -1290,11 +1307,18 @@ try {
     );
     for (const width of [320, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
-      const draftCard = await cardBounds(summary);
-      const deletionCard = await cardBounds(
-        page.getByText('Delete league', { exact: true }).first(),
-      );
-      assert.ok(Math.abs(draftCard.width - deletionCard.width) < 2, 'Commissioner cards align');
+      await expect
+        .poll(
+          async () => {
+            const draftCard = await cardBounds(summary);
+            const deletionCard = await cardBounds(
+              page.getByText('Delete league', { exact: true }).first(),
+            );
+            return Math.abs(draftCard.width - deletionCard.width);
+          },
+          { message: 'Commissioner cards align after responsive layout settles' },
+        )
+        .toBeLessThan(2);
       await assertNoOverflow(page);
       await page.getByText('Delete league', { exact: true }).first().scrollIntoViewIfNeeded();
       await page.screenshot({

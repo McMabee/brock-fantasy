@@ -409,6 +409,66 @@ try {
     [],
   );
   checks += 5;
+  for (const theme of ['light', 'dark']) {
+    await flowContext.addCookies([
+      { name: 'bf_consent', value: 'v1.preferences', url: appOrigin },
+      { name: 'bf_theme', value: theme, url: appOrigin },
+    ]);
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(appOrigin + '/rules?section=draft');
+      const live = page.getByText('Live snake draft', { exact: true }).locator('..');
+      const automatic = page.getByText('Scheduled automatic draft', { exact: true }).locator('..');
+      const general = page.getByText('General draft rules', { exact: true }).locator('..');
+      await automatic.waitFor();
+      const [left, right, bottom] = await Promise.all([
+        live.boundingBox(),
+        automatic.boundingBox(),
+        general.boundingBox(),
+      ]);
+      if (width === 1440) {
+        assert.ok(
+          Math.abs(left.y - right.y) < 2 && right.x >= left.x + left.width,
+          'Live and automatic draft rules occupy separate side-by-side cards',
+        );
+      } else {
+        assert.ok(right.y >= left.y + left.height, 'Draft modes stack on phones');
+      }
+      assert.ok(
+        bottom.y >= Math.max(left.y + left.height, right.y + right.height),
+        'Shared draft rules appear below both mode explanations',
+      );
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      await page.evaluate(async () => {
+        await Promise.all(
+          document
+            .getAnimations()
+            .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+            .map((animation) => animation.finished.catch(() => {})),
+        );
+      });
+      const draftAudit = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+        .analyze();
+      assert.deepEqual(
+        draftAudit.violations.map((item) => item.id),
+        [],
+        JSON.stringify({
+          theme,
+          width,
+          violations: draftAudit.violations.map((item) => ({
+            id: item.id,
+            nodes: item.nodes.map((node) => ({ html: node.html, summary: node.failureSummary })),
+          })),
+        }),
+      );
+      await page.screenshot({
+        path: path.join(output, `draft-rules-${theme}-${width}.png`),
+        fullPage: true,
+      });
+      checks++;
+    }
+  }
   console.log(
     `PASS ${checks} cookie, keyboard, spacing, privacy, contact and preference assertions with accessibility scans`,
   );

@@ -175,57 +175,82 @@ export default function RulesScreen() {
           </Card>
         ) : null}
         {selected === 'draft' ? (
-          <Card style={styles.article}>
-            <RulesHeading title="Ten rounds of a snake draft" />
-            <Paragraph title="Draft order">
-              The starting order is randomized once. Each round reverses that order: in a four-team
-              league, round one goes 1 → 2 → 3 → 4 and round two goes 4 → 3 → 2 → 1. Ten rounds give
-              each manager ten athletes.
-            </Paragraph>
-            <Paragraph title="Your turn">
-              Each pick defaults to two minutes. Before the draft starts, the commissioner can save
-              a different pick timer with a minimum of 20 seconds. In Live draft mode, the
-              commissioner starts the draft and can pause or resume it. Its planned time is a
-              reminder.
-            </Paragraph>
-            <View style={{ gap: 14 }}>
-              <Paragraph title="Scheduled automatic draft">
-                Your commissioner selects this mode and a future start time. The league must have
-                all manager seats filled and an approved player pool with reviewed rankings. Save
-                your private draft rankings before the scheduled cutoff; editing closes at that
-                time. Other managers and your commissioner cannot see your choices.
-              </Paragraph>
-              <Text style={styles.body}>
-                The system starts at or shortly after the scheduled time and completes ten rounds in
-                snake order. For each pick, it takes your first available preference that lets every
-                team finish with a legal roster. If your list is empty or has no legal choice, it
-                takes the highest-ranked legal athlete from the approved defaults. You do not need
-                to be online, and there is no manual picking in this mode.
-              </Text>
-              <Text style={styles.body}>
-                If setup requirements are not met, the league shows a blocked reason and the
-                commissioner must resolve it and reschedule. If no legal pick remains during the
-                draft, it pauses for commissioner review. Progress may appear in batches while the
-                system processes picks.
-              </Text>
+          <View style={{ gap: 20 }}>
+            <View
+              style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: 20 }}
+            >
+              <Card
+                style={[
+                  styles.article,
+                  { flexBasis: 360, flexGrow: 1, flexShrink: 1, minWidth: 0, marginBottom: 0 },
+                ]}
+              >
+                <RulesHeading title="Live snake draft" />
+                <Paragraph title="Draft order">
+                  The starting order is randomized once. Each round reverses that order: in a
+                  four-team league, round one goes 1 → 2 → 3 → 4 and round two goes 4 → 3 → 2 → 1.
+                </Paragraph>
+                <Paragraph title="Your turn">
+                  Each pick defaults to two minutes. Before the draft starts, the commissioner can
+                  save a different pick timer with a minimum of 20 seconds. The commissioner starts
+                  the live draft and can pause or resume it. Its planned time is a reminder.
+                </Paragraph>
+                <Paragraph title="Queues and timer expiry">
+                  Put your preferred athletes in your live draft queue. If your timer expires, the
+                  system takes your first available legal queued athlete. With no legal queued
+                  choice, it uses a weighted choice among the top five ranked legal athletes,
+                  favouring higher ranks. An automatic pick may happen shortly after the timer
+                  reaches zero.
+                </Paragraph>
+              </Card>
+              <Card
+                style={[
+                  styles.article,
+                  { flexBasis: 360, flexGrow: 1, flexShrink: 1, minWidth: 0, marginBottom: 0 },
+                ]}
+              >
+                <RulesHeading title="Scheduled automatic draft" />
+                <Paragraph title="Before the scheduled cutoff">
+                  Your commissioner selects this mode and a future start time. All manager seats
+                  must be filled, and the league needs an approved player pool with reviewed
+                  rankings. Save your private rankings before the scheduled cutoff; editing closes
+                  at that time. Other managers and your commissioner cannot see your choices.
+                </Paragraph>
+                <Paragraph title="How picks are made">
+                  At or shortly after the scheduled time, the system completes ten rounds in snake
+                  order. Each pick takes your first available preference that lets every team finish
+                  with a legal roster. If your list is empty or has no legal choice, it takes the
+                  highest-ranked legal athlete from the approved defaults. You do not need to be
+                  online, and there is no manual picking in this mode.
+                </Paragraph>
+                <Paragraph title="Blocked or paused drafts">
+                  If setup requirements are not met, the league shows a blocked reason. The
+                  commissioner must resolve it and reschedule. If no legal pick remains during the
+                  draft, it pauses for commissioner review. Progress may appear in batches while the
+                  system processes picks.
+                </Paragraph>
+              </Card>
             </View>
-            <Paragraph title="Live draft queues and automatic picks">
-              Put your preferred athletes in your queue. If your timer expires, the system takes
-              your first available legal queued athlete. With no legal queued choice, it uses a
-              weighted choice among the top five ranked legal athletes, favouring higher ranks. An
-              automatic pick may happen shortly after the timer reaches zero.
-            </Paragraph>
-            <Paragraph title="Why a player may be unavailable">
-              A player may already be drafted, be ineligible, or leave you unable to complete all
-              seven starter slots with the remaining player pool. Draft choices must allow a legal
-              final roster; bench spots do not remove the need to fill every starter position.
-            </Paragraph>
-            <Paragraph title="After the final pick">
-              The draft room closes. Open your league’s Settings tab and select Draft results to
-              view every recorded pick, then review your lineup.
-            </Paragraph>
-            <RulesLink section="roster" label="Check roster requirements before drafting" />
-          </Card>
+            <Card style={styles.article}>
+              <RulesHeading title="General draft rules" />
+              <Paragraph title="Ten rounds, ten athletes">
+                Both draft modes give each manager ten athletes: seven starters and three bench
+                spots. An athlete can belong to only one fantasy team in your league. The same
+                athlete may be drafted independently in another league.
+              </Paragraph>
+              <Paragraph title="Legal picks and unavailable athletes">
+                A player may already be drafted, be ineligible, or leave you unable to complete all
+                seven starter slots with the remaining player pool. Every pick must allow a legal
+                final roster. Bench spots do not remove the need to fill every starter position.
+                Varsity athletes and coaches cannot acquire athletes from their own programs.
+              </Paragraph>
+              <Paragraph title="After the final pick">
+                The draft room closes. Open your league’s Settings tab and select Draft results to
+                view every recorded pick, then review and save your lineup.
+              </Paragraph>
+              <RulesLink section="roster" label="Check roster requirements before drafting" />
+            </Card>
+          </View>
         ) : null}
         {selected === 'lineup' ? (
           <Card style={styles.article}>

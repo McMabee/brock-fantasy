@@ -6,6 +6,8 @@ import { PendingConfirmation } from './player-insights';
 import { RANKING_SPORTS } from '@/lib/player-program';
 import type { ProgramGame, ProgramGames } from '@/hooks/use-program-games';
 
+const SPORT_ICONS = { hockey: '🏒', basketball: '🏀', volleyball: '🏐' } as const;
+
 export function ProgramGameCell({ games }: { games: ProgramGames | undefined }) {
   const ui = useUiStyles();
   const fixture = (game: ProgramGame, live: boolean) => (
@@ -48,15 +50,17 @@ export function UpcomingGames({
   competitions: readonly Competition[];
   games: Readonly<Record<string, ProgramGames>>;
 }) {
+  const ui = useUiStyles();
   // - Index programs once so each sport and division uses a constant time lookup
   const byProgram = new Map(competitions.map((item) => [`${item.sport}:${item.division}`, item]));
   return (
     <Card style={{ minWidth: 0, maxWidth: '100%' }}>
       <AdminTable
+        centered
         label="Upcoming Brock games"
         columns={[
           { label: 'Women’s', width: 270 },
-          { label: 'Sport', width: 140 },
+          { label: 'Sport', width: 140, align: 'center' },
           { label: 'Men’s', width: 270 },
         ]}
         rows={RANKING_SPORTS.map((sport) => {
@@ -66,7 +70,12 @@ export function UpcomingGames({
             id: sport.value,
             cells: [
               <ProgramGameCell key="women" games={women ? games[women.id] : undefined} />,
-              sport.label,
+              <View key="sport" style={{ gap: 8, alignItems: 'center' }}>
+                <Text accessible={false} style={{ fontSize: 28 }}>
+                  {SPORT_ICONS[sport.value]}
+                </Text>
+                <Text style={ui.label}>{sport.label}</Text>
+              </View>,
               <ProgramGameCell key="men" games={men ? games[men.id] : undefined} />,
             ],
           };
