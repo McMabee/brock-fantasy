@@ -46,9 +46,11 @@ intercepted public test endpoint and clears Metro's cache so local verification 
 depend on cached deployment values or private environment files. Ordinary `build:web`
 continues to use the existing local or hosted configuration rules.
 
-Vercel's connected tool denied access to team `ty-mabees-projects`. No hosted preview or
-new Supabase resource was provisioned, and zero additional cost capacity was not established.
+Vercel team access was restored on 2026-10-29. Neither project has branch-specific
+preview variables, and Supabase has no separate Brock test project or preview branch.
+No hosted preview or new Supabase resource was provisioned, and zero additional cost capacity was not established.
 Hosted data-dependent acceptance remains pending under the agreed no-added-cost fallback.
+See [isolated feature previews](preview-environment.md) for the required configuration.
 
 Preview builds now require explicit app/site review origins and isolated Supabase targets.
 They reject live defaults; association maintenance cannot execute in preview deployments.

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import { pendingLineupChanges } from '../../apps/client/src/lib/lineup-recovery.ts';
 import { pairRankingRows } from '../../apps/client/src/lib/admin-rankings.ts';
@@ -52,7 +53,21 @@ test('preview deployments reject live defaults and require isolated explicit ori
     VERCEL_ENV: 'preview',
     VERCEL_GIT_COMMIT_REF: 'feat/ui-policy-refresh',
   };
-  assert.throws(() => resolvePublicDeploymentConfig(preview), /isolated/u);
+  assert.throws(
+    () => resolvePublicDeploymentConfig(preview),
+    (error) => {
+      for (const name of [
+        'BROCK_PREVIEW_ISOLATED',
+        'EXPO_PUBLIC_APP_ENV',
+        'EXPO_PUBLIC_APP_ORIGIN',
+        'PUBLIC_REGISTRATION_ORIGIN',
+        'EXPO_PUBLIC_SUPABASE_URL',
+        'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+      ])
+        assert.match(error.message, new RegExp(name, 'u'));
+      return true;
+    },
+  );
   const isolated = {
     ...preview,
     BROCK_PREVIEW_ISOLATED: 'true',
@@ -66,20 +81,61 @@ test('preview deployments reject live defaults and require isolated explicit ori
     resolvePublicDeploymentConfig(isolated).EXPO_PUBLIC_APP_ORIGIN,
     isolated.EXPO_PUBLIC_APP_ORIGIN,
   );
-  assert.throws(
-    () =>
-      resolvePublicDeploymentConfig({
-        ...isolated,
+  for (const [name, value] of [
+    ['BROCK_PREVIEW_ISOLATED', 'false'],
+    ['EXPO_PUBLIC_APP_ENV', 'production'],
+    ['EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY', ''],
+    ['EXPO_PUBLIC_SUPABASE_URL', 'https://fdovowiihxowzatewxgv.supabase.co'],
+    ['EXPO_PUBLIC_SUPABASE_URL', 'https://database.invalid'],
+    ['EXPO_PUBLIC_APP_ORIGIN', 'https://beta.brockfantasy.ca'],
+    ['EXPO_PUBLIC_APP_ORIGIN', 'https://app-review.example.test/path'],
+    ['PUBLIC_REGISTRATION_ORIGIN', 'https://www.brockfantasy.ca'],
+    ['PUBLIC_REGISTRATION_ORIGIN', 'http://site-review.example.test'],
+    ['PUBLIC_REGISTRATION_ORIGIN', 'https://user:password@site-review.example.test'],
+    ['PUBLIC_REGISTRATION_ORIGIN', isolated.EXPO_PUBLIC_APP_ORIGIN],
+  ])
+    assert.throws(
+      () => resolvePublicDeploymentConfig({ ...isolated, [name]: value }),
+      new RegExp(name, 'u'),
+    );
+  const legacy = { ...isolated, EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: '' };
+  legacy.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'legacy-public-fixture';
+  assert.equal(
+    resolvePublicDeploymentConfig(legacy).EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    legacy.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  );
+});
+
+test('hosted build reports actionable preview requirements without configured values', () => {
+  const result = spawnSync(
+    process.execPath,
+    ['--experimental-strip-types', 'scripts/verify-web-build-config.mjs', '--build'],
+    {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        VERCEL: '1',
+        VERCEL_ENV: 'preview',
+        VERCEL_GIT_COMMIT_REF: 'feat/ui-policy-refresh',
+        BROCK_PREVIEW_ISOLATED: '',
+        EXPO_PUBLIC_APP_ENV: 'staging',
+        EXPO_PUBLIC_APP_ORIGIN: 'http://preview-origin-canary.invalid',
+        PUBLIC_REGISTRATION_ORIGIN: '',
         EXPO_PUBLIC_SUPABASE_URL: 'https://fdovowiihxowzatewxgv.supabase.co',
-      }),
-    /isolated/u,
+        EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_preview-canary',
+        SUPABASE_SECRET_KEY: 'sb_secret_private-canary',
+      },
+    },
   );
-  assert.throws(
-    () =>
-      resolvePublicDeploymentConfig({
-        ...isolated,
-        PUBLIC_REGISTRATION_ORIGIN: 'https://www.brockfantasy.ca',
-      }),
-    /isolated/u,
-  );
+  assert.notEqual(result.status, 0);
+  for (const name of [
+    'BROCK_PREVIEW_ISOLATED',
+    'EXPO_PUBLIC_APP_ORIGIN',
+    'PUBLIC_REGISTRATION_ORIGIN',
+    'EXPO_PUBLIC_SUPABASE_URL',
+    'docs/preview-environment.md',
+  ])
+    assert.ok(result.stderr.includes(name), name);
+  assert.doesNotMatch(result.stdout + result.stderr, /canary|fdovowiihxowzatewxgv/u);
+  assert.doesNotMatch(result.stdout, /Starting Metro Bundler/u);
 });

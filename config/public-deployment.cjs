@@ -28,20 +28,35 @@ exports.resolvePublicDeploymentConfig = (env) => {
         return false;
       }
     };
-    // - Fail before export or runtime requests can inherit the live project defaults
+    const issues = [];
+    if (env.BROCK_PREVIEW_ISOLATED !== 'true')
+      issues.push('BROCK_PREVIEW_ISOLATED must equal true');
+    if (!isolatedOrigin(origin))
+      issues.push('EXPO_PUBLIC_APP_ORIGIN must be an explicit HTTPS preview origin');
+    if (!isolatedOrigin(registration))
+      issues.push('PUBLIC_REGISTRATION_ORIGIN must be an explicit HTTPS preview origin');
+    if (origin && origin === registration)
+      issues.push('EXPO_PUBLIC_APP_ORIGIN and PUBLIC_REGISTRATION_ORIGIN must differ');
     if (
-      env.BROCK_PREVIEW_ISOLATED !== 'true' ||
-      !isolatedOrigin(origin) ||
-      !isolatedOrigin(registration) ||
-      origin === registration ||
       !database ||
       database === defaults.EXPO_PUBLIC_SUPABASE_URL ||
-      !/^https:\/\/[a-z]{20}\.supabase\.co$/u.test(database) ||
-      !(env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.EXPO_PUBLIC_SUPABASE_ANON_KEY) ||
-      env.EXPO_PUBLIC_APP_ENV !== 'staging'
+      !/^https:\/\/[a-z]{20}\.supabase\.co$/u.test(database)
     )
+      issues.push('EXPO_PUBLIC_SUPABASE_URL must identify a separate hosted Supabase project');
+    if (!(env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.EXPO_PUBLIC_SUPABASE_ANON_KEY))
+      issues.push(
+        'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY or EXPO_PUBLIC_SUPABASE_ANON_KEY is required',
+      );
+    if (env.EXPO_PUBLIC_APP_ENV !== 'staging')
+      issues.push('EXPO_PUBLIC_APP_ENV must equal staging');
+    // - Report configuration names without exposing supplied values or credentials
+    // - Fail before export or runtime requests can inherit the live project defaults
+    if (issues.length)
       throw new Error(
-        'Preview deployments require explicit isolated app, association and Supabase configuration',
+        'Preview deployments require explicit isolated app, association and Supabase configuration:\n' +
+          issues.map((issue) => `- ${issue}`).join('\n') +
+          '\nConfigure Preview variables for this Git branch and create a new deployment' +
+          '\nSee docs/preview-environment.md',
       );
   }
   const branch = env.VERCEL_GIT_COMMIT_REF;
