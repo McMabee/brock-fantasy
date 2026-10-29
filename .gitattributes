@@ -1,0 +1,2 @@
+# - Keep source formatting consistent across Windows and CI checkouts
+* text=auto eol=lf
