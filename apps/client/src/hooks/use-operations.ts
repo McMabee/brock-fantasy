@@ -4,6 +4,7 @@ import type { OperationsSummary } from '@/lib/admin-operations';
 export function useOperations(enabled = true) {
   const read = useAdminLeagueRead<OperationsSummary>('admin_get_operations_summary', {}, enabled);
   return {
+    available: Boolean(read.data),
     latestSync: read.data?.latestSync
       ? {
           provider: read.data.latestSync.provider,

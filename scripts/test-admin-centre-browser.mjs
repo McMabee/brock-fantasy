@@ -62,6 +62,7 @@ try {
       ]);
       let actor = 'admin',
         denied = false,
+        missingService = false,
         request = null,
         dismissed = false,
         loseSend = true,
@@ -379,6 +380,18 @@ try {
             args = route.request().postDataJSON();
           if (rpc === 'get_notification_snapshot') return reply({ items: [], unreadCount: 0 });
           if (denied) return reply({ message: 'Administrator MFA required', code: '42501' }, 403);
+          if (
+            missingService &&
+            [
+              'admin_get_operations_summary',
+              'admin_get_ranking_seasons',
+              'admin_get_ranking_review',
+            ].includes(rpc)
+          )
+            return reply(
+              { message: 'Function unavailable in schema cache', code: 'PGRST202' },
+              404,
+            );
           if (rpc === 'admin_get_operations_summary')
             return reply({
               unresolvedErrors: 1,
@@ -568,6 +581,39 @@ try {
         40,
       );
       await expect(page.getByText('ADMIN, MFA REQUIRED', { exact: true })).toHaveCount(0);
+      const metricBounds = await Promise.all(
+        [
+          'Leagues registered, view league directory',
+          'View Latest sync',
+          'View Ingestion alerts',
+          'View Failed recent runs',
+        ].map((label) => page.getByRole('link', { name: label, exact: true }).boundingBox()),
+      );
+      const healthBounds = await page
+        .getByRole('heading', { name: 'Sports data health', exact: true })
+        .boundingBox();
+      const statsGap =
+        healthBounds.y - Math.max(...metricBounds.map((bounds) => bounds.y + bounds.height));
+      assert.ok(statsGap >= 20 && statsGap <= 32, `${name}: stats/content gap is ${statsGap}px`);
+      for (const title of [
+        'Varsity participants',
+        'Game scores and player statistics',
+        'Advanced tools',
+      ]) {
+        const headingStyle = await page
+          .getByRole('heading', { name: title, exact: true })
+          .evaluate((element) => {
+            const style = globalThis.getComputedStyle(element);
+            return {
+              fontSize: Number.parseFloat(style.fontSize),
+              underline: Number.parseFloat(style.borderBottomWidth),
+            };
+          });
+        assert.ok(
+          headingStyle.fontSize >= 22 && headingStyle.underline >= 2,
+          `${name}: action heading ${title}`,
+        );
+      }
       await capture('dashboard');
       await page.getByRole('button', { name: 'View Participation updated 1', exact: true }).click();
       await expect(page.getByRole('dialog', { name: 'Audit event details' })).toBeVisible();
@@ -767,6 +813,24 @@ try {
       assert.equal(request.status, 'approved');
       assert.equal(dismissed, true);
       await page.keyboard.press('Escape');
+      missingService = true;
+      await page.goto(origin + '/admin');
+      await expect(visibleText('Operations data unavailable')).toBeVisible();
+      await expect(
+        page.getByRole('link', { name: 'View Ingestion alerts', exact: true }),
+      ).toContainText('—');
+      await expect(visibleText('No ingestion runs have been recorded.')).toHaveCount(0);
+      await capture('dashboard-unavailable');
+      await page.goto(origin + '/admin/rankings');
+      await expect(
+        visibleText(
+          'Admin data is temporarily unavailable while a service update is completed. Please try again shortly.',
+        ).first(),
+      ).toBeVisible();
+      await expect(visibleText('Historical rankings are view only.')).toHaveCount(0);
+      await expect(visibleText('Rankings unavailable')).toHaveCount(0);
+      await capture('rankings-unavailable');
+      missingService = false;
       denied = true;
       await page.goto(origin + '/admin/audit');
       await expect(page.getByRole('button', { name: /^View Participation updated/u })).toHaveCount(

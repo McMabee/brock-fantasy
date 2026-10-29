@@ -169,5 +169,48 @@ sign-in return, response, and audited approval
 Disable `participant_confirmation_enabled` before rolling back the email worker
 This stops new requests and makes queued/leased confirmation messages unsendable
 Keep the additive schema and approved participation corrections
-Commits, pushes, production migration/deployment, and real email sends are outside
-this implementation delivery
+The initial implementation delivery did not include commits, pushes, production
+migration/deployment, or real email sends
+
+## Production repair on October 28, 2026
+
+The client at `20f90f2` reached production before its three database migrations
+The resulting missing RPCs returned 404 responses for operations history, league
+filtering, and admin ranking review. Existing ranking records remained stored
+
+After separate release authorization, the three migrations were applied to
+`fdovowiihxowzatewxgv`, bringing migration history to 60 entries. A fresh encrypted
+backup was copied off-site, restored without cache, and checked by export hashes
+The snapshot was also restored into an isolated database and its integrity matched
+The restore harness now installs `pg_trgm` and `unaccent` before restoring indexes
+
+Hosted read acceptance returned 15 leagues, 40 recent audit events, and 119 current
+published ranking entries, with 119 athletes available in the review preview
+The database-role rehearsal denied members and administrators without AAL2
+Direct PostgREST checks resolved all seven new reads and denied anonymous access
+Security advisors reported no errors. Confirmation email remains disabled
+
+The dashboard correction adds a consistent 24px gap below the metrics and 22px
+action headings separated by Brock-red underlines. Unavailable operations metrics
+show `—`, and missing service updates show an explicit temporary-unavailability
+message. A failed ranking read no longer appears as a historical read-only season
+
+The expanded browser suite passed both themes at 320/390/768/1280/1440px, including
+metric spacing, action headings, and missing-RPC presentation, with 140 screenshots
+and no serious/critical accessibility violations or runtime errors. TypeScript,
+lint, web export, HTTP proxy tests, private environment checks, and Android/iOS
+exports also passed
+
+Use `supabase/operations/2026-10-28-admin-centre-acceptance.sql` for a repeatable,
+rolled-back database-role read rehearsal. It does not substitute for a genuine
+signed-in browser/MFA acceptance journey
+
+The UI correction was staged and promoted through Vercel deployment
+`dpl_C6364Cdo9NNYG5dZ2rwx4Y8HsKFX`, based on `20f90f2` plus the local repair
+The canonical host remains `https://play.brockfantasy.ca`; alternate deployment
+hosts retain their application-level denial. Git history was not changed
+
+Run `pnpm verify:admin-centre:hosted` before a related client release and after
+promotion. It checks RPC resolution through PostgREST, anonymous denial through
+both API boundaries, public shells, and the corrected dashboard asset, without
+private account data or a user session

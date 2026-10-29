@@ -193,9 +193,9 @@ export default function RankingPublicationScreen() {
                 else router.setParams({ preview: '1' });
               }}
             />
-          ) : (
+          ) : review.data ? (
             <Text style={ui.body}>Historical rankings are view only.</Text>
-          )}
+          ) : null}
         </Card>
         {catalog.error ? (
           <Text accessibilityRole="alert" style={ui.body}>

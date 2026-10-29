@@ -4,15 +4,7 @@ import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import {
-  ActionButton,
-  AppShell,
-  Card,
-  EmptyState,
-  Pill,
-  SectionTitle,
-  useUiStyles,
-} from '@/components/ui';
+import { ActionButton, AppShell, Card, EmptyState, Pill, useUiStyles } from '@/components/ui';
 import { heading } from '@/theme';
 import { useOperations } from '@/hooks/use-operations';
 import { useRequireAdmin } from '@/hooks/use-route-access';
@@ -38,141 +30,185 @@ export default function AdminScreen() {
   if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
     <AppShell eyebrow="Restricted" title="Operations centre">
-      <View style={styles.metrics}>
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel="Leagues registered, view league directory"
-          onPress={() => router.push('/admin/leagues')}
-          style={{ flex: 1, minWidth: 190 }}
-        >
+      <View style={styles.content}>
+        <View style={styles.metrics}>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Leagues registered, view league directory"
+            onPress={() => router.push('/admin/leagues')}
+            style={{ flex: 1, minWidth: 190 }}
+          >
+            <Metric
+              value={leagues.data ? String(leagues.data.openCount) : '—'}
+              label="Leagues registered"
+              detail={
+                leagues.error
+                  ? 'Unavailable · View leagues'
+                  : leagues.loading && !leagues.data
+                    ? 'Loading leagues…'
+                    : `Open leagues · ${leagues.data?.currentSeasonLabel ?? 'No current season'}`
+              }
+            />
+          </Pressable>
           <Metric
-            value={leagues.data ? String(leagues.data.openCount) : '—'}
-            label="Leagues registered"
+            value={
+              operations.latestSync?.finishedAt
+                ? relativeTime(operations.latestSync.finishedAt)
+                : '—'
+            }
+            onPress={() =>
+              router.push({
+                pathname: '/admin/syncs',
+                params: { kind: operations.latestSync?.jobKind ?? 'player' },
+              })
+            }
+            label="Latest sync"
             detail={
-              leagues.error
-                ? 'Unavailable · View leagues'
-                : leagues.loading && !leagues.data
-                  ? 'Loading leagues…'
-                  : `Open leagues · ${leagues.data?.currentSeasonLabel ?? 'No current season'}`
+              operations.latestSync?.provider ??
+              (operations.available
+                ? 'No completed run'
+                : operations.error
+                  ? 'Unavailable'
+                  : 'Loading…')
             }
           />
-        </Pressable>
-        <Metric
-          value={
-            operations.latestSync?.finishedAt ? relativeTime(operations.latestSync.finishedAt) : '—'
-          }
-          onPress={() =>
-            router.push({
-              pathname: '/admin/syncs',
-              params: { kind: operations.latestSync?.jobKind ?? 'player' },
-            })
-          }
-          label="Latest sync"
-          detail={operations.latestSync?.provider ?? 'No completed run'}
-        />
-        <Metric
-          value={String(operations.unresolvedErrors)}
-          onPress={() => router.push('/admin/alerts')}
-          label="Ingestion alerts"
-          detail="Needs review"
-          warning={operations.unresolvedErrors > 0}
-        />
-        <Metric
-          value={String(operations.syncRows.filter((row) => row.status === 'failed').length)}
-          onPress={() =>
-            router.push({
-              pathname: '/admin/syncs',
-              params: {
-                status: 'failed',
-                kind:
-                  operations.syncRows.find((row) => row.status === 'failed')?.jobKind ?? 'player',
-              },
-            })
-          }
-          label="Failed recent runs"
-          detail="Latest 12 runs"
-        />
-      </View>
-
-      {operations.error ? (
-        <EmptyState title="Operations data unavailable" body={operations.error} />
-      ) : null}
-
-      <View style={[styles.grid, wide && styles.gridWide]}>
-        <View style={styles.main}>
-          <SectionTitle title="Sports data health" />
-          <Card style={styles.tableCard}>
-            {operations.syncRows.map((row) => (
-              <View key={row.id} style={styles.syncRow}>
-                <View style={styles.syncCopy}>
-                  <Text style={styles.syncName}>{row.provider}</Text>
-                  <Text style={styles.syncMeta}>
-                    Finished {row.finishedAt ? relativeTime(row.finishedAt) : 'not yet'},{' '}
-                    {row.changed} changed
-                  </Text>
-                </View>
-                <Pill
-                  label={row.status}
-                  tone={row.status === 'succeeded' ? 'positive' : 'warning'}
-                />
-              </View>
-            ))}
-            {!operations.loading && operations.syncRows.length === 0 ? (
-              <Text style={uiStyles.body}>No ingestion runs have been recorded.</Text>
-            ) : null}
-          </Card>
-
-          <SectionTitle title="Recent audit events" />
-          <Card>
-            <ScrollView style={{ maxHeight: 420 }} accessibilityLabel="40 recent audit events">
-              <AuditEventList events={operations.auditEvents} />
-              <ActionButton label="Show all" href="/admin/audit" variant="secondary" />
-            </ScrollView>
-            {!operations.loading && operations.auditEvents.length === 0 ? (
-              <Text style={uiStyles.body}>No audit events have been recorded.</Text>
-            ) : null}
-          </Card>
+          <Metric
+            value={operations.available ? String(operations.unresolvedErrors) : '—'}
+            onPress={() => router.push('/admin/alerts')}
+            label="Ingestion alerts"
+            detail={
+              operations.available ? 'Needs review' : operations.error ? 'Unavailable' : 'Loading…'
+            }
+            warning={operations.unresolvedErrors > 0}
+          />
+          <Metric
+            value={
+              operations.available
+                ? String(operations.syncRows.filter((row) => row.status === 'failed').length)
+                : '—'
+            }
+            onPress={() =>
+              router.push({
+                pathname: '/admin/syncs',
+                params: {
+                  status: 'failed',
+                  kind:
+                    operations.syncRows.find((row) => row.status === 'failed')?.jobKind ?? 'player',
+                },
+              })
+            }
+            label="Failed recent runs"
+            detail={
+              operations.available
+                ? 'Latest 12 runs'
+                : operations.error
+                  ? 'Unavailable'
+                  : 'Loading…'
+            }
+          />
         </View>
 
-        <View style={styles.side}>
-          <SectionTitle title="Actions" />
-          <Card style={styles.actions}>
-            <ActionButton
-              label="Varsity participant accounts"
-              href="/admin/participants"
-              variant="secondary"
-            />
-            <Text style={styles.actionTitle}>Game scores and player statistics</Text>
-            <ActionButton label="Update game scores and stats" href="/admin/games" />
-            <ActionButton
-              label="Schedule confirmations, overrides & projection alerts"
-              href="/admin/schedules"
-              variant="secondary"
-            />
-            <ActionButton
-              label="Review historical game logs"
-              href="/admin/history"
-              variant="secondary"
-            />
-            <ActionButton
-              label="Review preseason rankings"
-              href="/admin/rankings"
-              variant="secondary"
-            />
-            <Text style={styles.actionTitle}>Advanced tools</Text>
-            <ActionButton
-              label="Import provider snapshot"
-              href="/admin/import"
-              variant="secondary"
-            />
-            {canManageAccounts ? (
-              <ActionButton
-                label="Administrator invitations"
-                href="/admin/accounts"
-                variant="secondary"
-              />
-            ) : null}
-          </Card>
+        {operations.error ? (
+          <EmptyState title="Operations data unavailable" body={operations.error} />
+        ) : null}
+
+        <View style={[styles.grid, wide && styles.gridWide]}>
+          <View style={styles.main}>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>
+              Sports data health
+            </Text>
+            <Card style={styles.tableCard}>
+              {operations.syncRows.map((row) => (
+                <View key={row.id} style={styles.syncRow}>
+                  <View style={styles.syncCopy}>
+                    <Text style={styles.syncName}>{row.provider}</Text>
+                    <Text style={styles.syncMeta}>
+                      Finished {row.finishedAt ? relativeTime(row.finishedAt) : 'not yet'},{' '}
+                      {row.changed} changed
+                    </Text>
+                  </View>
+                  <Pill
+                    label={row.status}
+                    tone={row.status === 'succeeded' ? 'positive' : 'warning'}
+                  />
+                </View>
+              ))}
+              {operations.available && !operations.loading && operations.syncRows.length === 0 ? (
+                <Text style={uiStyles.body}>No ingestion runs have been recorded.</Text>
+              ) : null}
+            </Card>
+
+            <Text accessibilityRole="header" style={[styles.sectionTitle, { marginTop: 10 }]}>
+              Recent audit events
+            </Text>
+            <Card>
+              <ScrollView style={{ maxHeight: 420 }} accessibilityLabel="40 recent audit events">
+                <AuditEventList events={operations.auditEvents} />
+                <ActionButton label="Show all" href="/admin/audit" variant="secondary" />
+              </ScrollView>
+              {operations.available &&
+              !operations.loading &&
+              operations.auditEvents.length === 0 ? (
+                <Text style={uiStyles.body}>No audit events have been recorded.</Text>
+              ) : null}
+            </Card>
+          </View>
+
+          <View style={styles.side}>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>
+              Actions
+            </Text>
+            <Card style={styles.actions}>
+              <View style={styles.actionGroup}>
+                <Text accessibilityRole="header" style={styles.actionTitle}>
+                  Varsity participants
+                </Text>
+                <ActionButton
+                  label="Varsity participant accounts"
+                  href="/admin/participants"
+                  variant="secondary"
+                />
+              </View>
+              <View style={styles.actionGroup}>
+                <Text accessibilityRole="header" style={styles.actionTitle}>
+                  Game scores and player statistics
+                </Text>
+                <ActionButton label="Update game scores and stats" href="/admin/games" />
+                <ActionButton
+                  label="Schedule confirmations, overrides & projection alerts"
+                  href="/admin/schedules"
+                  variant="secondary"
+                />
+                <ActionButton
+                  label="Review historical game logs"
+                  href="/admin/history"
+                  variant="secondary"
+                />
+                <ActionButton
+                  label="Review preseason rankings"
+                  href="/admin/rankings"
+                  variant="secondary"
+                />
+              </View>
+              <View style={styles.actionGroup}>
+                <Text accessibilityRole="header" style={styles.actionTitle}>
+                  Advanced tools
+                </Text>
+                <ActionButton
+                  label="Import provider snapshot"
+                  href="/admin/import"
+                  variant="secondary"
+                />
+                {canManageAccounts ? (
+                  <ActionButton
+                    label="Administrator invitations"
+                    href="/admin/accounts"
+                    variant="secondary"
+                  />
+                ) : null}
+              </View>
+            </Card>
+          </View>
         </View>
       </View>
     </AppShell>
@@ -224,6 +260,7 @@ function Metric({
 
 const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
   StyleSheet.create({
+    content: { gap: 24 },
     metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     metric: { flex: 1, minWidth: 190 },
     metricValue: { fontFamily: 'Inter', color: colors.text, fontSize: 29, fontWeight: '900' },
@@ -236,10 +273,11 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       marginTop: 5,
     },
     metricDetail: { fontFamily: 'Inter', color: colors.muted, fontSize: 9, marginTop: 3 },
-    grid: { gap: 18 },
+    grid: { gap: 24 },
     gridWide: { flexDirection: 'row', alignItems: 'flex-start' },
-    main: { flex: 1.65, minWidth: 0 },
-    side: { flex: 0.8, minWidth: 280 },
+    main: { flex: 1.65, minWidth: 0, gap: 14 },
+    side: { flex: 0.8, minWidth: 280, gap: 14 },
+    sectionTitle: { ...heading, fontSize: 22, color: colors.text },
     tableCard: { paddingVertical: 4 },
     syncRow: {
       flexDirection: 'row',
@@ -270,8 +308,16 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     auditCopy: { flex: 1 },
     auditDetail: { fontFamily: 'Inter', color: colors.text, fontSize: 11, fontWeight: '700' },
     auditActor: { fontFamily: 'Inter', color: colors.muted, fontSize: 9, marginTop: 4 },
-    actions: { gap: 11 },
-    actionTitle: { ...heading, fontSize: 17, color: colors.text },
+    actions: { gap: 24 },
+    actionGroup: { gap: 12 },
+    actionTitle: {
+      ...heading,
+      fontSize: 22,
+      color: colors.text,
+      paddingBottom: 10,
+      borderBottomWidth: 2,
+      borderBottomColor: colors.red,
+    },
     incident: {
       marginTop: 14,
       backgroundColor: colors.canvasSoft,

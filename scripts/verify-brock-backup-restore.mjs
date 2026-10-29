@@ -191,7 +191,7 @@ try {
     if not exists(select 1 from pg_roles where rolname=r) then execute format('create role %I nologin',r); end if;
   end loop; end $$;`);
   await sql(
-    'drop schema if exists auth,storage,public,beta_private,supabase_migrations cascade; create schema if not exists extensions; create extension if not exists pgcrypto with schema extensions; create extension if not exists citext with schema extensions;',
+    'drop schema if exists auth,storage,public,beta_private,supabase_migrations cascade; create schema if not exists extensions; create extension if not exists pgcrypto with schema extensions; create extension if not exists citext with schema extensions; create extension if not exists pg_trgm with schema extensions; create extension if not exists unaccent with schema extensions;',
   );
   evidence.stage = 'restore-roles';
   await sql(exports.get('roles.sql'));

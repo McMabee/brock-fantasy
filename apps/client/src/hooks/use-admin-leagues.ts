@@ -69,7 +69,10 @@ export function useAdminLeagueRead<T>(
             setState((current) => ({
               ...current,
               loading: false,
-              error: 'Unable to load this view. Please retry.',
+              error:
+                result.error.code === 'PGRST202'
+                  ? 'Admin data is temporarily unavailable while a service update is completed. Please try again shortly.'
+                  : 'Unable to load this view. Please retry.',
             }));
           return;
         }
