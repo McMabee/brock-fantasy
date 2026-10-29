@@ -12,6 +12,8 @@ const names = [
   'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
   'EXPO_PUBLIC_SUPABASE_ANON_KEY',
   'VERCEL',
+  'VERCEL_ENV',
+  'PUBLIC_REGISTRATION_ORIGIN',
   'SUPABASE_SECRET_KEY',
   'AUTH_RATE_LIMIT_HMAC_SECRET',
 ];
@@ -384,6 +386,35 @@ try {
       'native public signup form issues a fixed one-time association handoff without application cookies',
     status: 200,
   });
+  process.env.VERCEL = '1';
+  process.env.VERCEL_ENV = 'preview';
+  process.env.PUBLIC_REGISTRATION_ORIGIN = 'https://site-review.example.test';
+  const previewForm = await networkFetch(`${url}/api/auth/sign-up`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+      'content-type': 'application/x-www-form-urlencoded',
+      'x-vercel-forwarded-for': '198.51.100.23',
+    },
+    body: new URLSearchParams({
+      email: 'ordinary@example.test',
+      password: 'private-password-fixture',
+      displayName: 'Ordinary',
+      varsityRole: 'none',
+      eligibilityAttested: 'true',
+    }),
+  });
+  assert.equal(previewForm.status, 200);
+  assert.match(
+    await previewForm.text(),
+    /action="https:\/\/site-review\.example\.test\/api\/prelaunch\/complete-signup"/u,
+  );
+  results.push({
+    scenario: 'preview signup handoff targets the configured association review origin',
+    status: 200,
+  });
+  delete process.env.VERCEL_ENV;
+  delete process.env.PUBLIC_REGISTRATION_ORIGIN;
   scenario = 'callback-regular';
   const verified = await networkFetch(`${url}/api/auth/callback?code=fixture-code`, {
     redirect: 'manual',

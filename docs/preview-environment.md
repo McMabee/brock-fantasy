@@ -1,66 +1,73 @@
-# Isolated feature previews
+# Feature preview configuration
 
-Feature previews on `feat/ui-policy-refresh` require their own app origin,
-association origin and Supabase project. The build deliberately stops before
-Expo export if this configuration is absent or points to the live Brock project.
-Setting the isolation flag alone does not make the environment isolated.
+The user approved using the live Supabase database for `feat/ui-policy-refresh`
+on 2026-10-29, retaining the no-added-cost limit. The app and association keep
+separate preview origins. Accounts, leagues, registration records and changes
+made through these previews use live data.
 
-## App build settings
+## App settings
 
-In the `brock-fantasy` Vercel project, scope these variables to **Preview** and
-the **`feat/ui-policy-refresh` Git branch**. Supply real review origins and the
-isolated project's public credentials; the descriptions below are not values.
+In the `brock-fantasy` Vercel project, these values are scoped to **Preview** and
+the **`feat/ui-policy-refresh` Git branch**:
 
-| Variable                               | Required configuration                                                              |
-| -------------------------------------- | ----------------------------------------------------------------------------------- |
-| `BROCK_PREVIEW_ISOLATED`               | `true`, after the isolated services are configured                                  |
-| `EXPO_PUBLIC_APP_ENV`                  | `staging`                                                                           |
-| `EXPO_PUBLIC_APP_ORIGIN`               | Stable HTTPS origin for the app preview, without a trailing slash                   |
-| `PUBLIC_REGISTRATION_ORIGIN`           | Different stable HTTPS origin for the association preview, without a trailing slash |
-| `EXPO_PUBLIC_SUPABASE_URL`             | `https://<isolated-project-ref>.supabase.co`, using a separate project reference    |
-| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public key belonging to that isolated project                                       |
+| Variable                               | Configuration                                                               |
+| -------------------------------------- | --------------------------------------------------------------------------- |
+| `BROCK_PREVIEW_BACKEND`                | `live`, explicitly opting into the shared backend                           |
+| `EXPO_PUBLIC_APP_ENV`                  | `staging`                                                                   |
+| `EXPO_PUBLIC_APP_ORIGIN`               | Stable HTTPS app preview origin, without a trailing slash                   |
+| `PUBLIC_REGISTRATION_ORIGIN`           | Different stable HTTPS association preview origin, without a trailing slash |
+| `EXPO_PUBLIC_SUPABASE_URL`             | The approved live Brock Supabase URL                                        |
+| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | That project's public publishable key                                       |
+| `EXPO_PUBLIC_SUPPORT_EMAIL`            | The existing public contact setting                                         |
 
-The legacy `EXPO_PUBLIC_SUPABASE_ANON_KEY` is accepted instead of a publishable
-key. All `EXPO_PUBLIC_*` values are embedded in the browser bundle; use public
-keys only. Neither review origin may be a live Brock domain.
+The deployment resolver supplies `EXPO_PUBLIC_DEPLOYMENT_TARGET=preview` to
+browser and server builds. The browser validator accepts the configured HTTPS
+review origin, and middleware admits requests only on that origin. Neither
+review origin may be a live Brock domain. The live/beta hostname checks remain
+in effect outside Preview deployments.
 
-The log lists every failed requirement by name without printing configured
-values. Node's module-type warning and Node engine-range warning are separate
-from this configuration failure. Environment changes require a new deployment.
+All `EXPO_PUBLIC_*` values are embedded in browser JavaScript; only public keys
+belong there. The legacy `EXPO_PUBLIC_SUPABASE_ANON_KEY` remains supported. The
+app's existing Preview server credentials continue to support authentication.
 
-## Complete hosted setup
+Without the explicit live-backend choice, previews still require
+`BROCK_PREVIEW_ISOLATED=true` and a separate hosted Supabase project. Missing or
+invalid settings are reported by name without printing configured values.
 
-A successful export is only the first step. Before hosted acceptance:
+## Association settings
 
-- Override inherited Preview server credentials with isolated credentials,
-  including `SUPABASE_SECRET_KEY` and `AUTH_RATE_LIMIT_HMAC_SECRET`
-- Isolate provider credentials, email delivery and scheduled work from production
-- Configure the association project's branch-specific `BROCK_PREVIEW_ISOLATED`,
-  `BROCK_PREVIEW_SUPABASE_REF`, `PRELAUNCH_DATABASE_URL`, `ASSOCIATION_ORIGIN`,
-  `BETA_SIGNUP_ORIGIN` and `VITE_BROCK_PLAY_ORIGIN` values, with its database
-  connection targeting the same isolated Supabase project
-- Set `VITE_BROCK_PLAY_ORIGIN` and `BETA_SIGNUP_ORIGIN` to the app review origin,
-  and `ASSOCIATION_ORIGIN` to the association review origin
-- Apply migrations to the isolated target and configure its Auth callbacks for
-  the review origins
-- Seed approved sports records and published rankings with synthetic accounts,
-  leagues and conversations, without copying live account or registration data
-- Test browser, API and database journeys on both review origins
+The association project scopes `BROCK_PREVIEW_BACKEND=live`,
+`BROCK_PREVIEW_SUPABASE_REF` and the three origin settings below to the feature
+branch:
 
-Do not use the local `build:ui-fixture` script as a functional hosted environment.
-Its invalid, intercepted API endpoint is only for local browser suites.
+- `ASSOCIATION_ORIGIN` points to the association review origin
+- `BETA_SIGNUP_ORIGIN` and `VITE_BROCK_PLAY_ORIGIN` point to the app review origin
+- `BROCK_PREVIEW_SUPABASE_REF` identifies the approved live Brock project
 
-## Current environment gate
+The existing restricted registration database connection and CA certificate
+are available to Production and Preview. Vercel's write-only connection secret
+was preserved in place; its value was not copied into source or local files.
+Vercel does not allow a Git branch selector on a variable targeting both
+Production and Preview, so those two connection variables use environment
+scope. The branch-specific mode and origin checks gate this feature preview.
+Preview maintenance remains disabled.
 
-On 2026-10-29, Vercel team access was restored and both projects were inspected.
-Neither had branch-specific variables for `feat/ui-policy-refresh`. Supabase
-reported no preview branches and no separate Brock test project. No environment
-values, hosted resources or production data were changed during this inspection.
+## Verification boundaries
 
-The agreed fallback remains local isolated verification until hosted isolation
-is available at no additional cost. Supabase preview branches incur usage charges;
-creating a billed branch requires a separate spending decision. Keeping this
-build blocked preserves that boundary.
+Environment changes require a new deployment. Node's module-type and engine-range
+warnings are separate from configuration errors. A successful build establishes
+deployment compilation, not authenticated browser or email-callback acceptance.
+
+Live migration history was inspected without applying migrations. The published
+ranking RPC migration `20261029153800` is absent remotely. Its hosted acceptance
+remains pending a separate database release; production migrations were excluded
+from this delivery. Auth email callback acceptance also needs a review of the
+live project's redirect allowlist.
+
+Synthetic accounts, leagues and mutation suites continue to run locally. The
+local `build:ui-fixture` endpoint is intercepted and unsuitable for a functional
+hosted preview. Hosted checks against the shared backend should use existing
+accounts and approved records rather than seeding test data into live tables.
 
 References: [Vercel environment variables](https://vercel.com/docs/environment-variables),
 [Supabase branching](https://supabase.com/docs/guides/deployment/branching),

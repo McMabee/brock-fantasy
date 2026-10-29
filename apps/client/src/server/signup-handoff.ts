@@ -4,9 +4,21 @@ import { emailDeliveryNotice } from './email-delivery-notice';
 export function associationOrigin(): string {
   const origin = process.env.PUBLIC_REGISTRATION_ORIGIN ?? 'https://www.brockfantasy.ca';
   const local = process.env.EXPO_PUBLIC_APP_ENV === 'local' && process.env.VERCEL !== '1';
-  if (!local && origin !== 'https://www.brockfantasy.ca')
+  const parsed = new URL(origin);
+  const preview =
+    process.env.VERCEL === '1' &&
+    process.env.VERCEL_ENV === 'preview' &&
+    parsed.protocol === 'https:' &&
+    parsed.origin === origin &&
+    ![
+      'https://www.brockfantasy.ca',
+      'https://brockfantasy.ca',
+      'https://play.brockfantasy.ca',
+      'https://beta.brockfantasy.ca',
+    ].includes(origin);
+  if (!local && !preview && origin !== 'https://www.brockfantasy.ca')
     throw new AppAccessUnavailable('Account confirmation is unavailable.');
-  return new URL(origin).origin;
+  return parsed.origin;
 }
 export async function signupHandoff(userId: string, email: string): Promise<string> {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/$/u, '');

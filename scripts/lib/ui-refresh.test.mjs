@@ -81,6 +81,25 @@ test('preview deployments reject live defaults and require isolated explicit ori
     resolvePublicDeploymentConfig(isolated).EXPO_PUBLIC_APP_ORIGIN,
     isolated.EXPO_PUBLIC_APP_ORIGIN,
   );
+  const live = {
+    ...isolated,
+    BROCK_PREVIEW_ISOLATED: '',
+    BROCK_PREVIEW_BACKEND: 'live',
+    EXPO_PUBLIC_SUPABASE_URL: 'https://fdovowiihxowzatewxgv.supabase.co',
+  };
+  assert.equal(resolvePublicDeploymentConfig(live).EXPO_PUBLIC_DEPLOYMENT_TARGET, 'preview');
+  assert.throws(
+    () => resolvePublicDeploymentConfig({ ...live, BROCK_PREVIEW_BACKEND: '' }),
+    /BROCK_PREVIEW_ISOLATED/u,
+  );
+  assert.throws(
+    () =>
+      resolvePublicDeploymentConfig({
+        ...live,
+        EXPO_PUBLIC_SUPABASE_URL: isolated.EXPO_PUBLIC_SUPABASE_URL,
+      }),
+    /approved live/u,
+  );
   for (const [name, value] of [
     ['BROCK_PREVIEW_ISOLATED', 'false'],
     ['EXPO_PUBLIC_APP_ENV', 'production'],

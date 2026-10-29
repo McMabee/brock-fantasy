@@ -7,6 +7,9 @@ export function validatePublicAuthConfig(values: PublicAuthConfig): void {
     throw new Error('EXPO_PUBLIC_APP_ENV must be local, staging, or production.');
   }
   const hosted = environment === 'staging' || environment === 'production';
+  const preview = values.EXPO_PUBLIC_DEPLOYMENT_TARGET === 'preview';
+  if (preview && environment !== 'staging')
+    throw new Error('Preview deployments require EXPO_PUBLIC_APP_ENV=staging.');
   const key = values.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? values.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   if (hosted) {
     const missing = [
@@ -45,23 +48,43 @@ export function validatePublicAuthConfig(values: PublicAuthConfig): void {
   }
   if (!hosted) return;
   if (
-    values.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/$/u, '') !==
-    'https://fdovowiihxowzatewxgv.supabase.co'
+    preview
+      ? !/^https:\/\/[a-z]{20}\.supabase\.co$/u.test(values.EXPO_PUBLIC_SUPABASE_URL ?? '')
+      : values.EXPO_PUBLIC_SUPABASE_URL?.replace(/\/$/u, '') !==
+        'https://fdovowiihxowzatewxgv.supabase.co'
   ) {
     throw new Error('Staging and production require the approved EXPO_PUBLIC_SUPABASE_URL.');
   }
   try {
     const value = values.EXPO_PUBLIC_APP_ORIGIN!;
     const url = new URL(value);
-    if (url.protocol !== 'https:' || url.origin !== value.replace(/\/$/u, '')) throw new Error();
+    if (
+      url.protocol !== 'https:' ||
+      url.origin !== value.replace(/\/$/u, '') ||
+      url.username ||
+      url.password
+    )
+      throw new Error();
     const expected =
       environment === 'production'
         ? 'https://play.brockfantasy.ca'
         : 'https://beta.brockfantasy.ca';
-    if (url.origin !== expected) throw new Error();
+    if (
+      preview
+        ? [
+            'https://play.brockfantasy.ca',
+            'https://beta.brockfantasy.ca',
+            'https://www.brockfantasy.ca',
+            'https://brockfantasy.ca',
+          ].includes(url.origin)
+        : url.origin !== expected
+    )
+      throw new Error();
   } catch {
     throw new Error(
-      'EXPO_PUBLIC_APP_ORIGIN must be https://beta.brockfantasy.ca for staging or https://play.brockfantasy.ca for production.',
+      preview
+        ? 'EXPO_PUBLIC_APP_ORIGIN must be a separate HTTPS preview origin.'
+        : 'EXPO_PUBLIC_APP_ORIGIN must be https://beta.brockfantasy.ca for staging or https://play.brockfantasy.ca for production.',
     );
   }
   const recipients = values
