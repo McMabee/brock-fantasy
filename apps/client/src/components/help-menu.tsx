@@ -1,13 +1,12 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HELP_LINKS } from '@/lib/help-navigation';
 import { useThemeColors } from '@/providers/theme-provider';
+import { PressableLink } from './pressable-link';
 
 export function HelpMenu() {
   const [open, setOpen] = useState(false);
-  const router = useRouter();
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -69,12 +68,12 @@ export function HelpMenu() {
             contentContainerStyle={{ padding: 8, gap: 4 }}
           >
             {HELP_LINKS.map((link) => (
-              <Pressable
+              <PressableLink
                 key={link.href}
+                href={link.href}
                 accessibilityRole="link"
                 onPress={() => {
                   setOpen(false);
-                  router.push(link.href);
                 }}
                 style={({ pressed }) => ({
                   minHeight: 48,
@@ -96,7 +95,7 @@ export function HelpMenu() {
                 >
                   {link.label}
                 </Text>
-              </Pressable>
+              </PressableLink>
             ))}
           </ScrollView>
         </View>

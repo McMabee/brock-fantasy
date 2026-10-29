@@ -78,4 +78,9 @@ without promising Canadian-only hosting
 - Reassess before monetization, prizes, employees, institutional operation, tracking or international expansion
 - Review this register annually and whenever processing or law changes
 
-Publication decision and effective date remain pending operator review
+On October 29, 2026, the operator explicitly confirmed the policy/source-rights
+review and retention inventory/holds review were complete and requested feature
+activation. Policy approval is recorded in the release controls and audited
+activation receipt. Static policy assets still contain draft labels and some
+provider/status placeholders; their final-copy publication is a separate remaining
+task. This records the operator's decision, rather than an independent legal opinion

@@ -21,6 +21,7 @@ import { betaCommand } from '@/lib/web-api';
 
 interface ReviewGame {
   id: string;
+  competition_id: string;
   program: string;
   home: string;
   away: string;
@@ -44,7 +45,8 @@ interface ReviewData {
   alerts: { id: string; message: string; display_name: string | null }[];
   sources: {
     id: string;
-    program: string;
+    competition_id: string;
+    program: VarsityProgram;
     last_synced_at: string | null;
     last_error: string | null;
   }[];
@@ -71,6 +73,11 @@ export default function ScheduleReviewScreen() {
     void load();
   }, [load]);
   const invalidRange = Boolean(from && to && from > to);
+  // - Resolve stable program keys once rather than comparing display labels with filter values
+  const programByCompetition = useMemo(
+    () => new Map(data?.sources.map((source) => [source.competition_id, source.program]) ?? []),
+    [data?.sources],
+  );
   const filtered = useMemo(() => {
     const normalize = (value: string) =>
       value
@@ -80,19 +87,20 @@ export default function ScheduleReviewScreen() {
     const needle = normalize(search);
     return (data?.games ?? []).filter((game) => {
       const day = torontoDateFields(game.starts_at).date;
+      const program = programByCompetition.get(game.competition_id);
       return (
         !invalidRange &&
         (showAll || !game.schedule_confirmed || game.schedule_override) &&
-        (!programs.length || programs.includes(game.program as VarsityProgram)) &&
+        (!programs.length || (program !== undefined && programs.includes(program))) &&
         (!from || day >= from) &&
         (!to || day <= to) &&
         (!needle ||
           normalize(
-            `${VARSITY_PROGRAMS[game.program as VarsityProgram] ?? game.program} ${game.home} ${game.away} ${day}`,
+            `${game.program} ${program ? VARSITY_PROGRAMS[program] : ''} ${game.home} ${game.away} ${day}`,
           ).includes(needle))
       );
     });
-  }, [data, showAll, programs, from, to, search, invalidRange]);
+  }, [data, programByCompetition, showAll, programs, from, to, search, invalidRange]);
   const currentPage = Math.min(page, Math.max(0, Math.ceil(filtered.length / 25) - 1));
   if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
   return (
@@ -235,7 +243,11 @@ export default function ScheduleReviewScreen() {
               ))}
             </View>
             {!filtered.length ? (
-              <Text style={ui.body}>No fixtures match your search and filters.</Text>
+              <Text style={ui.body}>
+                {showAll
+                  ? 'No fixtures match your search and filters.'
+                  : 'No fixtures match these filters. Turn off Needs review in Filter to include confirmed fixtures.'}
+              </Text>
             ) : null}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
               <Text style={ui.body}>

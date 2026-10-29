@@ -1,5 +1,9 @@
 # Admin centre improvements
 
+October 29 acceptance and release-control activation are recorded in
+[the acceptance tracker](release-acceptance-2026-10-28.md), including the operator's
+browser/accessibility confirmations and verified production email delivery
+
 The October 28, 2026 changes refine the Brock interface and add operational history,
 participant confirmation requests, multiple league filters, and season-aware admin
 ranking review. This delivery contains code, migrations, documentation, and local

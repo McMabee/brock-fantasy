@@ -1,5 +1,5 @@
 import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
-import { Link, usePathname, useRouter, type Href } from 'expo-router';
+import { Link, usePathname, type Href } from 'expo-router';
 import { useEffect, type ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type PressableProps,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -17,7 +18,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import darkLogo from '../../assets/brock-fantasy-logo.png';
 import lightLogo from '../../assets/brock-fantasy-logo-light.png';
 import { ASSOCIATION_INSTAGRAM_URL } from '@/lib/association';
-import { openPublicAuthEntry } from '@/lib/public-auth-navigation';
 import { useSession } from '@/providers/session-provider';
 import { useTheme, useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { colors, fonts, heading, radii, shadow } from '@/theme';
@@ -25,6 +25,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { DeveloperWatermark } from './developer-watermark';
 import { HelpMenu } from './help-menu';
 import { CookieNotice, CookieSettings } from './cookie-notice';
+import { PressableLink } from './pressable-link';
 
 export function AppShell({
   children,
@@ -42,10 +43,6 @@ export function AppShell({
   const styles = useThemedStyles(createStyles);
   const colors = useThemeColors();
   const { width } = useWindowDimensions();
-  const router = useRouter();
-  const navigate = (href: Href) => {
-    if (!openPublicAuthEntry(href)) router.push(href);
-  };
   const pathname = usePathname();
   const { user, error: sessionError } = useSession();
   const { unreadCount } = useNotifications();
@@ -82,14 +79,14 @@ export function AppShell({
     },
   ] as const;
   const navItems = navigation.map((item) => (
-    <Pressable
+    <PressableLink
       key={item.label}
+      href={item.href}
       accessibilityRole="link"
       accessibilityLabel={
         item.label +
         (item.label === 'Notifications' && unreadCount ? `, ${unreadCount} unread` : '')
       }
-      onPress={() => navigate(item.href)}
       style={({ pressed }) => [
         styles.navItem,
         wide ? styles.navItemWide : styles.navItemMobile,
@@ -109,13 +106,13 @@ export function AppShell({
       {wide && item.label === 'Notifications' && unreadCount > 0 ? (
         <Text style={styles.unread}>{unreadCount}</Text>
       ) : null}
-    </Pressable>
+    </PressableLink>
   ));
   const brand = (
-    <Pressable
+    <PressableLink
+      href={user ? '/dashboard' : '/'}
       accessibilityRole="link"
       accessibilityLabel="Brock Fantasy home"
-      onPress={() => router.push(user ? '/dashboard' : '/')}
       style={styles.brandRow}
     >
       <Image
@@ -128,7 +125,7 @@ export function AppShell({
         <Text style={styles.brandTitle}>BROCK</Text>
         <Text style={styles.brandSubtitle}>FANTASY</Text>
       </View>
-    </Pressable>
+    </PressableLink>
   );
 
   return (
@@ -171,13 +168,13 @@ export function AppShell({
                 </Text>
               </Pressable>
               {wide ? (
-                <Pressable
+                <PressableLink
+                  href={user ? '/account' : '/auth'}
                   accessibilityRole="link"
                   style={{ minHeight: 44, justifyContent: 'center' }}
-                  onPress={() => navigate(user ? '/account' : '/auth')}
                 >
                   <Text style={styles.navLink}>{user ? 'Account' : 'Sign in'}</Text>
-                </Pressable>
+                </PressableLink>
               ) : null}
             </View>
           </View>
@@ -212,34 +209,34 @@ export function AppShell({
                   <Link href="/accessibility" style={styles.footerLink}>
                     Accessibility
                   </Link>
-                  <Pressable
+                  <PressableLink
+                    href="/rules"
                     accessibilityRole="link"
                     style={{ minHeight: 44, justifyContent: 'center' }}
-                    onPress={() => router.push('/rules')}
                   >
                     <Text style={styles.footerLink}>Rules</Text>
-                  </Pressable>
-                  <Pressable
+                  </PressableLink>
+                  <PressableLink
+                    href="/privacy"
                     accessibilityRole="link"
                     style={{ minHeight: 44, justifyContent: 'center' }}
-                    onPress={() => router.push('/privacy')}
                   >
                     <Text style={styles.footerLink}>Privacy</Text>
-                  </Pressable>
-                  <Pressable
+                  </PressableLink>
+                  <PressableLink
+                    href="/terms"
                     accessibilityRole="link"
                     style={{ minHeight: 44, justifyContent: 'center' }}
-                    onPress={() => router.push('/terms')}
                   >
                     <Text style={styles.footerLink}>Terms</Text>
-                  </Pressable>
-                  <Pressable
+                  </PressableLink>
+                  <PressableLink
+                    href="/account-deletion"
                     accessibilityRole="link"
                     style={{ minHeight: 44, justifyContent: 'center' }}
-                    onPress={() => router.push('/account-deletion')}
                   >
                     <Text style={styles.footerLink}>Delete account</Text>
-                  </Pressable>
+                  </PressableLink>
                   <Link
                     href={ASSOCIATION_INSTAGRAM_URL}
                     target="_blank"
@@ -350,54 +347,52 @@ export function ActionButton({
 }) {
   const styles = useThemedStyles(createStyles);
   const colors = useThemeColors();
-  const router = useRouter();
-  const handlePress = () => {
-    if (href) {
-      if (!openPublicAuthEntry(href)) router.push(href);
-      return;
-    }
-    onPress?.();
+  const unavailable = disabled || loading;
+  const buttonProps: PressableProps = {
+    accessibilityState: { disabled: unavailable, busy: loading },
+    disabled: unavailable,
+    style: ({ pressed }) => [
+      styles.button,
+      variant === 'secondary' && styles.buttonSecondary,
+      variant === 'danger' && styles.buttonDanger,
+      variant === 'ghost' && styles.buttonGhost,
+      pressed && styles.buttonPressed,
+      unavailable && styles.buttonDisabled,
+    ],
   };
-
-  return (
-    <Pressable
-      accessibilityRole={href ? 'link' : 'button'}
-      accessibilityState={{ disabled, busy: loading }}
-      disabled={disabled || loading}
-      onPress={handlePress}
-      style={({ pressed }) => [
-        styles.button,
-        variant === 'secondary' && styles.buttonSecondary,
-        variant === 'danger' && styles.buttonDanger,
-        variant === 'ghost' && styles.buttonGhost,
-        pressed && styles.buttonPressed,
-        (disabled || loading) && styles.buttonDisabled,
-      ]}
+  const content = (
+    <View
+      style={{
+        flexDirection: 'row',
+        gap: 8,
+        alignItems: 'center',
+        maxWidth: '100%',
+        flexShrink: 1,
+      }}
     >
-      <View
-        style={{
-          flexDirection: 'row',
-          gap: 8,
-          alignItems: 'center',
-          maxWidth: '100%',
-          flexShrink: 1,
-        }}
+      {loading ? (
+        <ActivityIndicator
+          size="small"
+          color={variant === 'primary' || variant === 'danger' ? colors.white : colors.text}
+        />
+      ) : null}
+      <Text
+        style={[
+          styles.buttonText,
+          (variant === 'secondary' || variant === 'ghost') && { color: colors.text },
+        ]}
       >
-        {loading ? (
-          <ActivityIndicator
-            size="small"
-            color={variant === 'primary' || variant === 'danger' ? colors.white : colors.text}
-          />
-        ) : null}
-        <Text
-          style={[
-            styles.buttonText,
-            (variant === 'secondary' || variant === 'ghost') && { color: colors.text },
-          ]}
-        >
-          {label}
-        </Text>
-      </View>
+        {label}
+      </Text>
+    </View>
+  );
+  return href ? (
+    <PressableLink href={href} {...buttonProps}>
+      {content}
+    </PressableLink>
+  ) : (
+    <Pressable {...buttonProps} accessibilityRole="button" onPress={onPress}>
+      {content}
     </Pressable>
   );
 }

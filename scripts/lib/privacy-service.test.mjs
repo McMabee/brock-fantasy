@@ -23,46 +23,48 @@ const input = {
   page: 'https://play.brockfantasy.ca/account?token=secret#private',
 };
 
-test('confirmation emails link to the focused page and use the server-resolved recipient', async () => {
-  let delivery;
-  const env = {
-    EXPO_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
-    SUPABASE_SECRET_KEY: 'sb_secret_fixture',
-    RESEND_API_KEY: 'fixture',
-    SERVICE_EMAIL_FROM: 'Brock Fantasy <service@brockfantasy.ca>',
-    EXPO_PUBLIC_APP_ORIGIN: 'https://play.brockfantasy.ca',
-    SERVICE_EMAIL_UNSUBSCRIBE_SECRET: 'a'.repeat(40),
-  };
-  const result = await dispatchServiceEmails(
-    async (url, options) => {
-      if (url.endsWith('/claim_service_email_jobs'))
-        return Response.json([
-          {
-            id: jobId,
-            kind: 'participation',
-            leaseToken: lease,
-            attempts: 1,
-            userId: user,
-            email: 'recipient@example.test',
-            payload: { requestId: user, email: 'untrusted@example.test' },
-          },
-        ]);
-      if (url.endsWith('/service_email_sendable') || url.endsWith('/finish_service_email_job'))
-        return Response.json(true);
-      assert.equal(url, 'https://api.resend.com/emails');
-      delivery = { body: JSON.parse(options.body), headers: options.headers };
-      return Response.json({ id: 'confirmation-provider' });
-    },
-    env,
-    async () => {},
-  );
-  assert.equal(result.accepted, 1);
-  assert.deepEqual(delivery.body.to, ['recipient@example.test']);
-  assert.ok(
-    delivery.body.text.includes(`https://play.brockfantasy.ca/participation/confirm/${user}`),
-  );
-  assert.ok(delivery.body.text.includes('administrator reviews your response'));
-  assert.equal(delivery.headers['idempotency-key'], `brock-service-email/${jobId}`);
+test('service emails use available account routes and the server-resolved recipient', async () => {
+  for (const kind of ['participation', 'account']) {
+    let delivery;
+    const env = {
+      EXPO_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
+      SUPABASE_SECRET_KEY: 'sb_secret_fixture',
+      RESEND_API_KEY: 'fixture',
+      SERVICE_EMAIL_FROM: 'Brock Fantasy <service@brockfantasy.ca>',
+      EXPO_PUBLIC_APP_ORIGIN: 'https://play.brockfantasy.ca',
+      SERVICE_EMAIL_UNSUBSCRIBE_SECRET: 'a'.repeat(40),
+    };
+    const result = await dispatchServiceEmails(
+      async (url, options) => {
+        if (url.endsWith('/claim_service_email_jobs'))
+          return Response.json([
+            {
+              id: jobId,
+              kind,
+              leaseToken: lease,
+              attempts: 1,
+              userId: user,
+              email: 'recipient@example.test',
+              payload: { requestId: user, email: 'untrusted@example.test' },
+            },
+          ]);
+        if (url.endsWith('/service_email_sendable') || url.endsWith('/finish_service_email_job'))
+          return Response.json(true);
+        assert.equal(url, 'https://api.resend.com/emails');
+        delivery = { body: JSON.parse(options.body), headers: options.headers };
+        return Response.json({ id: 'confirmation-provider' });
+      },
+      env,
+      async () => {},
+    );
+    assert.equal(result.accepted, 1);
+    assert.deepEqual(delivery.body.to, ['recipient@example.test']);
+    const route = kind === 'participation' ? `/participation/confirm/${user}` : '/auth';
+    assert.ok(delivery.body.text.includes(`https://play.brockfantasy.ca${route}`));
+    if (kind === 'participation')
+      assert.ok(delivery.body.text.includes('administrator reviews your response'));
+    assert.equal(delivery.headers['idempotency-key'], `brock-service-email/${jobId}`);
+  }
 });
 
 test('contact validation minimizes page data and rejects unrequested fields and header injection', async () => {

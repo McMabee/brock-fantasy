@@ -191,7 +191,7 @@ try {
     if not exists(select 1 from pg_roles where rolname=r) then execute format('create role %I nologin',r); end if;
   end loop; end $$;`);
   await sql(
-    'drop schema if exists auth,storage,public,beta_private,supabase_migrations cascade; create schema if not exists extensions; create extension if not exists pgcrypto with schema extensions; create extension if not exists citext with schema extensions; create extension if not exists pg_trgm with schema extensions; create extension if not exists unaccent with schema extensions;',
+    'drop schema if exists auth,storage,public,beta_private,supabase_migrations cascade; create schema if not exists extensions; create extension if not exists pgcrypto with schema extensions; create extension if not exists citext with schema extensions; create extension if not exists pg_trgm with schema extensions; create extension if not exists unaccent with schema extensions; create extension if not exists pg_net;',
   );
   evidence.stage = 'restore-roles';
   await sql(exports.get('roles.sql'));
@@ -200,6 +200,15 @@ try {
   evidence.stage = 'restore-data';
   await sql(exports.get('data.sql'));
   evidence.stage = 'integrity-readback';
+  // - Recreate managed networking dependencies excluded from the application schema export
+  evidence.networkDependencyRestored =
+    (
+      await sql(
+        "select to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)')is not null;",
+      )
+    ).trim() === 't';
+  if (!evidence.networkDependencyRestored)
+    throw new Error('Private email networking dependency was not restored');
   const actual = JSON.parse(
     (
       await sql(`select json_build_object(

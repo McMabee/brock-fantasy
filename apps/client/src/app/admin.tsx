@@ -1,10 +1,11 @@
 import { AuditEventList } from '@/components/admin-operations';
 import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { Href } from 'expo-router';
 
 import { ActionButton, AppShell, Card, EmptyState, Pill, useUiStyles } from '@/components/ui';
+import { PressableLink } from '@/components/pressable-link';
 import { heading } from '@/theme';
 import { useOperations } from '@/hooks/use-operations';
 import { useRequireAdmin } from '@/hooks/use-route-access';
@@ -24,7 +25,6 @@ export default function AdminScreen() {
     {},
     access.allowed,
   );
-  const router = useRouter();
   const { width } = useWindowDimensions();
   const wide = width >= 1280;
   if (!access.allowed) return <AdminAccess loading={access.loading} error={access.error} />;
@@ -32,10 +32,10 @@ export default function AdminScreen() {
     <AppShell eyebrow="Restricted" title="Operations centre">
       <View style={styles.content}>
         <View style={styles.metrics}>
-          <Pressable
+          <PressableLink
+            href="/admin/leagues"
             accessibilityRole="link"
             accessibilityLabel="Leagues registered, view league directory"
-            onPress={() => router.push('/admin/leagues')}
             style={{ flex: 1, minWidth: 190 }}
           >
             <Metric
@@ -49,19 +49,17 @@ export default function AdminScreen() {
                     : `Open leagues · ${leagues.data?.currentSeasonLabel ?? 'No current season'}`
               }
             />
-          </Pressable>
+          </PressableLink>
           <Metric
             value={
               operations.latestSync?.finishedAt
                 ? relativeTime(operations.latestSync.finishedAt)
                 : '—'
             }
-            onPress={() =>
-              router.push({
-                pathname: '/admin/syncs',
-                params: { kind: operations.latestSync?.jobKind ?? 'player' },
-              })
-            }
+            href={{
+              pathname: '/admin/syncs',
+              params: { kind: operations.latestSync?.jobKind ?? 'player' },
+            }}
             label="Latest sync"
             detail={
               operations.latestSync?.provider ??
@@ -74,7 +72,7 @@ export default function AdminScreen() {
           />
           <Metric
             value={operations.available ? String(operations.unresolvedErrors) : '—'}
-            onPress={() => router.push('/admin/alerts')}
+            href="/admin/alerts"
             label="Ingestion alerts"
             detail={
               operations.available ? 'Needs review' : operations.error ? 'Unavailable' : 'Loading…'
@@ -87,16 +85,14 @@ export default function AdminScreen() {
                 ? String(operations.syncRows.filter((row) => row.status === 'failed').length)
                 : '—'
             }
-            onPress={() =>
-              router.push({
-                pathname: '/admin/syncs',
-                params: {
-                  status: 'failed',
-                  kind:
-                    operations.syncRows.find((row) => row.status === 'failed')?.jobKind ?? 'player',
-                },
-              })
-            }
+            href={{
+              pathname: '/admin/syncs',
+              params: {
+                status: 'failed',
+                kind:
+                  operations.syncRows.find((row) => row.status === 'failed')?.jobKind ?? 'player',
+              },
+            }}
             label="Failed recent runs"
             detail={
               operations.available
@@ -228,13 +224,13 @@ function Metric({
   label,
   detail,
   warning = false,
-  onPress,
+  href,
 }: {
   value: string;
   label: string;
   detail: string;
   warning?: boolean;
-  onPress?: () => void;
+  href?: Href;
 }) {
   const styles = useThemedStyles(createStyles);
   const card = (
@@ -244,15 +240,15 @@ function Metric({
       <Text style={styles.metricDetail}>{detail}</Text>
     </Card>
   );
-  return onPress ? (
-    <Pressable
+  return href ? (
+    <PressableLink
+      href={href}
       accessibilityRole="link"
       accessibilityLabel={`View ${label}`}
-      onPress={onPress}
       style={{ flex: 1, minWidth: 190 }}
     >
       {card}
-    </Pressable>
+    </PressableLink>
   ) : (
     card
   );

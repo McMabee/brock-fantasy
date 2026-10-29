@@ -63,6 +63,7 @@ try {
       let actor = 'admin',
         denied = false,
         missingService = false,
+        allFixturesConfirmed = false,
         request = null,
         dismissed = false,
         loseSend = true,
@@ -164,9 +165,25 @@ try {
           context: { source_id: id(60) },
         },
       ];
+      const schedulePrograms = [
+        ['womens_hockey', "Brock Women's Hockey"],
+        ['mens_hockey', "Brock Men's Hockey"],
+        ['womens_basketball', "Brock Women's Basketball"],
+        ['mens_basketball', "Brock Men's Basketball"],
+        ['womens_volleyball', "Brock Women's Volleyball"],
+        ['mens_volleyball', "Brock Men's Volleyball"],
+      ].map(([program, label], n) => ({
+        id: id(170 + n),
+        competition_id: id(180 + n),
+        program,
+        label,
+        last_synced_at: null,
+        last_error: null,
+      }));
       const schedule = Array.from({ length: 126 }, (_, n) => ({
         id: id(200 + n),
-        program: n % 2 ? 'mens_volleyball' : 'womens_hockey',
+        competition_id: schedulePrograms[n % schedulePrograms.length].competition_id,
+        program: schedulePrograms[n % schedulePrograms.length].label,
         home: 'Brock',
         away: n % 3 ? 'Western' : 'Guelph',
         starts_at: new Date(Date.UTC(2026, 10, 1 + Math.floor(n / 2), 17)).toISOString(),
@@ -286,11 +303,14 @@ try {
           route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
         if (url.pathname === '/api/auth/session')
           return reply({
-            user: {
-              id: actor === 'admin' ? id(1) : id(2),
-              email: actor === 'admin' ? 'admin@example.test' : candidate.email,
-              emailConfirmedAt: stamp,
-            },
+            user:
+              actor === 'signed-out'
+                ? null
+                : {
+                    id: actor === 'admin' ? id(1) : id(2),
+                    email: actor === 'admin' ? 'admin@example.test' : candidate.email,
+                    emailConfirmedAt: stamp,
+                  },
             expiresAt: Date.now() + 3600000,
           });
         if (url.pathname === '/api/admin/status')
@@ -307,7 +327,17 @@ try {
             args = route.request().postDataJSON();
           commands.push({ command, args });
           if (command === 'get_schedule_review')
-            return reply({ games: schedule, alerts: [], sources: [] });
+            return reply({
+              games: allFixturesConfirmed
+                ? schedule.map((game) => ({
+                    ...game,
+                    schedule_confirmed: true,
+                    schedule_override: false,
+                  }))
+                : schedule,
+              alerts: [],
+              sources: schedulePrograms,
+            });
           if (command === 'admin_request_participant_confirmation') {
             request ??= {
               id: id(80),
@@ -576,7 +606,15 @@ try {
         await page.screenshot({ path: file, fullPage: true });
         report.screenshots.push(file);
       };
-      await page.goto(origin + '/admin');
+      await page.goto(origin + '/admin/schedules');
+      const operationsLink = page.getByRole('link', {
+        name: 'Back to Operations Centre',
+        exact: true,
+      });
+      await expect(operationsLink).toHaveAttribute('href', '/admin');
+      await operationsLink.focus();
+      await page.keyboard.press('Enter');
+      await expect(page).toHaveURL(origin + '/admin');
       await expect(page.getByRole('button', { name: /^View Participation updated/u })).toHaveCount(
         40,
       );
@@ -615,7 +653,20 @@ try {
         );
       }
       await capture('dashboard');
-      await page.getByRole('button', { name: 'View Participation updated 1', exact: true }).click();
+      await expect(page.locator('[role="link"]:not([href])')).toHaveCount(0);
+      const latestSyncLink = page.getByRole('link', { name: 'View Latest sync', exact: true });
+      await latestSyncLink.focus();
+      await page.keyboard.press('Enter');
+      await expect(page).toHaveURL(/\/admin\/syncs\?kind=/u);
+      await page.getByRole('link', { name: 'Back to Operations Centre', exact: true }).focus();
+      await page.keyboard.press('Enter');
+      await expect(page).toHaveURL(origin + '/admin');
+      const auditButton = page.getByRole('button', {
+        name: 'View Participation updated 1',
+        exact: true,
+      });
+      await auditButton.focus();
+      await page.keyboard.press('Enter');
       await expect(page.getByRole('dialog', { name: 'Audit event details' })).toBeVisible();
       await expect(page.getByRole('table', { name: 'Event changes' })).toBeVisible();
       await capture('audit-panel');
@@ -688,7 +739,13 @@ try {
         page.getByRole('table', { name: 'Period 2 matchups', exact: true }),
       ).toBeVisible();
       await capture('matchups');
-      await page.getByRole('link', { name: 'Back to league directory', exact: true }).click();
+      const directoryLink = page.getByRole('link', {
+        name: 'Back to league directory',
+        exact: true,
+      });
+      await expect(directoryLink).toHaveAttribute('href', /\/admin\/leagues\?/u);
+      await directoryLink.focus();
+      await page.keyboard.press('Enter');
       await expect
         .poll(() =>
           JSON.stringify(
@@ -706,20 +763,74 @@ try {
         );
 
       await page.goto(origin + '/admin/schedules');
+      const filterButton = page.getByRole('button', { name: 'Filter', exact: true });
+      for (const key of ['Enter', 'Space']) {
+        await filterButton.focus();
+        await page.keyboard.press(key);
+        await expect(
+          page.getByRole('dialog', { name: 'Schedule filters', exact: true }),
+        ).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog')).toHaveCount(0);
+        await expect(filterButton).toBeFocused();
+      }
       await expect(visibleText('Page 1 of 6')).toBeVisible();
       for (let n = 0; n < 5; n++)
         await page.getByRole('button', { name: 'Next fixtures', exact: true }).click();
       await expect(visibleText('Page 6 of 6')).toBeVisible();
+      for (let index = 0; index < schedulePrograms.length; index++) {
+        await page.getByRole('button', { name: 'Filter', exact: true }).click();
+        if (index > 0)
+          await page
+            .getByRole('checkbox', {
+              name: schedulePrograms[index - 1].label.replace('Brock ', ''),
+              exact: true,
+            })
+            .uncheck();
+        await page
+          .getByRole('checkbox', {
+            name: schedulePrograms[index].label.replace('Brock ', ''),
+            exact: true,
+          })
+          .check();
+        await page.getByRole('button', { name: 'Done', exact: true }).click();
+        await expect(visibleText('21 matching fixtures, 126 total fixtures')).toBeVisible();
+        await expect(
+          page.getByRole('heading', { name: schedulePrograms[index].label, exact: true }),
+        ).toHaveCount(21);
+      }
+      await page.getByRole('button', { name: 'Filter', exact: true }).click();
+      await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
+      await page.getByRole('button', { name: 'Done', exact: true }).click();
+      await expect(visibleText('126 matching fixtures, 126 total fixtures')).toBeVisible();
+      await page.getByRole('button', { name: 'Filter', exact: true }).click();
+      await page.getByRole('checkbox', { name: "Women's Hockey", exact: true }).check();
+      await page.getByRole('checkbox', { name: "Men's Hockey", exact: true }).check();
+      await page.getByRole('button', { name: 'Done', exact: true }).click();
+      await expect(visibleText('42 matching fixtures, 126 total fixtures')).toBeVisible();
       await page
         .getByRole('textbox', { name: 'Find schedule fixture', exact: true })
         .fill('Guelph');
       await page.getByRole('button', { name: 'Filter', exact: true }).click();
-      await page.getByRole('checkbox', { name: "Women's Hockey", exact: true }).check();
       await page.getByLabel('From date', { exact: true }).fill('2026-11-01');
       await page.getByLabel('To date', { exact: true }).fill('2026-11-02');
       await page.getByRole('button', { name: 'Done', exact: true }).click();
       await expect(visibleText('1 matching fixtures, 126 total fixtures')).toBeVisible();
       await capture('schedules');
+      allFixturesConfirmed = true;
+      await page.goto(origin + '/admin/schedules');
+      await expect(visibleText('0 matching fixtures, 126 total fixtures')).toBeVisible();
+      await expect(
+        visibleText(
+          'No fixtures match these filters. Turn off Needs review in Filter to include confirmed fixtures.',
+        ),
+      ).toBeVisible();
+      await page.getByRole('button', { name: 'Filter', exact: true }).click();
+      await page.getByRole('checkbox', { name: 'Needs review', exact: true }).uncheck();
+      await page.getByRole('checkbox', { name: "Men's Hockey", exact: true }).check();
+      await page.getByRole('button', { name: 'Done', exact: true }).click();
+      await expect(visibleText('21 matching fixtures, 126 total fixtures')).toBeVisible();
+      await capture('schedules-confirmed');
 
       await page.goto(origin + '/admin/rankings');
       await expect(page.getByRole('table')).toHaveCount(6);
@@ -836,6 +947,20 @@ try {
       await expect(page.getByRole('button', { name: /^View Participation updated/u })).toHaveCount(
         0,
       );
+      actor = 'signed-out';
+      await page.goto(origin + '/privacy');
+      const signInLink = page.getByRole('link', {
+        name: width >= 1024 ? 'Sign in' : 'Account',
+        exact: true,
+      });
+      await expect(signInLink).toHaveAttribute('href', '/auth');
+      await signInLink.focus();
+      const authDocument = page.waitForRequest(
+        (request) => request.isNavigationRequest() && new URL(request.url()).pathname === '/auth',
+      );
+      await page.keyboard.press('Enter');
+      await authDocument;
+      await expect(page).toHaveURL(origin + '/auth');
       assert.deepEqual(unexpected, [], `${name}: only approved application reads and writes`);
       report.checks.push(name);
       await context.close();

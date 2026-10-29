@@ -184,7 +184,7 @@ export async function dispatchServiceEmails(
       if (!job.email || !job.userId) throw new Error('Invalid account email job');
       to = [job.email];
       subject = message.title ?? 'Brock Fantasy account notice';
-      text = `${subject}\n\n${message.body ?? ''}\n\nSign in: ${config.origin}/sign-in\n\nThis account service notice is separate from optional draft or marketing emails. For privacy, accessibility or account help, contact Ty at tymabee@proton.me`;
+      text = `${subject}\n\n${message.body ?? ''}\n\nSign in: ${config.origin}/auth\n\nThis account service notice is separate from optional draft or marketing emails. For privacy, accessibility or account help, contact Ty at tymabee@proton.me`;
     } else {
       if (!job.email || !job.userId) throw new Error('Invalid draft email job');
       to = [job.email];

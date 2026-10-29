@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ViewportPortal } from './viewport-portal';
+import { PressableLink } from './pressable-link';
 import { Modal, Platform, Pressable, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useThemeColors } from '@/providers/theme-provider';
 
 const definitions: Record<string, { title: string; body: string; section: string }> = {
@@ -56,7 +56,6 @@ export function InfoButton({
     section: 'scoring',
   };
   const colors = useThemeColors();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const id = useId();
   const anchor = useRef<View>(null);
@@ -147,16 +146,16 @@ export function InfoButton({
       >
         {body ?? definition.body}
       </Text>
-      <Pressable
+      <PressableLink
+        href={{ pathname: '/rules', params: { section: definition.section } }}
         accessibilityRole="link"
         onPress={() => {
           setOpen(false);
-          router.push({ pathname: '/rules', params: { section: definition.section } });
         }}
         style={{ minHeight: 44, justifyContent: 'center' }}
       >
         <Text style={{ color: colors.text, textDecorationLine: 'underline' }}>Full rules</Text>
-      </Pressable>
+      </PressableLink>
       <Pressable
         accessibilityRole="button"
         onPress={() => dismiss(true)}

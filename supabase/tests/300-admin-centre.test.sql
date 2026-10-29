@@ -129,8 +129,11 @@ begin
   perform set_config('enable_seqscan','on',true);
   return result::text;
 end;$$;
-select ok(strpos(pg_temp.c_audit_plan(),'audit_log_admin_cursor')>0
-  and strpos(pg_temp.c_audit_plan(),'"Function Scan"')=0,'audit helper allows indexed cursor filtering before bounded entity lookup');
+-- - Accept equivalent forward and backward B-tree cursor indexes chosen by the planner
+with audit_plan as materialized(select pg_temp.c_audit_plan() as plan)
+select ok((strpos(plan,'audit_log_admin_cursor')>0 or strpos(plan,'audit_log_retention')>0)
+  and strpos(plan,'"Function Scan"')=0,'audit helper allows indexed cursor filtering before bounded entity lookup')
+from audit_plan;
 
 update public.player_pools set is_active=true,rankings_approved_at=now() where id='b0000000-0000-4000-8000-000000000003';
 insert into public.fantasy_seasons(id,label,rule_version,status,trade_deadline) values(pg_temp.c_id('past'),'2025-26','fixture','complete',now()),(pg_temp.c_id('future'),'2027-28','fixture','draft',now()+interval '1 year');

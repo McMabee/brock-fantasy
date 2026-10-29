@@ -1,5 +1,7 @@
 begin;
 select no_plan();
+select ok(to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)')is not null,'private email dispatcher has its networking dependency');
+select ok((select bool_and(not has_function_privilege(r,'beta_private.dispatch_service_email_tick()','EXECUTE'))from unnest(array['anon','authenticated','service_role'])r),'client roles cannot invoke the private scheduled dispatcher');
 create function pg_temp.p_id(text)returns uuid language sql immutable as $$select md5('privacy-fixture:'||$1)::uuid$$;
 insert into auth.users(id,email,email_confirmed_at,created_at,raw_user_meta_data)values
   (pg_temp.p_id('manager'),'privacy-manager@example.test',now(),now(),jsonb_build_object('varsity_role','none','varsity_programs','[]'::jsonb,'display_name','Privacy manager','beta_age_eligible',true,'beta_eligibility_year',extract(year from timezone('America/Toronto',now()))::integer,'beta_eligibility_policy_version','brock-beta-eligibility-2026-10-06.1')),

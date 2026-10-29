@@ -1,5 +1,12 @@
 # Privacy and automatic-draft release runbook
 
+October 29 activation: the operator reported acceptance passed and explicitly
+confirmed policy/source-rights and retention inventory review. All seven release
+controls are now enabled. See [the acceptance and activation record](release-acceptance-2026-10-28.md)
+for deployed configuration, backup/restore, delivery evidence, and remaining
+operational follow-up. The migration defaults described below remain intentionally
+disabled for a new installation
+
 ## Current release boundary
 
 The three forward migrations install compatible interfaces and leave automatic
