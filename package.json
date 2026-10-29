@@ -59,6 +59,7 @@
     "test:edge:local": "node scripts/test-edge-functions.mjs",
     "verify:auth-config": "node --experimental-strip-types scripts/verify-supabase-auth-config.mjs",
     "verify:web-env-boundary": "node scripts/verify-web-env-boundary.mjs",
+    "verify:published-sports:hosted": "node scripts/verify-published-sports-rpcs.mjs",
     "import:beta-data": "node scripts/import-brock-beta-data.mjs",
     "import:rosters": "node scripts/materialize-brock-rosters.mjs",
     "import:schedules": "node scripts/materialize-brock-schedules.mjs",

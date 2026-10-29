@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { validatePublicAuthConfig } from '../apps/client/src/lib/public-auth-config.ts';
 import { resolvePublicDeploymentConfig } from '../config/public-deployment.cjs';
+import { verifyPublishedSportsRpcs } from './lib/published-sports-rpcs.mjs';
 
 // - Resolve hosted public defaults before Expo starts
 // - Preserve explicit overrides so invalid or privileged values still fail validation
@@ -37,6 +38,10 @@ if (process.env.VERCEL === '1') {
 }
 
 if (process.argv.includes('--build')) {
+  if (process.env.VERCEL === '1') {
+    await verifyPublishedSportsRpcs(process.env);
+    console.log('Published sports RPCs are deployed and retain authenticated-only access.');
+  }
   // - Launch Expo from this process so validated defaults reach the child environment
   const clientRequire = createRequire(new URL('../apps/client/package.json', import.meta.url));
   const result = spawnSync(

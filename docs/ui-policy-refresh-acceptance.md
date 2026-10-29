@@ -53,9 +53,15 @@ Supabase resource was provisioned. See [feature preview configuration](preview-e
 
 Preview builds require explicit app/site review origins and a backend choice.
 Inherited live defaults remain rejected without the explicit live opt-in.
-Association maintenance cannot execute in previews. The live migration history
-does not include `20261029153800`, so hosted published-ranking acceptance remains
-pending its separate database release. Synthetic mutation suites remain local.
+Association maintenance cannot execute in previews. Migration `20261029153800`
+was deployed on 2026-10-29 after the UI refresh reached main. The three RPCs
+now exist in the REST schema and still deny anonymous execution. A read-only
+transaction using an existing ordinary account's claims returned 119 published
+athletes for 2026-27 and six programs. No account or league records were changed.
+Hosted exports now check RPC deployment and anonymous denial before building.
+The fix passed 342 relevant isolated pgTAP assertions, concurrency and upgrade
+rehearsals, seventeen focused Node tests, SQL syntax checks and live error-level
+security advisors. Synthetic mutation suites remain local.
 
 Browser API fixtures establish presentation and request behavior; the isolated SQL suite
 establishes database contracts and authorization. They are separate from a hosted browser →

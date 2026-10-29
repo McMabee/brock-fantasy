@@ -58,11 +58,13 @@ Environment changes require a new deployment. Node's module-type and engine-rang
 warnings are separate from configuration errors. A successful build establishes
 deployment compilation, not authenticated browser or email-callback acceptance.
 
-Live migration history was inspected without applying migrations. The published
-ranking RPC migration `20261029153800` is absent remotely. Its hosted acceptance
-remains pending a separate database release; production migrations were excluded
-from this delivery. Auth email callback acceptance also needs a review of the
-live project's redirect allowlist.
+The published ranking and upcoming-game RPC migration `20261029153800` was
+deployed to the live database on 2026-10-29 after the UI refresh reached main.
+Read-only verification under an ordinary authenticated database role returned
+119 published athletes for 2026-27 and six programs. Anonymous REST execution
+remains denied. Hosted builds now check these RPCs before exporting the app;
+run `pnpm verify:published-sports:hosted` to reproduce that readiness check.
+Authenticated browser and email-callback acceptance remain separate checks.
 
 Synthetic accounts, leagues and mutation suites continue to run locally. The
 local `build:ui-fixture` endpoint is intercepted and unsuitable for a functional
