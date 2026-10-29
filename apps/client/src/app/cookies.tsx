@@ -123,7 +123,7 @@ export default function CookiesScreen() {
         </Section>
         <SectionTitle title="Contact" />
         <Text style={ui.body}>
-          For questions about cookies or your privacy choices, contact Ty Mabee at{' '}
+          For questions about cookies or your privacy choices, contact Brock Fantasy support at{' '}
           <Link href="mailto:tymabee@proton.me" style={ui.link}>
             tymabee@proton.me
           </Link>

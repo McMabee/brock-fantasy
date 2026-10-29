@@ -27,9 +27,9 @@ export default function AccountDeletionScreen() {
           to request deletion after identity verification.
         </Text>
         <Text style={uiStyles.body}>
-          Email Ty Mabee; Tarik supports reviews internally. Volunteer response times vary. Verified
-          manual deletion requests have a target of 30 calendar days and remain open until an
-          administrator closes them.
+          Contact Brock Fantasy support. Volunteer response times vary. Verified manual deletion
+          requests have a target of 30 calendar days and remain open until an administrator closes
+          them.
         </Text>
         <View style={styles.actions}>
           <ActionButton

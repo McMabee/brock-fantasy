@@ -1,13 +1,13 @@
 import { Link } from 'expo-router';
 import { Text, View } from 'react-native';
 
-import { AppShell, Card, SectionTitle, useUiStyles } from '@/components/ui';
+import { AppShell, Card, useUiStyles } from '@/components/ui';
 
 export default function PrivacyScreen() {
   const uiStyles = useUiStyles();
   return (
-    <AppShell eyebrow="Draft for approval" title="Privacy notice">
-      <Card>
+    <AppShell eyebrow="Your information" title="Privacy notice">
+      <View style={{ gap: 20 }}>
         <Text style={uiStyles.body}>
           Brock Fantasy uses your email identity, display name, league memberships, fantasy teams,
           notification settings, and security metadata to operate private fantasy leagues. It does
@@ -49,7 +49,7 @@ export default function PrivacyScreen() {
             { display: 'flex', minHeight: 44, paddingVertical: 10 },
           ]}
         >
-          Read the complete privacy policy draft
+          Read the complete privacy policy
         </Link>
         <Section title="Eligibility">
           You may register if you are already 18 or turn 18 by December 31 of your registration
@@ -66,15 +66,14 @@ export default function PrivacyScreen() {
           Supabase supplies accounts and the database; Vercel hosts the sites; Resend handles
           configured email; approved sports-image hosts provide athlete images; and Google Drive
           stores encrypted backups. Security verification and operational logging can process
-          technical information. Provider locations and retention require release verification.
+          technical information. The complete policy explains processing locations and retention.
         </Section>
         <Section title="Your choices">
           You may update your profile, disable notification permissions, or initiate account
-          deletion. Email Ty Mabee at tymabee@proton.me for privacy, access, correction, athlete
-          concerns, accessibility, or deletion requests. You do not need to contact two people;
-          Tarik can be copied internally when needed.
+          deletion. Contact Brock Fantasy support at tymabee@proton.me for privacy, access,
+          correction, athlete concerns, accessibility assistance or deletion requests.
         </Section>
-      </Card>
+      </View>
     </AppShell>
   );
 }
@@ -82,9 +81,11 @@ export default function PrivacyScreen() {
 function Section({ title, children }: { title: string; children: string }) {
   const uiStyles = useUiStyles();
   return (
-    <View>
-      <SectionTitle title={title} />
+    <Card style={{ gap: 12 }}>
+      <Text accessibilityRole="header" style={uiStyles.title}>
+        {title}
+      </Text>
       <Text style={uiStyles.body}>{children}</Text>
-    </View>
+    </Card>
   );
 }
