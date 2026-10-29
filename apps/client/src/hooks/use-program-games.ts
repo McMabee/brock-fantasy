@@ -1,55 +1,69 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useActivePoll, useScreenActive } from './use-active-poll';
+import { useSession } from '@/providers/session-provider';
 
-interface ProgramGame {
+export interface ProgramGame {
   id: string;
-  competition_id: string;
   starts_at: string;
   status: 'scheduled' | 'in_progress';
   schedule_confirmed: boolean;
+  opponent: string;
+  home: boolean;
+  neutral: boolean;
+}
+export interface ProgramGames {
+  competition_id: string;
+  live: ProgramGame | null;
+  next: ProgramGame | null;
 }
 
 export function useProgramGames(competitionIds: readonly string[]) {
-  const key = competitionIds.join(',');
-  const [games, setGames] = useState<Readonly<Record<string, ProgramGame>>>({});
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const client = supabase;
-    if (!client || !key) {
-      setGames({});
-      setError(null);
-      setLoading(false);
-      return;
-    }
-    let active = true;
-    setLoading(true);
-    const load = async () => {
-      const result = await client
-        .from('games')
-        .select('id, competition_id, starts_at, status, schedule_confirmed')
-        .in('competition_id', key.split(','))
-        .in('status', ['scheduled', 'in_progress'])
-        .or(`starts_at.gte.${new Date().toISOString()},status.eq.in_progress`)
-        .order('starts_at')
-        .limit(500);
-      if (!active) return;
+  const { user, readScope } = useSession();
+  const key = [...competitionIds].sort().join(',');
+  const identity = useMemo(() => ({ key, readScope }), [key, readScope]);
+  const latest = useRef<object>(identity);
+  latest.current = identity;
+  const pending = useRef<object | null>(null);
+  const active = useScreenActive();
+  const [state, setState] = useState<{
+    identity: object;
+    games: Record<string, ProgramGames>;
+    error: string | null;
+  } | null>(null);
+  const reload = useCallback(async () => {
+    if (!supabase || !user || !key || pending.current === identity) return;
+    pending.current = identity;
+    try {
+      const result = await supabase.rpc('get_upcoming_program_games', {
+        p_competition_ids: key.split(','),
+      });
+      if (latest.current !== identity) return;
       if (result.error) throw result.error;
-      const next: Record<string, ProgramGame> = {};
-      for (const game of (result.data ?? []) as ProgramGame[]) next[game.competition_id] ??= game;
-      setGames(next);
-      setError(null);
-      setLoading(false);
-    };
-    void load().catch(() => {
-      if (active) {
-        setError('Game times could not load.');
-        setLoading(false);
-      }
-    });
+      const games = Object.fromEntries(
+        ((result.data ?? []) as ProgramGames[]).map((row) => [row.competition_id, row]),
+      );
+      setState({ identity, games, error: null });
+    } catch {
+      if (latest.current === identity)
+        setState({ identity, games: {}, error: 'Upcoming games could not load.' });
+    } finally {
+      if (pending.current === identity) pending.current = null;
+    }
+  }, [identity, key, user?.id]);
+  useEffect(() => {
+    latest.current = identity;
+    void reload();
     return () => {
-      active = false;
+      if (latest.current === identity) latest.current = {};
     };
-  }, [key]);
-  return { games, error, loading };
+  }, [reload, identity]);
+  useActivePoll(reload, active, 30_000);
+  const current = state?.identity === identity ? state : null;
+  return {
+    games: current?.games ?? {},
+    error: current?.error ?? null,
+    loading: !!key && !!user && !current,
+    reload,
+  };
 }

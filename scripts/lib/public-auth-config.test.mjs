@@ -37,6 +37,42 @@ test('hosted missing-config errors identify only variable names', () => {
   }
 });
 
+test('preview build and browser validators accept explicit review origins and backend modes', () => {
+  const preview = {
+    VERCEL: '1',
+    VERCEL_ENV: 'preview',
+    VERCEL_GIT_COMMIT_REF: 'feat/ui-policy-refresh',
+    BROCK_PREVIEW_BACKEND: 'live',
+    EXPO_PUBLIC_APP_ENV: 'staging',
+    EXPO_PUBLIC_APP_ORIGIN: 'https://app-review.example.test',
+    PUBLIC_REGISTRATION_ORIGIN: 'https://site-review.example.test',
+    EXPO_PUBLIC_SUPABASE_URL: beta.EXPO_PUBLIC_SUPABASE_URL,
+    EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: beta.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  };
+  const config = resolvePublicDeploymentConfig(preview);
+  validatePublicAuthConfig(config);
+  validatePublicAuthConfig({
+    ...config,
+    EXPO_PUBLIC_SUPABASE_URL: 'https://aaaaaaaaaaaaaaaaaaaa.supabase.co',
+  });
+  for (const change of [
+    { EXPO_PUBLIC_DEPLOYMENT_TARGET: '' },
+    { EXPO_PUBLIC_APP_ENV: 'production' },
+    { EXPO_PUBLIC_APP_ORIGIN: 'https://play.brockfantasy.ca' },
+    { EXPO_PUBLIC_APP_ORIGIN: 'https://beta.brockfantasy.ca' },
+    { EXPO_PUBLIC_APP_ORIGIN: 'https://user:password@app-review.example.test' },
+    { EXPO_PUBLIC_SUPABASE_URL: 'https://database.invalid' },
+    { EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_secret_private-canary' },
+  ])
+    assert.throws(() => validatePublicAuthConfig({ ...config, ...change }));
+  const result = spawnSync(
+    process.execPath,
+    ['--experimental-strip-types', 'scripts/verify-web-build-config.mjs'],
+    { encoding: 'utf8', env: { ...process.env, ...preview, EXPO_PUBLIC_SUPABASE_ANON_KEY: '' } },
+  );
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('hosted config rejects invalid environments, origins, projects and support recipients', () => {
   for (const change of [
     { EXPO_PUBLIC_APP_ENV: 'preview' },

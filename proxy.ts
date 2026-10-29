@@ -47,7 +47,11 @@ export default function proxy(request: Request): Response {
   const local = environment === 'local' && process.env.VERCEL !== '1';
   const origin = config.EXPO_PUBLIC_APP_ORIGIN ?? process.env.EXPO_PUBLIC_APP_ORIGIN;
   const expectedOrigin =
-    environment === 'production' ? 'https://play.brockfantasy.ca' : 'https://beta.brockfantasy.ca';
+    process.env.VERCEL_ENV === 'preview'
+      ? origin
+      : environment === 'production'
+        ? 'https://play.brockfantasy.ca'
+        : 'https://beta.brockfantasy.ca';
   if (!local && (origin !== expectedOrigin || url.origin !== expectedOrigin))
     return new Response('This deployment is not a public application entry.', {
       status: 403,

@@ -155,7 +155,7 @@ export function AdminTable({
       role="region"
       tabIndex={0}
       accessibilityLabel={label}
-      style={{ maxWidth: '100%' }}
+      style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}
     >
       {Platform.OS === 'web' ? (
         <table

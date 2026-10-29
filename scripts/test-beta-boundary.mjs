@@ -141,6 +141,26 @@ try {
     EXPO_PUBLIC_APP_ENV: 'staging',
     EXPO_PUBLIC_APP_ORIGIN: 'https://beta.brockfantasy.ca',
   });
+  const beforePreview = { ...process.env };
+  Object.assign(process.env, {
+    VERCEL_ENV: 'preview',
+    BROCK_PREVIEW_BACKEND: 'live',
+    EXPO_PUBLIC_APP_ORIGIN: 'https://app-review.example.test',
+    PUBLIC_REGISTRATION_ORIGIN: 'https://site-review.example.test',
+    EXPO_PUBLIC_SUPABASE_URL: 'https://fdovowiihxowzatewxgv.supabase.co',
+  });
+  assert.equal(proxy(new Request('https://app-review.example.test/dashboard')).status, 200);
+  assert.equal(proxy(new Request('https://app-review.example.test/api/data/supabase')).status, 401);
+  assert.equal(proxy(new Request('https://play.brockfantasy.ca/dashboard')).status, 403);
+  assert.equal(proxy(new Request('https://other-review.example.test/dashboard')).status, 403);
+  assert.match(
+    proxy(new Request('https://app-review.example.test/auth')).headers.get('x-test-rewrite'),
+    /api\/auth\/entry/u,
+  );
+  delete process.env.VERCEL_ENV;
+  delete process.env.BROCK_PREVIEW_BACKEND;
+  delete process.env.PUBLIC_REGISTRATION_ORIGIN;
+  Object.assign(process.env, beforePreview);
   const signIn = await proxy(
     new Request('https://beta.brockfantasy.ca/auth?returnTo=%2Fdashboard'),
   );

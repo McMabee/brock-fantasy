@@ -18,7 +18,7 @@ import { useMyLeagues } from '@/hooks/use-my-leagues';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { heading } from '@/theme';
 import { RulesLink } from '@/components/rules-link';
-import { PendingConfirmation } from '@/components/player-insights';
+import { UpcomingGames } from '@/components/upcoming-games';
 
 export default function DashboardScreen() {
   const styles = useThemedStyles(createStyles);
@@ -106,42 +106,21 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      <SectionTitle title="Brock programs" detail="2026–27 season" />
-      {competitionQuery.loading ? (
-        <LoadingState label="Loading programs" rows={2} />
-      ) : competitionQuery.error ? (
-        <ErrorState message={competitionQuery.error} />
+      <SectionTitle title="Upcoming Games" />
+      {competitionQuery.loading || programGames.loading ? (
+        <LoadingState label="Loading upcoming games" rows={2} />
+      ) : competitionQuery.error || programGames.error ? (
+        <ErrorState
+          message={competitionQuery.error ?? programGames.error!}
+          onRetry={programGames.reload}
+        />
       ) : competitions.length === 0 ? (
         <EmptyState
           title="Season data is not active"
           body="Official roster and schedule information will be provided shortly."
         />
       ) : (
-        <Card style={styles.dataCard}>
-          {competitions.map((competition, index) => (
-            <View
-              key={competition.id}
-              style={[styles.programRow, index === competitions.length - 1 && uiStyles.lastRow]}
-            >
-              <View style={styles.leagueCopy}>
-                <Text style={styles.programName}>{competition.name}</Text>
-                <Text style={styles.leagueMeta}>{competition.seasonLabel}</Text>
-                <Text style={styles.gameTime}>
-                  {programGames.loading
-                    ? 'Loading game time…'
-                    : (programGames.error ??
-                      (programGames.games[competition.id]
-                        ? `Next game, ${new Date(programGames.games[competition.id]!.starts_at).toLocaleString('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}`
-                        : 'No upcoming game scheduled'))}
-                </Text>
-                {programGames.games[competition.id]?.schedule_confirmed === false ? (
-                  <PendingConfirmation />
-                ) : null}
-              </View>
-              <Pill label={competition.isActive ? 'ACTIVE' : 'PENDING'} tone="info" />
-            </View>
-          ))}
-        </Card>
+        <UpcomingGames competitions={competitions} games={programGames.games} />
       )}
     </AppShell>
   );
@@ -149,7 +128,7 @@ export default function DashboardScreen() {
 
 const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
   StyleSheet.create({
-    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, maxWidth: '100%', flexShrink: 1 },
     list: { gap: 12 },
     leagueCard: {
       flexDirection: 'row',
@@ -167,15 +146,4 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       marginTop: 4,
       textTransform: 'capitalize',
     },
-    dataCard: { paddingVertical: 4 },
-    programRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      paddingVertical: 14,
-      borderBottomColor: colors.border,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    programName: { fontFamily: 'Inter', color: colors.text, fontSize: 14, fontWeight: '800' },
-    gameTime: { fontFamily: 'Inter', color: colors.muted, fontSize: 12, lineHeight: 18 },
   });

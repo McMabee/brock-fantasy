@@ -169,9 +169,65 @@ select is((select display_data->'stats'->>'goals' from public.preseason_ranking_
 select pg_temp.c_actor('admin');set local role authenticated;
 select throws_ok($$select public.admin_publish_preseason_review('b0000000-0000-4000-8000-000000000003',(select data->>'input_hash' from ranking),'Reviewed all supplied input statistics','centre-stale-ranking')$$,'PT409','Ranking inputs changed; preview and review again','supporting statistic changes invalidate the preview');
 reset role;
+-- - Retain published history without requiring an active historical pool
+insert into public.player_pools(id,season_id,name,ruleset_id,is_active)
+values(pg_temp.c_id('published-past-pool'),pg_temp.c_id('past'),'Past published fixture','b0000000-0000-4000-8000-000000000004',false);
+insert into public.athlete_seasons(athlete_id,season_id,competition_id,team_id,positions,directory_visible,draft_eligible)
+values(pg_temp.c_id('mens-athlete'),pg_temp.c_id('past'),pg_temp.c_id('mens-competition'),pg_temp.c_id('mens-team'),array['F'],true,false);
+insert into public.preseason_ranking_publications(id,pool_id,version,input_hash,published_by,reason)
+values(pg_temp.c_id('past-publication'),pg_temp.c_id('published-past-pool'),1,'fixture-hash',pg_temp.c_id('admin'),'Historical approved fixture');
+insert into public.preseason_ranking_entries(publication_id,athlete_id,position_group,projected_points,position_rank,provenance,display_data)
+values(pg_temp.c_id('past-publication'),pg_temp.c_id('mens-athlete'),'HK_F',75,1,'[]','{"name":"Historical athlete name","position":"F","program":"mens_hockey","division":"mens","season_label":"2025-26","games_played":18,"stats":{"goals":7}}');
+select pg_temp.c_actor('outsider','aal1');set local role authenticated;
+select ok(public.get_published_preseason_ranking_seasons()->'seasons'?'2025-26','catalog includes published historical seasons');
+select is(public.get_published_preseason_rankings('2025-26')->'rows'->0->>'name','Historical athlete name','inactive historical pool uses its frozen published identity');
+select is(public.get_published_preseason_rankings('2025-26')->'rows'->0->'display_data'->'stats'->>'goals','7','historical details use published source statistics');
+reset role;
+update public.athlete_seasons set directory_visible=false where athlete_id=pg_temp.c_id('mens-athlete') and season_id=pg_temp.c_id('past');
+select pg_temp.c_actor('outsider','aal1');set local role authenticated;
+select is(jsonb_array_length(public.get_published_preseason_rankings('2025-26')->'rows'),0,'historical reads preserve season directory visibility');
+reset role;
+-- - Published sports reads use ordinary account access and never expose draft review inputs
+select pg_temp.c_actor('outsider', 'aal1'); set local role authenticated;
+select is(public.get_published_preseason_ranking_seasons()->>'currentSeason','2026-27','ordinary managers can select the current publication');
+select is(jsonb_array_length(public.get_published_preseason_rankings()->'rows'),2,'both published divisions are visible without administrator MFA');
+select is(public.get_published_preseason_rankings()->'rows'->0->'display_data'->'stats'->>'goals','15','published statistics stay frozen after source changes');
+select ok(not(public.get_published_preseason_rankings()::text like '%private source note%'),'private supporting notes never reach public ranking reads');
+select ok(not(public.get_published_preseason_rankings()->'rows'->0->'display_data'?'sources'),'raw source provenance is absent from the player payload');
+select throws_ok($$select public.get_published_preseason_rankings('2027-28')$$,'22023','Select a published ranking season','unpublished future seasons cannot be requested');
+select throws_ok($$select public.admin_get_ranking_review('2026-27',true)$$,'42501',null,'published reads do not grant administrator preview access');
+reset role; set local role anon;
+select throws_ok($$select public.get_published_preseason_rankings()$$,'42501',null,'anonymous ranking reads are denied');
+select throws_ok($$select public.get_upcoming_program_games('{}')$$,'42501',null,'anonymous game reads are denied');
+reset role;
+update public.competitions set is_active=true where id in(pg_temp.c_id('womens-competition'),pg_temp.c_id('mens-competition'));
+insert into public.teams(id,competition_id,name,short_name,is_brock)
+values(pg_temp.c_id('opponent'),pg_temp.c_id('womens-competition'),'Fixture opponent','OPP',false),
+(pg_temp.c_id('other-opponent'),pg_temp.c_id('womens-competition'),'Other opponent','OTH',false);
+insert into public.games(id,competition_id,home_team_id,away_team_id,starts_at,status,schedule_confirmed,neutral_site)
+select pg_temp.c_id(n),pg_temp.c_id('womens-competition'),
+case when n='next' then pg_temp.c_id('opponent') when n='other-game' then pg_temp.c_id('other-opponent') else pg_temp.c_id('womens-team') end,
+case when n='next' then pg_temp.c_id('womens-team') else pg_temp.c_id('opponent') end,
+now()+offset_hours*interval '1 hour',status::public.game_status,n<>'next',n='next'
+from(values('live',-1,'in_progress'),('next',3,'scheduled'),('later',5,'scheduled'),('cancelled',1,'cancelled'),('postponed',2,'postponed'),('other-game',1,'scheduled'))t(n,offset_hours,status);
+select pg_temp.c_actor('outsider','aal1');set local role authenticated;
+select is(public.get_upcoming_program_games(array[pg_temp.c_id('womens-competition')])->0->'live'->>'id',pg_temp.c_id('live')::text,'current live fixture is separate from the next game');
+select is(public.get_upcoming_program_games(array[pg_temp.c_id('womens-competition')])->0->'next'->>'id',pg_temp.c_id('next')::text,'next fixture excludes cancelled, postponed and non-Brock games');
+select is(public.get_upcoming_program_games(array[pg_temp.c_id('womens-competition')])->0->'next'->>'opponent','Fixture opponent','opponent identity follows Brock home and away');
+select is(public.get_upcoming_program_games(array[pg_temp.c_id('womens-competition')])->0->'next'->>'home','false','away game is identified correctly');
+select is(public.get_upcoming_program_games(array[pg_temp.c_id('womens-competition')])->0->'next'->>'neutral','true','neutral-site information is retained');
+select is(public.get_upcoming_program_games(array[pg_temp.c_id('womens-competition')])->0->'next'->>'schedule_confirmed','false','unconfirmed schedule information is retained');
+select is(public.get_upcoming_program_games(array[pg_temp.c_id('mens-competition')])->0->'next','null'::jsonb,'programs without fixtures have an explicit empty state');
+reset role;
+update public.games set status='final' where id=pg_temp.c_id('live');
+update public.games set status='in_progress' where id=pg_temp.c_id('next');
+select pg_temp.c_actor('outsider','aal1');set local role authenticated;
+select is(public.get_upcoming_program_games(array[pg_temp.c_id('womens-competition')])->0->'next'->>'id',pg_temp.c_id('later')::text,'refresh advances to the next scheduled fixture');
+reset role;
 update public.athletes set fantasy_withdrawn_at=now() where id=pg_temp.c_id('womens-athlete');
 select pg_temp.c_actor('admin');set local role authenticated;
 select is(jsonb_array_length(public.admin_get_ranking_review('2026-27')->'rows'),1,'historical snapshots preserve athlete withdrawal protections');
+select is(jsonb_array_length(public.get_published_preseason_rankings()->'rows'),1,'player snapshots retain withdrawal protections');
 reset role;
 update public.profiles set deleted_at=now() where id=pg_temp.c_id('candidate5');
 select is((select count(*)::int from beta_private.participant_confirmation_requests where user_id=pg_temp.c_id('candidate5')),0,'soft account deletion clears private replies');

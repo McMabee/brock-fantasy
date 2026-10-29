@@ -1,0 +1,194 @@
+@import url('/policy-fonts.css');
+:root {
+  color-scheme: light dark;
+  --policy-bg: #f4f5f8;
+  --policy-panel: #ffffff;
+  --policy-text: #182136;
+  --policy-muted: #526078;
+  --policy-border: #c9cfdb;
+  --policy-accent: #c50024;
+  --policy-link: #9d0020;
+  font-family: Inter, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --policy-bg: #10131c;
+    --policy-panel: #1b2030;
+    --policy-text: #f5f6fb;
+    --policy-muted: #b7bfd2;
+    --policy-border: #46506a;
+    --policy-accent: #ff4465;
+    --policy-link: #ff9aab;
+  }
+}
+:root[data-theme='dark'] {
+  --policy-bg: #10131c;
+  --policy-panel: #1b2030;
+  --policy-text: #f5f6fb;
+  --policy-muted: #b7bfd2;
+  --policy-border: #46506a;
+  --policy-accent: #ff4465;
+  --policy-link: #ff9aab;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--policy-bg);
+  color: var(--policy-text);
+  font-size: 16px;
+  line-height: 1.75;
+  --bf-text: var(--policy-text);
+  --bf-panel: var(--policy-panel);
+  --bf-muted: var(--policy-border);
+}
+a {
+  color: var(--policy-link);
+  text-underline-offset: 0.2em;
+  overflow-wrap: anywhere;
+}
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--policy-accent);
+  outline-offset: 4px;
+}
+.policy-header {
+  background: var(--policy-panel);
+  border-bottom: 1px solid var(--policy-border);
+  padding: 20px max(20px, calc((100% - 1120px) / 2));
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+}
+.policy-brand {
+  font:
+    700 27px/1.2 BarlowCondensed,
+    sans-serif;
+  letter-spacing: 0.04em;
+  color: var(--policy-text);
+  text-decoration: none;
+  padding-block: 8px;
+}
+.policy-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+.policy-header nav a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.policy-shell {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+.policy-content {
+  padding: clamp(24px, 5vw, 52px);
+  background: var(--policy-panel);
+  border: 1px solid var(--policy-border);
+  border-radius: 18px;
+  box-shadow: 0 12px 36px #00000008;
+}
+.policy-content h1 {
+  font:
+    700 clamp(32px, 6vw, 48px)/1.15 BarlowCondensed,
+    sans-serif;
+  margin: 0 0 24px;
+  padding-bottom: 20px;
+  border-bottom: 3px solid var(--policy-accent);
+}
+.policy-content h2 {
+  font:
+    700 25px/1.3 Inter,
+    sans-serif;
+  margin: 36px 0 14px;
+}
+.policy-content h3 {
+  font:
+    700 20px/1.4 Inter,
+    sans-serif;
+}
+.policy-content p,
+.policy-content li {
+  max-width: 78ch;
+}
+.policy-content p {
+  margin: 0 0 18px;
+}
+.policy-content li {
+  margin-bottom: 10px;
+}
+.policy-content ul,
+.policy-content ol {
+  padding-left: 26px;
+}
+.policy-table {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-block: 24px;
+  border: 1px solid var(--policy-border);
+  border-radius: 10px;
+}
+.policy-content table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.policy-content th,
+.policy-content td {
+  padding: 16px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--policy-border);
+  overflow-wrap: anywhere;
+}
+.policy-content th {
+  font-weight: 700;
+  background: var(--policy-bg);
+}
+.policy-content code {
+  overflow-wrap: anywhere;
+}
+.policy-footer {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 20px 36px;
+  color: var(--policy-muted);
+  display: flex;
+  gap: 12px 24px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.policy-footer a,
+.policy-footer button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.policy-footer button {
+  font: inherit;
+  color: var(--policy-link);
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+  cursor: pointer;
+}
+@media (max-width: 600px) {
+  .policy-shell {
+    padding: 20px 12px 32px;
+  }
+  .policy-content {
+    padding: 24px 18px;
+    border-radius: 12px;
+  }
+  .policy-content h2 {
+    font-size: 22px;
+  }
+}

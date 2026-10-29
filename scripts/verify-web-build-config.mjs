@@ -41,7 +41,13 @@ if (process.argv.includes('--build')) {
   const clientRequire = createRequire(new URL('../apps/client/package.json', import.meta.url));
   const result = spawnSync(
     process.execPath,
-    [clientRequire.resolve('expo/bin/cli'), 'export', '--platform', 'web'],
+    [
+      clientRequire.resolve('expo/bin/cli'),
+      'export',
+      '--platform',
+      'web',
+      ...(process.argv.includes('--clear') ? ['--clear'] : []),
+    ],
     { stdio: 'inherit', cwd: fileURLToPath(new URL('../apps/client', import.meta.url)) },
   );
   if (result.error) throw result.error;

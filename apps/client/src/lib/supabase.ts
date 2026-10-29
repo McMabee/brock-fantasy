@@ -9,6 +9,7 @@ import { refreshWebSession, sessionNeedsRenewal } from './web-session';
 // Expo inlines these public values at build time. No server secrets belong here.
 validatePublicAuthConfig({
   EXPO_PUBLIC_APP_ENV: process.env.EXPO_PUBLIC_APP_ENV,
+  EXPO_PUBLIC_DEPLOYMENT_TARGET: process.env.EXPO_PUBLIC_DEPLOYMENT_TARGET,
   EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,

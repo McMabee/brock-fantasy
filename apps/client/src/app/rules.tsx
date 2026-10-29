@@ -186,11 +186,30 @@ export default function RulesScreen() {
               Each pick defaults to two minutes. Before the draft starts, the commissioner can save
               a different pick timer with a minimum of 20 seconds. In Live draft mode, the
               commissioner starts the draft and can pause or resume it. Its planned time is a
-              reminder. When Scheduled automatic draft is enabled, the system starts at the chosen
-              time and commits legal picks from each manager’s private rankings, using approved
-              defaults when needed. Managers do not need to be online.
+              reminder.
             </Paragraph>
-            <Paragraph title="Queues and automatic picks">
+            <View style={{ gap: 14 }}>
+              <Paragraph title="Scheduled automatic draft">
+                Your commissioner selects this mode and a future start time. The league must have
+                all manager seats filled and an approved player pool with reviewed rankings. Save
+                your private draft rankings before the scheduled cutoff; editing closes at that
+                time. Other managers and your commissioner cannot see your choices.
+              </Paragraph>
+              <Text style={styles.body}>
+                The system starts at or shortly after the scheduled time and completes ten rounds in
+                snake order. For each pick, it takes your first available preference that lets every
+                team finish with a legal roster. If your list is empty or has no legal choice, it
+                takes the highest-ranked legal athlete from the approved defaults. You do not need
+                to be online, and there is no manual picking in this mode.
+              </Text>
+              <Text style={styles.body}>
+                If setup requirements are not met, the league shows a blocked reason and the
+                commissioner must resolve it and reschedule. If no legal pick remains during the
+                draft, it pauses for commissioner review. Progress may appear in batches while the
+                system processes picks.
+              </Text>
+            </View>
+            <Paragraph title="Live draft queues and automatic picks">
               Put your preferred athletes in your queue. If your timer expires, the system takes
               your first available legal queued athlete. With no legal queued choice, it uses a
               weighted choice among the top five ranked legal athletes, favouring higher ranks. An

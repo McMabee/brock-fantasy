@@ -112,14 +112,10 @@ export function LeagueSettings({ data }: { data: ReturnType<typeof useLeague> })
         </>
       ) : null}
       {data.league.commissionerId === user?.id ? (
-        <>
+        <View role="region" accessibilityLabel="Commissioner settings" style={{ gap: 18 }}>
           <SectionTitle title="Commissioner controls" />
-          <Text style={styles.body}>
-            Manage draft timing, matchup setup and league deletion below. Draft timing is locked
-            after the draft starts.
-          </Text>
           <CommissionerControls leagueId={data.league.id} leagueData={data} />
-        </>
+        </View>
       ) : null}
     </View>
   );

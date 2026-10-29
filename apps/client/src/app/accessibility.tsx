@@ -19,14 +19,13 @@ export default function AccessibilityScreen() {
         </Text>
         <SectionTitle title="Ask for help or another format" />
         <Text style={ui.body}>
-          Email Ty Mabee at tymabee@proton.me. Describe the page, the barrier, and the format or
-          assistance you need. Sharing your diagnosis is not required. Tarik can be involved
-          internally to help resolve requests.
+          Contact Brock Fantasy support at tymabee@proton.me. Describe the page, the barrier, and
+          the format or assistance you need. Sharing your diagnosis is not required.
         </Text>
         <Text style={ui.body}>
-          Manual screen-reader acceptance, third-party verification experiences, and the final audit
-          of all states remain release checks. We will record limitations accurately as those checks
-          finish.
+          Automated checks cover representative workflows and cannot establish complete
+          accessibility. Some dynamic states and third-party verification steps may still present
+          barriers. Contact support if you need an accessible alternative.
         </Text>
         <Link
           href="/policies/accessibility-statement.html"

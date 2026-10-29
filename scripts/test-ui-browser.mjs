@@ -1071,9 +1071,7 @@ try {
       await page
         .getByRole('button', { name: 'Move selected athlete to Bench', exact: true })
         .click();
-      await page
-        .getByText('Assignment updated. Save lineup to confirm.', { exact: true })
-        .waitFor();
+      await page.getByText('Pending lineup changes', { exact: true }).waitFor();
       assert.ok(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
         `Lineup labels fit ${theme} ${width}`,
@@ -1193,12 +1191,7 @@ try {
     await page
       .getByRole('button', { name: 'Move selected athlete to Hitter', exact: true })
       .click();
-    await page
-      .getByText(
-        `${reserve.display_name} and ${oldStarter.display_name} swapped. Save lineup to confirm.`,
-        { exact: true },
-      )
-      .waitFor();
+    await page.getByText('Pending lineup changes', { exact: true }).waitFor();
     const reserveGuard = fullRosterPlayers.find(
       (entry) => entry.slot_code === 'BN' && entry.positions.includes('BC'),
     );

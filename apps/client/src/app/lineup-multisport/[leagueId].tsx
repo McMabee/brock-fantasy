@@ -26,7 +26,7 @@ import { useResponsiveDimensions } from '@/hooks/use-responsive-dimensions';
 import { DraftPlayerPhoto } from '@/components/player-photo';
 import { createSingleFlight } from '@/lib/single-flight';
 import { useActivePoll, useScreenActive } from '@/hooks/use-active-poll';
-import { sameSavedLineup } from '@/lib/lineup-recovery';
+import { sameSavedLineup, pendingLineupChanges } from '@/lib/lineup-recovery';
 
 interface SlotRule {
   slot_code: string;
@@ -182,8 +182,11 @@ export default function BetaLineupScreen() {
     }
     return groups;
   }, [lineup, assignment]);
-  const dirty =
-    lineup?.entries.some((entry) => assignment[entry.athlete_id] !== entry.slot_code) ?? false;
+  const pendingChanges = useMemo(
+    () => pendingLineupChanges(lineup?.entries ?? [], assignment),
+    [lineup, assignment],
+  );
+  const dirty = pendingChanges.length > 0;
   const swap = (sourceId: string, targetId: string) => {
     if (saving || sourceId === targetId) return;
     const source = lineup?.entries.find((entry) => entry.athlete_id === sourceId);
@@ -209,9 +212,7 @@ export default function BetaLineupScreen() {
       [targetId]: sourceSlot.slot_code,
     }));
     setSelected(null);
-    setMessage(
-      `${source.display_name} and ${target.display_name} swapped. Save lineup to confirm.`,
-    );
+    setMessage(null);
   };
   const move = (sourceId: string, code: string) => {
     const source = lineup?.entries.find((entry) => entry.athlete_id === sourceId);
@@ -236,7 +237,7 @@ export default function BetaLineupScreen() {
     }
     setAssignment((current) => ({ ...current, [sourceId]: code }));
     setSelected(null);
-    setMessage('Assignment updated. Save lineup to confirm.');
+    setMessage(null);
   };
   const forgetDraft = () => {
     if (Platform.OS === 'web' && storageKey) {
@@ -518,6 +519,23 @@ export default function BetaLineupScreen() {
               </View>
             ))}
           </View>
+          {dirty ? (
+            <Card style={{ gap: 14, marginTop: 20 }}>
+              <Text accessibilityRole="header" style={ui.title}>
+                Pending lineup changes
+              </Text>
+              <View accessibilityLiveRegion="polite" style={{ gap: 12 }}>
+                {pendingChanges.map(({ entry, from, to }) => (
+                  <Text key={entry.athlete_id} style={ui.body}>
+                    {entry.display_name}:{' '}
+                    {rosterSlotLabel(from, leagueData.league?.rosterFormat === 'varsity')} →{' '}
+                    {rosterSlotLabel(to, leagueData.league?.rosterFormat === 'varsity')}
+                  </Text>
+                ))}
+              </View>
+              <Text style={ui.body}>Save lineup to apply these changes to future games.</Text>
+            </Card>
+          ) : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 20 }}>
             <ActionButton label="Back to league" href={`/league/${leagueId}`} variant="ghost" />
             <ActionButton

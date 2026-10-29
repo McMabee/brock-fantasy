@@ -84,6 +84,8 @@ try {
       email_confirm: true,
       user_metadata: {
         display_name: 'Edge Smoke Admin',
+        varsity_role: 'none',
+        varsity_programs: [],
         beta_age_eligible: true,
         beta_eligibility_year: Number(
           new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric' }).format(
@@ -385,7 +387,7 @@ try {
   await expectStatus(push, 200, 'dispatch empty notification queue');
 
   localApproval(`delete from public.user_roles where user_id='${userId}' and role='admin';`);
-  for (const name of ['ingest-sports-data', 'dispatch-push-notifications', 'delete-account']) {
+  for (const name of ['ingest-sports-data', 'dispatch-push-notifications']) {
     await expectStatus(
       await fetch(`${status.FUNCTIONS_URL}/${name}`, {
         method: 'POST',
@@ -393,7 +395,7 @@ try {
         body: '{}',
       }),
       403,
-      `revoked JWT cannot call ${name}`,
+      `removed administrator role cannot call ${name}`,
     );
   }
   const revokedRead = await expectJson(
@@ -401,31 +403,30 @@ try {
       headers: userHeaders,
     }),
     200,
-    'read with revoked JWT',
+    'ordinary account can read its own profile after staff-role removal',
   );
-  if (!Array.isArray(revokedRead) || revokedRead.length !== 0)
-    throw new Error('Revoked administrator could read application records.');
+  if (!Array.isArray(revokedRead) || revokedRead.length !== 1 || revokedRead[0].id !== userId)
+    throw new Error('Staff-role removal incorrectly changed ordinary account access.');
   await expectStatus(
-    await fetch(`${status.REST_URL}/rpc/get_beta_lineup`, {
+    await fetch(`${status.REST_URL}/rpc/admin_get_ranking_seasons`, {
       method: 'POST',
       headers: userHeaders,
-      body: JSON.stringify({ p_fantasy_team_id: fantasyTeamId }),
+      body: '{}',
     }),
     403,
-    'revoked JWT cannot call an exposed command',
+    'removed administrator role cannot call an administrator RPC',
   );
-  localApproval(`insert into public.user_roles(user_id,role) values('${userId}','admin');`);
 
   const deletion = await fetch(`${status.FUNCTIONS_URL}/delete-account`, {
     method: 'POST',
     headers: userHeaders,
     body: '{}',
   });
-  await expectStatus(deletion, 204, 'delete local smoke account');
+  await expectStatus(deletion, 204, 'ordinary account can delete its own account');
   userId = undefined;
 
   process.stdout.write(
-    'Edge smoke passed: unapproved signup, auth/MFA/admin, fixture scoring/correction, push, live JWT revocation at REST/RPC/Edge boundaries, deletion.\n',
+    'Edge smoke passed: signup, auth/MFA/admin, fixture scoring/correction, push, live staff-role revocation, ordinary account access and deletion.\n',
   );
 } finally {
   const rosterEntries = await readRows(`roster_entries?league_id=eq.${leagueId}&select=id`);

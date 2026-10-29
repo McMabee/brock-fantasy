@@ -4,6 +4,72 @@ const defaults = require('./public-web.json');
 // - Leave local dotenv configuration and all server credentials untouched
 exports.resolvePublicDeploymentConfig = (env) => {
   if (env.VERCEL !== '1') return {};
+  if (env.VERCEL_ENV === 'preview') {
+    const sharedBackend = env.BROCK_PREVIEW_BACKEND === 'live';
+    const origin = env.EXPO_PUBLIC_APP_ORIGIN;
+    const registration = env.PUBLIC_REGISTRATION_ORIGIN;
+    const database = env.EXPO_PUBLIC_SUPABASE_URL;
+    const liveOrigins = new Set([
+      'https://play.brockfantasy.ca',
+      'https://beta.brockfantasy.ca',
+      'https://www.brockfantasy.ca',
+      'https://brockfantasy.ca',
+    ]);
+    const isolatedOrigin = (value) => {
+      try {
+        const parsed = new URL(value);
+        return (
+          parsed.protocol === 'https:' &&
+          parsed.origin === value &&
+          !parsed.username &&
+          !parsed.password &&
+          !liveOrigins.has(value)
+        );
+      } catch {
+        return false;
+      }
+    };
+    const issues = [];
+    if (!sharedBackend && env.BROCK_PREVIEW_ISOLATED !== 'true')
+      issues.push(
+        'BROCK_PREVIEW_ISOLATED must equal true or BROCK_PREVIEW_BACKEND must equal live',
+      );
+    if (env.BROCK_PREVIEW_BACKEND && !['live', 'isolated'].includes(env.BROCK_PREVIEW_BACKEND))
+      issues.push('BROCK_PREVIEW_BACKEND must equal live or isolated');
+    if (!isolatedOrigin(origin))
+      issues.push('EXPO_PUBLIC_APP_ORIGIN must be an explicit HTTPS preview origin');
+    if (!isolatedOrigin(registration))
+      issues.push('PUBLIC_REGISTRATION_ORIGIN must be an explicit HTTPS preview origin');
+    if (origin && origin === registration)
+      issues.push('EXPO_PUBLIC_APP_ORIGIN and PUBLIC_REGISTRATION_ORIGIN must differ');
+    if (
+      !database ||
+      (sharedBackend
+        ? database !== defaults.EXPO_PUBLIC_SUPABASE_URL
+        : database === defaults.EXPO_PUBLIC_SUPABASE_URL) ||
+      !/^https:\/\/[a-z]{20}\.supabase\.co$/u.test(database)
+    )
+      issues.push(
+        sharedBackend
+          ? 'EXPO_PUBLIC_SUPABASE_URL must identify the approved live Supabase project'
+          : 'EXPO_PUBLIC_SUPABASE_URL must identify a separate hosted Supabase project',
+      );
+    if (!(env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.EXPO_PUBLIC_SUPABASE_ANON_KEY))
+      issues.push(
+        'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY or EXPO_PUBLIC_SUPABASE_ANON_KEY is required',
+      );
+    if (env.EXPO_PUBLIC_APP_ENV !== 'staging')
+      issues.push('EXPO_PUBLIC_APP_ENV must equal staging');
+    // - Report configuration names without exposing supplied values or credentials
+    // - Require an explicit backend choice before export or runtime requests
+    if (issues.length)
+      throw new Error(
+        'Preview deployments require explicit app, association and Supabase configuration:\n' +
+          issues.map((issue) => `- ${issue}`).join('\n') +
+          '\nConfigure Preview variables for this Git branch and create a new deployment' +
+          '\nSee docs/preview-environment.md',
+      );
+  }
   const branch = env.VERCEL_GIT_COMMIT_REF;
   const environment =
     env.EXPO_PUBLIC_APP_ENV ||
@@ -11,6 +77,7 @@ exports.resolvePublicDeploymentConfig = (env) => {
       ? 'production'
       : 'staging');
   return {
+    ...(env.VERCEL_ENV === 'preview' ? { EXPO_PUBLIC_DEPLOYMENT_TARGET: 'preview' } : {}),
     EXPO_PUBLIC_APP_ENV: environment,
     EXPO_PUBLIC_SUPABASE_URL: env.EXPO_PUBLIC_SUPABASE_URL || defaults.EXPO_PUBLIC_SUPABASE_URL,
     EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
