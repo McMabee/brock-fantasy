@@ -7,6 +7,7 @@
     "node": ">=22.12"
   },
   "scripts": {
+    "verify:admin-centre:hosted": "node scripts/verify-admin-centre-hosted.mjs",
     "test:admin-centre:local": "node scripts/test-admin-centre-local.mjs",
     "test:admin-centre:browser": "node scripts/test-admin-centre-browser.mjs",
     "import:participant-references": "node scripts/import-participant-references.mjs",
