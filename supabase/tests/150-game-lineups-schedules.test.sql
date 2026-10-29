@@ -1,5 +1,7 @@
 begin;
 select no_plan();
+-- - Keep replacement fixtures in the future regardless of the test execution date
+create function pg_temp.schedule_fixture_start(integer) returns timestamptz language sql stable as $$select date_trunc('second', now()) + $1 * interval '1 day';$$;
 -- - Exercise actual API roles with rollback-only fixtures
 insert into beta_private.application_access(email,reason) values
 ('game-member@example.test','Explicit isolated RPC member approval'),('game-other@example.test','Explicit isolated RPC other approval');
@@ -142,10 +144,10 @@ select lives_ok($$select public.review_game_schedule('98000000-0000-4000-8000-00
 reset role;
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 set local role service_role;
-select lives_ok($$select public.apply_official_schedule('98000000-0000-4000-8000-000000000024',jsonb_build_array(jsonb_build_object('id','98000000-0000-4000-8000-000000000023','key','fixture:third','startsAt','2026-10-21T23:00:00Z','opponent','Opponent','home',true,'kind','regular','status','scheduled')))$$,'worker records conflicting official change');
+select lives_ok($$select public.apply_official_schedule('98000000-0000-4000-8000-000000000024',jsonb_build_array(jsonb_build_object('id','98000000-0000-4000-8000-000000000023','key','fixture:third','startsAt',pg_temp.schedule_fixture_start(5),'opponent','Opponent','home',true,'kind','regular','status','scheduled')))$$,'worker records conflicting official change');
 select ok((select schedule_override and not schedule_confirmed from public.games where id='98000000-0000-4000-8000-000000000023'),'sync preserves pinned override and flags conflict pending confirmation');
 select is((select schedule_revision from public.games where id='98000000-0000-4000-8000-000000000023'),3::bigint,'conflicting source increments revision once');
-select public.apply_official_schedule('98000000-0000-4000-8000-000000000024',jsonb_build_array(jsonb_build_object('id','98000000-0000-4000-8000-000000000023','key','fixture:third','startsAt','2026-10-21T23:00:00Z','opponent','Opponent','home',true,'kind','regular','status','scheduled')));
+select public.apply_official_schedule('98000000-0000-4000-8000-000000000024',jsonb_build_array(jsonb_build_object('id','98000000-0000-4000-8000-000000000023','key','fixture:third','startsAt',pg_temp.schedule_fixture_start(5),'opponent','Opponent','home',true,'kind','regular','status','scheduled')));
 select is((select schedule_revision from public.games where id='98000000-0000-4000-8000-000000000023'),3::bigint,'identical sync retry is idempotent');
 reset role;
 select set_config('request.jwt.claims','{"sub":"98000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal2","session_id":"98000000-0000-4000-8000-000000000002"}',true);
@@ -157,8 +159,8 @@ select lives_ok($$select public.review_game_schedule('98000000-0000-4000-8000-00
 reset role;
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 set local role service_role;
-select public.apply_official_schedule('98000000-0000-4000-8000-000000000024',jsonb_build_array(jsonb_build_object('id','98000000-0000-4000-8000-000000000023','key','fixture:third','startsAt','2026-10-21T23:00:00Z','opponent','Opponent','home',true,'kind','regular','status','scheduled')));
-select ok((select not schedule_override and not schedule_confirmed and starts_at='2026-10-21T23:00:00Z'::timestamptz from public.games where id='98000000-0000-4000-8000-000000000023'),'cleared override accepts immediate source change pending confirmation');
+select public.apply_official_schedule('98000000-0000-4000-8000-000000000024',jsonb_build_array(jsonb_build_object('id','98000000-0000-4000-8000-000000000023','key','fixture:third','startsAt',pg_temp.schedule_fixture_start(5),'opponent','Opponent','home',true,'kind','regular','status','scheduled')));
+select ok((select not schedule_override and not schedule_confirmed and starts_at=pg_temp.schedule_fixture_start(5)::timestamptz from public.games where id='98000000-0000-4000-8000-000000000023'),'cleared override accepts immediate source change pending confirmation');
 reset role;
 select set_config('request.jwt.claims','{"sub":"98000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal2","session_id":"98000000-0000-4000-8000-000000000002"}',true);
 set local role authenticated;
@@ -174,8 +176,8 @@ set local role service_role;
 select public.apply_official_schedule('98000000-0000-4000-8000-000000000024',jsonb_build_array(jsonb_build_object('id','98000000-0000-4000-8000-000000000026','key','fixture:unplayed','startsAt',clock_timestamp()-interval '1 minute','opponent','Opponent','home',true,'kind','regular','status','postponed')));
 select is((select count(*)::integer from public.game_lineup_snapshots where game_id='98000000-0000-4000-8000-000000000026'),0,'unplayed postponed fixture discards obsolete lineup capture');
 select ok((select lineup_lock_at is null from public.games where id='98000000-0000-4000-8000-000000000026'),'delayed postponement clears the obsolete elapsed lock');
-select public.apply_official_schedule('98000000-0000-4000-8000-000000000024',jsonb_build_array(jsonb_build_object('id','98000000-0000-4000-8000-000000000026','key','fixture:unplayed','startsAt','2026-10-22T23:00:00Z','opponent','Opponent','home',true,'kind','regular','status','scheduled')));
-select is((select starts_at from public.games where id='98000000-0000-4000-8000-000000000026'),'2026-10-22T23:00:00Z'::timestamptz,'replacement start applies after postponement and will capture a fresh lineup');
+select public.apply_official_schedule('98000000-0000-4000-8000-000000000024',jsonb_build_array(jsonb_build_object('id','98000000-0000-4000-8000-000000000026','key','fixture:unplayed','startsAt',pg_temp.schedule_fixture_start(6),'opponent','Opponent','home',true,'kind','regular','status','scheduled')));
+select is((select starts_at from public.games where id='98000000-0000-4000-8000-000000000026'),pg_temp.schedule_fixture_start(6)::timestamptz,'replacement start applies after postponement and will capture a fresh lineup');
 select ok((select lineup_lock_at=starts_at from public.games where id='98000000-0000-4000-8000-000000000026'),'replacement fixture locks at its new start');
 select ok(not beta_private.is_locked('98000000-0000-4000-8000-000000000006','98000000-0000-4000-8000-000000000010'),'athletes remain unlocked before the replacement start');
 reset role;
