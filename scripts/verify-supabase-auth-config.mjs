@@ -71,7 +71,7 @@ if (environment === 'staging' || environment === 'production') {
     .get('EXPO_PUBLIC_SUPPORT_EMAIL')
     .split(',')
     .map((value) => value.trim().toLowerCase());
-  if (!recipients.includes('tymabee@proton.me'))
+  if (!recipients.includes('bfa.support64@gmail.com'))
     throw new Error('The support setting must include the public privacy contact');
 }
 

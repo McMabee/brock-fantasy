@@ -1,7 +1,7 @@
 # Terms and conditions
 
 **Last revised:** October 29, 2026\
-**Contact:** [Brock Fantasy support](mailto:tymabee@proton.me)
+**Contact:** [Brock Fantasy support](mailto:bfa.support64@gmail.com)
 
 **Operator:** Ty Mabee, 602 Main Street, Port Dover, ON, N0A 1N0
 
@@ -60,7 +60,7 @@ establishes zero tolerance for abuse, harassment and hate toward athletes, coach
 others associated with Brock teams, with immediate restrictions or termination where
 appropriate. The [gambling policy](gambling-policy.html) prohibits gambling on
 Brock sporting events and provides permanent account termination for a substantiated
-violation. Evidence review and independent appeals apply. Send reports to [Brock Fantasy support](mailto:tymabee@proton.me). Mandatory rights and non-excludable liabilities remain protected under
+violation. Evidence review and independent appeals apply. Send reports to [Brock Fantasy support](mailto:bfa.support64@gmail.com). Mandatory rights and non-excludable liabilities remain protected under
 these Terms.
 
 ## Community and user content

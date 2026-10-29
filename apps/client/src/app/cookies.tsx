@@ -124,8 +124,8 @@ export default function CookiesScreen() {
         <SectionTitle title="Contact" />
         <Text style={ui.body}>
           For questions about cookies or your privacy choices, contact Brock Fantasy support at{' '}
-          <Link href="mailto:tymabee@proton.me" style={ui.link}>
-            tymabee@proton.me
+          <Link href="mailto:bfa.support64@gmail.com" style={ui.link}>
+            bfa.support64@gmail.com
           </Link>
           .
         </Text>

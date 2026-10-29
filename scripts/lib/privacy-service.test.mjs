@@ -24,7 +24,7 @@ const input = {
 };
 
 test('service emails use available account routes and the server-resolved recipient', async () => {
-  for (const kind of ['participation', 'account']) {
+  for (const kind of ['contact', 'participation', 'account']) {
     let delivery;
     const env = {
       EXPO_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
@@ -58,9 +58,14 @@ test('service emails use available account routes and the server-resolved recipi
       async () => {},
     );
     assert.equal(result.accepted, 1);
-    assert.deepEqual(delivery.body.to, ['recipient@example.test']);
+    assert.deepEqual(delivery.body.to, [
+      kind === 'contact' ? 'bfa.support64@gmail.com' : 'recipient@example.test',
+    ]);
     const route = kind === 'participation' ? `/participation/confirm/${user}` : '/auth';
-    assert.ok(delivery.body.text.includes(`https://play.brockfantasy.ca${route}`));
+    if (kind !== 'contact') {
+      assert.ok(delivery.body.text.includes(`https://play.brockfantasy.ca${route}`));
+      assert.ok(delivery.body.text.includes('bfa.support64@gmail.com'));
+    }
     if (kind === 'participation')
       assert.ok(delivery.body.text.includes('administrator reviews your response'));
     assert.equal(delivery.headers['idempotency-key'], `brock-service-email/${jobId}`);

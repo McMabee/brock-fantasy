@@ -53,7 +53,7 @@ export function useContactSubmission() {
       } else {
         setStatus('failed');
         setMessage(
-          'Delivery was not confirmed. Your input is still here. Retry or email tymabee@proton.me with your request reference.',
+          'Delivery was not confirmed. Your input is still here. Retry or email bfa.support64@gmail.com with your request reference.',
         );
       }
     } catch {
@@ -76,7 +76,7 @@ export function useContactSubmission() {
       if (attempts++ >= 20) {
         setStatus('unavailable');
         setMessage(
-          'Confirmation is taking longer than expected. Keep your request reference and contact tymabee@proton.me.',
+          'Confirmation is taking longer than expected. Keep your request reference and contact bfa.support64@gmail.com.',
         );
         return;
       }
@@ -100,7 +100,7 @@ export function useContactSubmission() {
         if (response.ok && ['failed', 'bounced', 'obsolete'].includes(body.status ?? '')) {
           setStatus('failed');
           setMessage(
-            'Delivery failed. Your input is still here. Retry or email tymabee@proton.me with your request reference.',
+            'Delivery failed. Your input is still here. Retry or email bfa.support64@gmail.com with your request reference.',
           );
           return;
         }

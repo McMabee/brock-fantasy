@@ -1,7 +1,7 @@
 # Community moderation policy
 
 **Last revised:** October 29, 2026\
-**Contact:** [Brock Fantasy support](mailto:tymabee@proton.me)
+**Contact:** [Brock Fantasy support](mailto:bfa.support64@gmail.com)
 
 ## Scope and expected conduct
 
@@ -31,7 +31,7 @@ Follow the
 discriminatory or hateful comments, unwelcome sexual attention, stalking and intimidation
 are prohibited. Substantiated gambling on a Brock sporting event results in permanent
 account termination. Protective restrictions may precede final review; allegations are
-reviewed and the independent appeal process remains available. Send reports to [Brock Fantasy support](mailto:tymabee@proton.me).
+reviewed and the independent appeal process remains available. Send reports to [Brock Fantasy support](mailto:bfa.support64@gmail.com).
 
 ## Reporting and personal controls
 

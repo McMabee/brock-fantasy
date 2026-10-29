@@ -10,110 +10,163 @@
     <link rel="stylesheet" href="/ui/privacy.css" />
     <script src="/ui/privacy.js" defer></script>
   </head>
-  <body data-bf-cookie-auto>
+  <body data-bf-cookie-auto data-policy-site="app">
+    <a class="policy-skip" href="#bf-main">Skip to policy</a>
     <header class="policy-header">
-      <a class="policy-brand" href="/">BROCK FANTASY</a>
+      <a class="policy-brand" href="/" aria-label="Brock Fantasy home"
+        ><span>BROCK</span><span>FANTASY</span></a
+      >
       <nav aria-label="Policy navigation">
         <a href="/privacy">Privacy overview</a><a href="/policies/terms-of-use.html">Terms</a
         ><a href="/policies/support-policy.html">Support</a>
       </nav>
     </header>
     <main id="bf-main" class="policy-shell" tabindex="-1">
-      <article class="policy-content">
-        <h1 id="account-deletion-policy">Account-deletion policy</h1>
-        <p>
-          <strong>Last revised:</strong> October 29, 2026<br />
-          <strong>Contact:</strong> <a href="mailto:tymabee@proton.me">Brock Fantasy support</a>
+      <header class="policy-hero">
+        <p class="policy-eyebrow">YOUR INFORMATION</p>
+        <h1>Account-deletion policy</h1>
+        <p class="policy-summary">
+          Clear information about your account, your leagues and the way Brock Fantasy operates.
         </p>
-        <h2 id="requesting-deletion">Requesting deletion</h2>
-        <p>
-          Sign in, open <strong>Account</strong>, select <strong>Delete account</strong>, and type
-          <code>DELETE</code> to confirm. Submit only when you are ready: successful deletion is
-          permanent and has no built-in cancellation or recovery period.
-        </p>
-        <p>
-          If you cannot sign in or the request fails, email the contact above from your registered
-          address where possible. We will verify control of the account proportionately; knowing a
-          display name or league invite code is not sufficient. Do not email passwords, recovery
-          codes, or login links.
-        </p>
-        <h2 id="effects-of-successful-deletion">Effects of successful deletion</h2>
-        <p>
-          Successful deletion removes your authentication account and profile, memberships and
-          platform-role assignments, mute settings, in-app notifications, registered device push
-          tokens and associated delivery records, and account-linked command-retry records. Reports
-          you filed are also deleted by the current account cascade; necessary incident evidence may
-          be retained separately under a documented exception.
-        </p>
-        <p>
-          You lose access to leagues and teams associated with that account. Historical fantasy
-          teams, drafts, roster transactions, and scoring results can remain with account ownership
-          references cleared. Deletion does not reverse completed picks, trades, or scores, and does
-          not delete an entire league used by other people. Contact support first if commissioner
-          responsibilities need a handover.
-        </p>
-        <p>
-          Creating a new account later does not restore the deleted identity, previous memberships,
-          or authority over retained teams. Account deletion is different from signing out,
-          uninstalling the app, leaving a league, or disabling notifications.
-        </p>
-        <h2 id="residual-information">Residual information</h2>
-        <p>
-          The current deletion flow does not automatically erase every chat body, fantasy-team name,
-          audit entity identifier, free-text reason, or historical payload. These may still identify
-          you after an author/owner reference is cleared. Such records remain subject to the privacy
-          policy; we do not describe them as anonymous merely because a reference was removed.
-        </p>
-        <p>
-          You can ask for residual personal content to be reviewed. Our target is to remove, redact,
-          or appropriately de-identify unnecessary residual information within 30 calendar days
-          after verification. We may retain a limited record needed for a live dispute,
-          security/moderation investigation, access complaint, legal obligation, or accurate
-          competition history. We will explain applicable exceptions where lawful and use the
-          periods in the <a href="data-retention-schedule.html">retention schedule</a>.
-        </p>
-        <p>
-          Official athlete records, game results, and sports statistics are separate from your
-          fantasy-manager account and are not deleted with it. Athletes may contact the privacy
-          contact about their information.
-        </p>
-        <h2 id="timing-failures-and-confirmation">Timing, failures, and confirmation</h2>
-        <p>
-          The in-app request attempts live-account deletion immediately. Treat it as complete only
-          after the service reports success. An error means deletion may not have completed; contact
-          support rather than assuming that signing out removed the account. Some administrator
-          accounts can require additional handling because retained imports or operational records
-          reference them.
-        </p>
-        <p>
-          For verified manual requests, the completion target is 30 calendar days after
-          verification. We will confirm completion or explain remaining work, retained categories,
-          and any lawful limitation. This target is an operator-approved service target, not a
-          statutory deadline for every deletion request.
-        </p>
-        <p>
-          We aim to revoke account access when deletion completes. Previously issued credentials and
-          cached screens may take time to expire; successful deletion should not be interpreted as
-          immediate removal of every local copy. Sign out and clear app/browser storage on shared
-          devices.
-        </p>
-        <h2 id="backups-and-third-party-copies">Backups and third-party copies</h2>
-        <p>
-          Deleted information may remain in restricted backup copies until they expire. Our maximum
-          retention target for recovery copies is 90 calendar days after removal from live systems.
-          Backups are used for recovery, and deletion instructions must be reapplied before restored
-          data is returned to service.
-        </p>
-        <p>
-          We direct processors to handle deletion under their contracts and applicable law. We
-          cannot remove screenshots or copies independently kept by other league members, or
-          information a provider must retain under its own legal obligations. Contact the privacy
-          contact if you want access to your information before deleting the account.
-        </p>
-      </article>
+        <div class="policy-meta">
+          <p>
+            <strong>Last revised:</strong> October 29, 2026<br />
+            <strong>Contact:</strong>
+            <a href="mailto:bfa.support64@gmail.com">Brock Fantasy support</a>
+          </p>
+        </div>
+        <div class="policy-actions">
+          <a href="/policies/data-minimization.html">Data minimization</a
+          ><a href="/policies/privacy-notice.html">Complete privacy policy</a
+          ><a href="/policies/cookie-policy.html">Cookie choices</a>
+        </div>
+      </header>
+      <div class="policy-layout">
+        <aside class="policy-toc">
+          <nav aria-label="On this page">
+            <h2>On this page</h2>
+            <ol>
+              <li><a href="#requesting-deletion">Requesting deletion</a></li>
+              <li><a href="#effects-of-successful-deletion">Effects of successful deletion</a></li>
+              <li><a href="#residual-information">Residual information</a></li>
+              <li>
+                <a href="#timing-failures-and-confirmation">Timing, failures, and confirmation</a>
+              </li>
+              <li><a href="#backups-and-third-party-copies">Backups and third-party copies</a></li>
+            </ol>
+          </nav>
+        </aside>
+        <article class="policy-content">
+          <section class="policy-section" aria-labelledby="requesting-deletion">
+            <h2 id="requesting-deletion">Requesting deletion</h2>
+            <p>
+              Sign in, open <strong>Account</strong>, select <strong>Delete account</strong>, and
+              type <code>DELETE</code> to confirm. Submit only when you are ready: successful
+              deletion is permanent and has no built-in cancellation or recovery period.
+            </p>
+            <p>
+              If you cannot sign in or the request fails, email the contact above from your
+              registered address where possible. We will verify control of the account
+              proportionately; knowing a display name or league invite code is not sufficient. Do
+              not email passwords, recovery codes, or login links.
+            </p>
+          </section>
+          <section class="policy-section" aria-labelledby="effects-of-successful-deletion">
+            <h2 id="effects-of-successful-deletion">Effects of successful deletion</h2>
+            <p>
+              Successful deletion removes your authentication account and profile, memberships and
+              platform-role assignments, mute settings, in-app notifications, registered device push
+              tokens and associated delivery records, and account-linked command-retry records.
+              Reports you filed are also deleted by the current account cascade; necessary incident
+              evidence may be retained separately under a documented exception.
+            </p>
+            <p>
+              You lose access to leagues and teams associated with that account. Historical fantasy
+              teams, drafts, roster transactions, and scoring results can remain with account
+              ownership references cleared. Deletion does not reverse completed picks, trades, or
+              scores, and does not delete an entire league used by other people. Contact support
+              first if commissioner responsibilities need a handover.
+            </p>
+            <p>
+              Creating a new account later does not restore the deleted identity, previous
+              memberships, or authority over retained teams. Account deletion is different from
+              signing out, uninstalling the app, leaving a league, or disabling notifications.
+            </p>
+          </section>
+          <section class="policy-section" aria-labelledby="residual-information">
+            <h2 id="residual-information">Residual information</h2>
+            <p>
+              The current deletion flow does not automatically erase every chat body, fantasy-team
+              name, audit entity identifier, free-text reason, or historical payload. These may
+              still identify you after an author/owner reference is cleared. Such records remain
+              subject to the privacy policy; we do not describe them as anonymous merely because a
+              reference was removed.
+            </p>
+            <p>
+              You can ask for residual personal content to be reviewed. Our target is to remove,
+              redact, or appropriately de-identify unnecessary residual information within 30
+              calendar days after verification. We may retain a limited record needed for a live
+              dispute, security/moderation investigation, access complaint, legal obligation, or
+              accurate competition history. We will explain applicable exceptions where lawful and
+              use the periods in the <a href="data-retention-schedule.html">retention schedule</a>.
+            </p>
+            <p>
+              Official athlete records, game results, and sports statistics are separate from your
+              fantasy-manager account and are not deleted with it. Athletes may contact the privacy
+              contact about their information.
+            </p>
+          </section>
+          <section class="policy-section" aria-labelledby="timing-failures-and-confirmation">
+            <h2 id="timing-failures-and-confirmation">Timing, failures, and confirmation</h2>
+            <p>
+              The in-app request attempts live-account deletion immediately. Treat it as complete
+              only after the service reports success. An error means deletion may not have
+              completed; contact support rather than assuming that signing out removed the account.
+              Some administrator accounts can require additional handling because retained imports
+              or operational records reference them.
+            </p>
+            <p>
+              For verified manual requests, the completion target is 30 calendar days after
+              verification. We will confirm completion or explain remaining work, retained
+              categories, and any lawful limitation. This target is an operator-approved service
+              target, not a statutory deadline for every deletion request.
+            </p>
+            <p>
+              We aim to revoke account access when deletion completes. Previously issued credentials
+              and cached screens may take time to expire; successful deletion should not be
+              interpreted as immediate removal of every local copy. Sign out and clear app/browser
+              storage on shared devices.
+            </p>
+          </section>
+          <section class="policy-section" aria-labelledby="backups-and-third-party-copies">
+            <h2 id="backups-and-third-party-copies">Backups and third-party copies</h2>
+            <p>
+              Deleted information may remain in restricted backup copies until they expire. Our
+              maximum retention target for recovery copies is 90 calendar days after removal from
+              live systems. Backups are used for recovery, and deletion instructions must be
+              reapplied before restored data is returned to service.
+            </p>
+            <p>
+              We direct processors to handle deletion under their contracts and applicable law. We
+              cannot remove screenshots or copies independently kept by other league members, or
+              information a provider must retain under its own legal obligations. Contact the
+              privacy contact if you want access to your information before deleting the account.
+            </p>
+          </section>
+        </article>
+      </div>
+      <section class="policy-help" aria-labelledby="policy-help-title">
+        <div>
+          <p class="policy-eyebrow">WE CAN HELP</p>
+          <h2 id="policy-help-title">Questions about your information?</h2>
+          <p>Contact Brock Fantasy support for privacy, account or accessibility assistance.</p>
+        </div>
+        <a href="mailto:bfa.support64@gmail.com">bfa.support64@gmail.com</a>
+      </section>
     </main>
     <footer class="policy-footer">
-      <a href="/">Return home</a><a href="mailto:tymabee@proton.me">Contact Brock Fantasy support</a
+      <a href="/">Return home</a
+      ><a href="mailto:bfa.support64@gmail.com">Contact Brock Fantasy support</a
       ><a href="/policies/accessibility-statement.html">Accessibility</a
       ><button type="button" data-bf-cookie-settings>Cookie settings</button>
     </footer>

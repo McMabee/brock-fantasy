@@ -19,8 +19,8 @@ export default function AccessibilityScreen() {
         </Text>
         <SectionTitle title="Ask for help or another format" />
         <Text style={ui.body}>
-          Contact Brock Fantasy support at tymabee@proton.me. Describe the page, the barrier, and
-          the format or assistance you need. Sharing your diagnosis is not required.
+          Contact Brock Fantasy support at bfa.support64@gmail.com. Describe the page, the barrier,
+          and the format or assistance you need. Sharing your diagnosis is not required.
         </Text>
         <Text style={ui.body}>
           Automated checks cover representative workflows and cannot establish complete

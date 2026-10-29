@@ -1,7 +1,7 @@
 # Privacy policy
 
 **Last revised:** October 29, 2026\
-**Contact:** [Brock Fantasy support](mailto:tymabee@proton.me)
+**Contact:** [Brock Fantasy support](mailto:bfa.support64@gmail.com)
 
 **Operator:** Ty Mabee, 602 Main Street, Port Dover, ON, N0A 1N0
 
@@ -19,15 +19,33 @@ use advertising trackers.
 
 ## Information we handle
 
-| Category                           | Examples and purpose                                                                                                                                                                                                                                                       |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Account and authentication         | Email, display name, account ID, verification/recovery status, calendar-year eligibility attestation and policy version, password and optional authenticator information. Supabase Auth processes credentials; passwords are not stored in readable form by Brock Fantasy. |
-| League activity                    | Memberships, team names, invitations, draft picks, queues and private automatic-draft preferences, lineups, trades, waivers, results, and related timestamps, to run and audit competition.                                                                                |
-| Community information              | Chat text, reports, mute settings, and moderation decisions, to provide communication and enforce community rules.                                                                                                                                                         |
-| Technical and security information | IP address or related rate-limit signals, request/device/browser metadata where logged by our providers, session/security cookies, and audit records, to secure and troubleshoot the service.                                                                              |
-| Notifications                      | In-app notices and delivery records; device push tokens and message payloads if you enable a supported native notification feature. Native push is outside the initial web release.                                                                                        |
-| Support and privacy requests       | Contact details, correspondence, evidence you submit, and necessary verification information, to handle the request.                                                                                                                                                       |
-| Athlete and sports information     | Athlete names, team/position, jersey numbers, approved roster details, schedules, results, historical statistics, and source revisions, to present player information and calculate fantasy scoring.                                                                       |
+### Account and authentication
+
+Email, display name, account ID, verification/recovery status, calendar-year eligibility attestation and policy version, password and optional authenticator information. Supabase Auth processes credentials; passwords are not stored in readable form by Brock Fantasy.
+
+### League activity
+
+Memberships, team names, invitations, draft picks, queues and private automatic-draft preferences, lineups, trades, waivers, results, and related timestamps, to run and audit competition.
+
+### Community information
+
+Chat text, reports, mute settings, and moderation decisions, to provide communication and enforce community rules.
+
+### Technical and security information
+
+IP address or related rate-limit signals, request/device/browser metadata where logged by our providers, session/security cookies, and audit records, to secure and troubleshoot the service.
+
+### Notifications
+
+In-app notices and delivery records; device push tokens and message payloads if you enable a supported native notification feature. Native push is outside the initial web release.
+
+### Support and privacy requests
+
+Contact details, correspondence, evidence you submit, and necessary verification information, to handle the request.
+
+### Athlete and sports information
+
+Athlete names, team/position, jersey numbers, approved roster details, schedules, results, historical statistics, and source revisions, to present player information and calculate fantasy scoring.
 
 We do not request student numbers, payment details, dates of birth, phone numbers, or
 precise device location. An optional avatar URL is supported in the data model; if enabled,
@@ -83,13 +101,25 @@ technical controls and remain accountable for our handling of information.
 
 **Service providers and processing locations**
 
-| Provider                   | Role and location information                                                                                                                                                                                                                                         |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Supabase                   | Account authentication and database services in the United States, region us-west-2. [Privacy information](https://supabase.com/privacy).                                                                                                                             |
-| Vercel                     | Web hosting and request processing. [Privacy information](https://vercel.com/legal/privacy-policy).                                                                                                                                                                   |
-| Resend                     | Contact messages and service email; the configured email domain uses the United States region us-east-1. Open and click tracking are disabled. Provider acceptance does not establish inbox delivery. [Privacy information](https://resend.com/legal/privacy-policy). |
-| Encrypted recovery storage | Restricted local recovery copies in Ontario and encrypted off-site copies in Google Drive. Google processing may occur outside Canada. [Privacy information](https://policies.google.com/privacy).                                                                    |
-| Operational monitoring     | Limited technical and security information needed to detect service failures and investigate incidents.                                                                                                                                                               |
+### Supabase
+
+Account authentication and database services in the United States, region us-west-2. [Privacy information](https://supabase.com/privacy).
+
+### Vercel
+
+Web hosting and request processing. [Privacy information](https://vercel.com/legal/privacy-policy).
+
+### Resend
+
+Contact messages and service email; the configured email domain uses the United States region us-east-1. Open and click tracking are disabled. Provider acceptance does not establish inbox delivery. [Privacy information](https://resend.com/legal/privacy-policy).
+
+### Encrypted recovery storage
+
+Restricted local recovery copies in Ontario and encrypted off-site copies in Google Drive. Google processing may occur outside Canada. [Privacy information](https://policies.google.com/privacy).
+
+### Operational monitoring
+
+Limited technical and security information needed to detect service failures and investigate incidents.
 
 Information may be processed outside Canada and may be accessible to authorities under those
 countries' laws. Contact the privacy contact for information about provider processing locations. We may disclose

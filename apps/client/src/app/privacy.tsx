@@ -70,7 +70,7 @@ export default function PrivacyScreen() {
         </Section>
         <Section title="Your choices">
           You may update your profile, disable notification permissions, or initiate account
-          deletion. Contact Brock Fantasy support at tymabee@proton.me for privacy, access,
+          deletion. Contact Brock Fantasy support at bfa.support64@gmail.com for privacy, access,
           correction, athlete concerns, accessibility assistance or deletion requests.
         </Section>
       </View>

@@ -1,7 +1,7 @@
 # Gambling prohibition
 
 **Last revised:** October 29, 2026\
-**Contact:** [Brock Fantasy support](mailto:tymabee@proton.me)
+**Contact:** [Brock Fantasy support](mailto:bfa.support64@gmail.com)
 
 ## Recreational fantasy sport
 
@@ -46,5 +46,5 @@ gambling on Brock sporting events. Any liability limitation is subject to the
 non-excludable liabilities remain available.
 
 Report suspected prohibited gambling to
-**tymabee@proton.me**, with relevant references and evidence. Reports follow
+**bfa.support64@gmail.com**, with relevant references and evidence. Reports follow
 the [support policy](support-policy.html).

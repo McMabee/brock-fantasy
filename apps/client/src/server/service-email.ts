@@ -109,7 +109,7 @@ function emailConfiguration(env: Environment) {
   const from = env.SERVICE_EMAIL_FROM ?? env.ADMIN_INVITE_EMAIL_FROM;
   const origin = env.EXPO_PUBLIC_APP_ORIGIN;
   const unsubscribeSecret = env.SERVICE_EMAIL_UNSUBSCRIBE_SECRET;
-  const recipients = (env.SUPPORT_EMAIL_TO ?? 'tymabee@proton.me,gt22me@brocku.ca')
+  const recipients = (env.SUPPORT_EMAIL_TO ?? 'bfa.support64@gmail.com')
     .split(',')
     .map((value) => value.trim());
   if (
@@ -179,12 +179,12 @@ export async function dispatchServiceEmails(
         throw new Error('Invalid confirmation email job');
       to = [job.email];
       subject = 'Confirm your varsity participation status';
-      text = `A Brock Fantasy administrator has asked you to confirm your varsity role and programs.\n\nConfirm your status: ${config.origin}/participation/confirm/${message.requestId}\n\nSign in with the account that received this email. You can confirm or correct the suggested information, including selecting Neither. An administrator reviews your response before changing your participation status.\n\nThis request expires in seven days. This is an account service notice. For help, contact tymabee@proton.me`;
+      text = `A Brock Fantasy administrator has asked you to confirm your varsity role and programs.\n\nConfirm your status: ${config.origin}/participation/confirm/${message.requestId}\n\nSign in with the account that received this email. You can confirm or correct the suggested information, including selecting Neither. An administrator reviews your response before changing your participation status.\n\nThis request expires in seven days. This is an account service notice. For help, contact bfa.support64@gmail.com`;
     } else if (job.kind === 'account') {
       if (!job.email || !job.userId) throw new Error('Invalid account email job');
       to = [job.email];
       subject = message.title ?? 'Brock Fantasy account notice';
-      text = `${subject}\n\n${message.body ?? ''}\n\nSign in: ${config.origin}/auth\n\nThis account service notice is separate from optional draft or marketing emails. For privacy, accessibility or account help, contact Ty at tymabee@proton.me`;
+      text = `${subject}\n\n${message.body ?? ''}\n\nSign in: ${config.origin}/auth\n\nThis account service notice is separate from optional draft or marketing emails. For privacy, accessibility or account help, contact Brock Fantasy support at bfa.support64@gmail.com`;
     } else {
       if (!job.email || !job.userId) throw new Error('Invalid draft email job');
       to = [job.email];
@@ -206,7 +206,7 @@ export async function dispatchServiceEmails(
         config.origin +
         '/email-preferences?token=' +
         encodeURIComponent(unsubscribeToken(job.userId, config.unsubscribeSecret));
-      text = `${subject}\n\n${message.body ?? ''}\n\nOpen Brock Fantasy: ${config.origin}${link}\n\nThis is a factual league service notice, separate from marketing. Change draft email preferences: ${optout}\n\nBrock Fantasy\nPrivacy and accessibility: tymabee@proton.me`;
+      text = `${subject}\n\n${message.body ?? ''}\n\nOpen Brock Fantasy: ${config.origin}${link}\n\nThis is a factual league service notice, separate from marketing. Change draft email preferences: ${optout}\n\nBrock Fantasy\nPrivacy and accessibility: bfa.support64@gmail.com`;
       emailHeaders['List-Unsubscribe'] = `<${optout}>`;
     }
     try {

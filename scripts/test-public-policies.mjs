@@ -26,7 +26,7 @@ for (const directory of directories) {
       /Tarik|copied internally|Unapproved policy draft|\[insert|Draft for operator publication/u,
       name,
     );
-    assert.ok($('footer a[href="mailto:tymabee@proton.me"]').length, name);
+    assert.ok($('footer a[href="mailto:bfa.support64@gmail.com"]').length, name);
     for (const anchor of $('article a[href]').toArray()) {
       const href = $(anchor).attr('href');
       if (/^(?:https:|mailto:|\/)/u.test(href)) continue;
@@ -49,7 +49,10 @@ for (const directory of directories) {
 for (const name of files)
   assert.equal(
     await readFile(path.join(directories[0], 'policies', name), 'utf8'),
-    await readFile(path.join(directories[1], 'policies', name), 'utf8'),
+    (await readFile(path.join(directories[1], 'policies', name), 'utf8')).replace(
+      'data-policy-site="association"',
+      'data-policy-site="app"',
+    ),
     name,
   );
 console.log(

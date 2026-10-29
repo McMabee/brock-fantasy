@@ -10,58 +10,104 @@
     <link rel="stylesheet" href="/ui/privacy.css" />
     <script src="/ui/privacy.js" defer></script>
   </head>
-  <body data-bf-cookie-auto>
+  <body data-bf-cookie-auto data-policy-site="app">
+    <a class="policy-skip" href="#bf-main">Skip to policy</a>
     <header class="policy-header">
-      <a class="policy-brand" href="/">BROCK FANTASY</a>
+      <a class="policy-brand" href="/" aria-label="Brock Fantasy home"
+        ><span>BROCK</span><span>FANTASY</span></a
+      >
       <nav aria-label="Policy navigation">
         <a href="/privacy">Privacy overview</a><a href="/policies/terms-of-use.html">Terms</a
         ><a href="/policies/support-policy.html">Support</a>
       </nav>
     </header>
     <main id="bf-main" class="policy-shell" tabindex="-1">
-      <article class="policy-content">
-        <h1 id="accessibility-statement">Accessibility statement</h1>
-        <p>
-          <strong>Last revised:</strong> October 29, 2026<br />
-          <strong>Contact:</strong> <a href="mailto:tymabee@proton.me">Brock Fantasy support</a>
+      <header class="policy-hero">
+        <p class="policy-eyebrow">YOUR INFORMATION</p>
+        <h1>Accessibility statement</h1>
+        <p class="policy-summary">
+          Clear information about your account, your leagues and the way Brock Fantasy operates.
         </p>
-        <p>
-          Brock Fantasy works toward WCAG 2.2 Level AA across its web properties and considers
-          applicable accessibility obligations separately. This statement describes available
-          features and known limitations; it is not a certification of full conformance.
-        </p>
-        <h2 id="available-controls">Available controls</h2>
-        <p>
-          Keyboard-operable navigation and forms, visible focus, skip navigation, dialog Escape
-          dismissal and focus restoration, descriptive image alternatives where needed, and
-          accessible move controls for draft rankings support access without a mouse. Theme
-          switching works without optional persistence. Browser zoom and reduced-motion preferences
-          remain available.
-        </p>
-        <h2 id="verification-and-known-limits">Verification and known limits</h2>
-        <p>
-          Automated browser checks cover representative public and authenticated workflows,
-          supported themes and phone/desktop layouts. Automated results do not establish full WCAG
-          conformance. Some dynamic states and third-party verification steps may still present
-          barriers, and representative screen-reader testing remains incomplete. Contact us if you
-          need assistance or an accessible alternative.
-        </p>
-        <h2 id="help-and-alternate-formats">Help and alternate formats</h2>
-        <p>
-          Email <a href="mailto:tymabee@proton.me">Brock Fantasy support at tymabee@proton.me</a>.
-          Tell us the page, what prevented access, and the assistance or format you need. A medical
-          diagnosis is not required. The accessibility contact coordinates the response. We will
-          work with you on an appropriate accessible alternative.
-        </p>
-        <p>
-          The service is an independent Canadian volunteer project. Its accessibility target is
-          maintained separately from legal applicability; we do not use the AODA employee threshold
-          as a reason to ignore access barriers.
-        </p>
-      </article>
+        <div class="policy-meta">
+          <p>
+            <strong>Last revised:</strong> October 29, 2026<br />
+            <strong>Contact:</strong>
+            <a href="mailto:bfa.support64@gmail.com">Brock Fantasy support</a>
+          </p>
+          <p>
+            Brock Fantasy works toward WCAG 2.2 Level AA across its web properties and considers
+            applicable accessibility obligations separately. This statement describes available
+            features and known limitations; it is not a certification of full conformance.
+          </p>
+        </div>
+        <div class="policy-actions">
+          <a href="/policies/data-minimization.html">Data minimization</a
+          ><a href="/policies/privacy-notice.html">Complete privacy policy</a
+          ><a href="/policies/cookie-policy.html">Cookie choices</a>
+        </div>
+      </header>
+      <div class="policy-layout">
+        <aside class="policy-toc">
+          <nav aria-label="On this page">
+            <h2>On this page</h2>
+            <ol>
+              <li><a href="#available-controls">Available controls</a></li>
+              <li><a href="#verification-and-known-limits">Verification and known limits</a></li>
+              <li><a href="#help-and-alternate-formats">Help and alternate formats</a></li>
+            </ol>
+          </nav>
+        </aside>
+        <article class="policy-content">
+          <section class="policy-section" aria-labelledby="available-controls">
+            <h2 id="available-controls">Available controls</h2>
+            <p>
+              Keyboard-operable navigation and forms, visible focus, skip navigation, dialog Escape
+              dismissal and focus restoration, descriptive image alternatives where needed, and
+              accessible move controls for draft rankings support access without a mouse. Theme
+              switching works without optional persistence. Browser zoom and reduced-motion
+              preferences remain available.
+            </p>
+          </section>
+          <section class="policy-section" aria-labelledby="verification-and-known-limits">
+            <h2 id="verification-and-known-limits">Verification and known limits</h2>
+            <p>
+              Automated browser checks cover representative public and authenticated workflows,
+              supported themes and phone/desktop layouts. Automated results do not establish full
+              WCAG conformance. Some dynamic states and third-party verification steps may still
+              present barriers, and representative screen-reader testing remains incomplete. Contact
+              us if you need assistance or an accessible alternative.
+            </p>
+          </section>
+          <section class="policy-section" aria-labelledby="help-and-alternate-formats">
+            <h2 id="help-and-alternate-formats">Help and alternate formats</h2>
+            <p>
+              Email
+              <a href="mailto:bfa.support64@gmail.com"
+                >Brock Fantasy support at bfa.support64@gmail.com</a
+              >. Tell us the page, what prevented access, and the assistance or format you need. A
+              medical diagnosis is not required. The accessibility contact coordinates the response.
+              We will work with you on an appropriate accessible alternative.
+            </p>
+            <p>
+              The service is an independent Canadian volunteer project. Its accessibility target is
+              maintained separately from legal applicability; we do not use the AODA employee
+              threshold as a reason to ignore access barriers.
+            </p>
+          </section>
+        </article>
+      </div>
+      <section class="policy-help" aria-labelledby="policy-help-title">
+        <div>
+          <p class="policy-eyebrow">WE CAN HELP</p>
+          <h2 id="policy-help-title">Questions about your information?</h2>
+          <p>Contact Brock Fantasy support for privacy, account or accessibility assistance.</p>
+        </div>
+        <a href="mailto:bfa.support64@gmail.com">bfa.support64@gmail.com</a>
+      </section>
     </main>
     <footer class="policy-footer">
-      <a href="/">Return home</a><a href="mailto:tymabee@proton.me">Contact Brock Fantasy support</a
+      <a href="/">Return home</a
+      ><a href="mailto:bfa.support64@gmail.com">Contact Brock Fantasy support</a
       ><a href="/policies/accessibility-statement.html">Accessibility</a
       ><button type="button" data-bf-cookie-settings>Cookie settings</button>
     </footer>

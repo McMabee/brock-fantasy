@@ -10,88 +10,148 @@
     <link rel="stylesheet" href="/ui/privacy.css" />
     <script src="/ui/privacy.js" defer></script>
   </head>
-  <body data-bf-cookie-auto>
+  <body data-bf-cookie-auto data-policy-site="app">
+    <a class="policy-skip" href="#bf-main">Skip to policy</a>
     <header class="policy-header">
-      <a class="policy-brand" href="/">BROCK FANTASY</a>
+      <a class="policy-brand" href="/" aria-label="Brock Fantasy home"
+        ><span>BROCK</span><span>FANTASY</span></a
+      >
       <nav aria-label="Policy navigation">
         <a href="/privacy">Privacy overview</a><a href="/policies/terms-of-use.html">Terms</a
         ><a href="/policies/support-policy.html">Support</a>
       </nav>
     </header>
     <main id="bf-main" class="policy-shell" tabindex="-1">
-      <article class="policy-content">
-        <h1 id="availability-notice">Availability notice</h1>
-        <p>
-          <strong>Last revised:</strong> October 29, 2026<br />
-          <strong>Contact:</strong> <a href="mailto:tymabee@proton.me">Brock Fantasy support</a>
+      <header class="policy-hero">
+        <p class="policy-eyebrow">YOUR INFORMATION</p>
+        <h1>Availability notice</h1>
+        <p class="policy-summary">
+          Clear information about your account, your leagues and the way Brock Fantasy operates.
         </p>
-        <h2 id="service-availability">Service availability</h2>
-        <p>
-          Brock Fantasy is a free web application. We aim to support reliable league participation
-          but provide no guaranteed uptime, recovery time, or service-level agreement. Native apps
-          are outside the initial web release and are not offered through app stores as part of that
-          release.
-        </p>
-        <p>
-          Service or features can be interrupted by maintenance, hosting/database outages, high
-          demand, security incidents, network/device problems, or incomplete sports data.
-          Notification delivery is best effort and may be delayed, duplicated, or missed. Check the
-          in-app state and published league deadlines.
-        </p>
-        <h2 id="maintenance-and-incident-communication">Maintenance and incident communication</h2>
-        <p>
-          For disruptive planned maintenance, our target is at least 24 hours' notice through the
-          service or announced channel, where practical. We aim to avoid active drafts and important
-          game windows. Urgent security or integrity work may require immediate interruption.
-        </p>
-        <p>
-          When an unplanned incident is confirmed, we aim to publish the affected features, known
-          impact, and next update when feasible. We will provide updates as useful information
-          becomes available and a resolution notice for material incidents. A separate status page
-          is not promised until its location and operation are confirmed.
-        </p>
-        <p>
-          We may pause drafting, transactions, data ingestion, notifications, or access to protect
-          users and competition integrity. Account security and reliable recovery guide those
-          decisions.
-        </p>
-        <h2 id="league-actions-during-an-interruption">League actions during an interruption</h2>
-        <p>
-          A request succeeds only when the server accepts it. An outage, offline screen, missing
-          push notification, or unconfirmed submission does not automatically extend a deadline or
-          reverse an accepted action. Authorized exceptions, draft rescheduling, and league
-          adjudication must follow published rules and be recorded consistently.
-        </p>
-        <p>
-          Report affected actions with the league, time/time zone, and available evidence. We review
-          the server record and communicate any approved remedy; no particular fantasy result is
-          guaranteed.
-        </p>
-        <h2 id="recovery-and-service-changes">Recovery and service changes</h2>
-        <p>
-          We use recovery safeguards appropriate to the service. Our recovery targets are no more
-          than one day of lost data and restoration within one day. These are operational targets,
-          not guarantees of recovery time or uninterrupted availability. Canadian backup storage is
-          preferred, without a strict residency requirement. After recovery, we reconcile affected
-          competition records and reapply deletion restrictions before making restored personal
-          information available.
-        </p>
-        <p>
-          Sports-data interruptions and corrections follow the
-          <a href="delayed-data-notice.html">delayed-data policy</a>. Support availability follows
-          the <a href="support-policy.html">support policy</a>.
-        </p>
-        <p>
-          If the operator discontinues the service, the target is at least 30 calendar days' notice
-          where practical, with instructions for requesting personal information or deleting an
-          account. Legal or security circumstances may require shorter notice. Closure does not
-          justify indefinite retention; the
-          <a href="data-retention-schedule.html">retention schedule</a> still applies.
-        </p>
-      </article>
+        <div class="policy-meta">
+          <p>
+            <strong>Last revised:</strong> October 29, 2026<br />
+            <strong>Contact:</strong>
+            <a href="mailto:bfa.support64@gmail.com">Brock Fantasy support</a>
+          </p>
+        </div>
+        <div class="policy-actions">
+          <a href="/policies/data-minimization.html">Data minimization</a
+          ><a href="/policies/privacy-notice.html">Complete privacy policy</a
+          ><a href="/policies/cookie-policy.html">Cookie choices</a>
+        </div>
+      </header>
+      <div class="policy-layout">
+        <aside class="policy-toc">
+          <nav aria-label="On this page">
+            <h2>On this page</h2>
+            <ol>
+              <li><a href="#service-availability">Service availability</a></li>
+              <li>
+                <a href="#maintenance-and-incident-communication"
+                  >Maintenance and incident communication</a
+                >
+              </li>
+              <li>
+                <a href="#league-actions-during-an-interruption"
+                  >League actions during an interruption</a
+                >
+              </li>
+              <li><a href="#recovery-and-service-changes">Recovery and service changes</a></li>
+            </ol>
+          </nav>
+        </aside>
+        <article class="policy-content">
+          <section class="policy-section" aria-labelledby="service-availability">
+            <h2 id="service-availability">Service availability</h2>
+            <p>
+              Brock Fantasy is a free web application. We aim to support reliable league
+              participation but provide no guaranteed uptime, recovery time, or service-level
+              agreement. Native apps are outside the initial web release and are not offered through
+              app stores as part of that release.
+            </p>
+            <p>
+              Service or features can be interrupted by maintenance, hosting/database outages, high
+              demand, security incidents, network/device problems, or incomplete sports data.
+              Notification delivery is best effort and may be delayed, duplicated, or missed. Check
+              the in-app state and published league deadlines.
+            </p>
+          </section>
+          <section class="policy-section" aria-labelledby="maintenance-and-incident-communication">
+            <h2 id="maintenance-and-incident-communication">
+              Maintenance and incident communication
+            </h2>
+            <p>
+              For disruptive planned maintenance, our target is at least 24 hours' notice through
+              the service or announced channel, where practical. We aim to avoid active drafts and
+              important game windows. Urgent security or integrity work may require immediate
+              interruption.
+            </p>
+            <p>
+              When an unplanned incident is confirmed, we aim to publish the affected features,
+              known impact, and next update when feasible. We will provide updates as useful
+              information becomes available and a resolution notice for material incidents. A
+              separate status page is not promised until its location and operation are confirmed.
+            </p>
+            <p>
+              We may pause drafting, transactions, data ingestion, notifications, or access to
+              protect users and competition integrity. Account security and reliable recovery guide
+              those decisions.
+            </p>
+          </section>
+          <section class="policy-section" aria-labelledby="league-actions-during-an-interruption">
+            <h2 id="league-actions-during-an-interruption">
+              League actions during an interruption
+            </h2>
+            <p>
+              A request succeeds only when the server accepts it. An outage, offline screen, missing
+              push notification, or unconfirmed submission does not automatically extend a deadline
+              or reverse an accepted action. Authorized exceptions, draft rescheduling, and league
+              adjudication must follow published rules and be recorded consistently.
+            </p>
+            <p>
+              Report affected actions with the league, time/time zone, and available evidence. We
+              review the server record and communicate any approved remedy; no particular fantasy
+              result is guaranteed.
+            </p>
+          </section>
+          <section class="policy-section" aria-labelledby="recovery-and-service-changes">
+            <h2 id="recovery-and-service-changes">Recovery and service changes</h2>
+            <p>
+              We use recovery safeguards appropriate to the service. Our recovery targets are no
+              more than one day of lost data and restoration within one day. These are operational
+              targets, not guarantees of recovery time or uninterrupted availability. Canadian
+              backup storage is preferred, without a strict residency requirement. After recovery,
+              we reconcile affected competition records and reapply deletion restrictions before
+              making restored personal information available.
+            </p>
+            <p>
+              Sports-data interruptions and corrections follow the
+              <a href="delayed-data-notice.html">delayed-data policy</a>. Support availability
+              follows the <a href="support-policy.html">support policy</a>.
+            </p>
+            <p>
+              If the operator discontinues the service, the target is at least 30 calendar days'
+              notice where practical, with instructions for requesting personal information or
+              deleting an account. Legal or security circumstances may require shorter notice.
+              Closure does not justify indefinite retention; the
+              <a href="data-retention-schedule.html">retention schedule</a> still applies.
+            </p>
+          </section>
+        </article>
+      </div>
+      <section class="policy-help" aria-labelledby="policy-help-title">
+        <div>
+          <p class="policy-eyebrow">WE CAN HELP</p>
+          <h2 id="policy-help-title">Questions about your information?</h2>
+          <p>Contact Brock Fantasy support for privacy, account or accessibility assistance.</p>
+        </div>
+        <a href="mailto:bfa.support64@gmail.com">bfa.support64@gmail.com</a>
+      </section>
     </main>
     <footer class="policy-footer">
-      <a href="/">Return home</a><a href="mailto:tymabee@proton.me">Contact Brock Fantasy support</a
+      <a href="/">Return home</a
+      ><a href="mailto:bfa.support64@gmail.com">Contact Brock Fantasy support</a
       ><a href="/policies/accessibility-statement.html">Accessibility</a
       ><button type="button" data-bf-cookie-settings>Cookie settings</button>
     </footer>

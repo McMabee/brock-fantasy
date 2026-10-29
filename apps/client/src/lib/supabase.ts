@@ -22,7 +22,7 @@ const publishableKey =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 const isExpoWebServer = Platform.OS === 'web' && typeof document === 'undefined';
 export const appEnvironment = process.env.EXPO_PUBLIC_APP_ENV ?? 'local';
-export const supportEmail = 'tymabee@proton.me';
+export const supportEmail = 'bfa.support64@gmail.com';
 export const hasSupabaseConfig = Boolean(url && publishableKey);
 
 async function cookieAuthenticatedRead(

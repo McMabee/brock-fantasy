@@ -92,10 +92,10 @@ export function validatePublicAuthConfig(values: PublicAuthConfig): void {
     .map((value) => value.trim().toLowerCase());
   if (
     !recipients.every((value) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/u.test(value)) ||
-    !recipients.includes('tymabee@proton.me')
+    !recipients.includes('bfa.support64@gmail.com')
   ) {
     throw new Error(
-      'EXPO_PUBLIC_SUPPORT_EMAIL must include the public privacy contact, tymabee@proton.me.',
+      'EXPO_PUBLIC_SUPPORT_EMAIL must include the public privacy contact, bfa.support64@gmail.com.',
     );
   }
 }

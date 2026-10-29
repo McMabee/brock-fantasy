@@ -1,7 +1,7 @@
 # Athlete abuse and harassment policy
 
 **Last revised:** October 29, 2026\
-**Contact:** [Brock Fantasy support](mailto:tymabee@proton.me)
+**Contact:** [Brock Fantasy support](mailto:bfa.support64@gmail.com)
 
 ## Zero tolerance for abuse and harassment
 
@@ -43,7 +43,7 @@ or harassment. Any limitation of the operator's liability is governed by the
 law, and does not exclude liability or rights that cannot lawfully be excluded.
 
 If you experience or witness harassment, report it immediately to our moderation team by
-emailing **tymabee@proton.me**. Include
+emailing **bfa.support64@gmail.com**. Include
 relevant league/message references, dates and supporting details without unnecessarily
 circulating harmful content. In-app chat reports are also available.
 

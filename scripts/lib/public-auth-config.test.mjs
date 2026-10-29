@@ -9,12 +9,12 @@ const beta = {
   EXPO_PUBLIC_SUPABASE_URL: 'https://fdovowiihxowzatewxgv.supabase.co',
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_build_fixture',
   EXPO_PUBLIC_APP_ORIGIN: 'https://beta.brockfantasy.ca',
-  EXPO_PUBLIC_SUPPORT_EMAIL: 'tymabee@proton.me,gt22me@brocku.ca',
+  EXPO_PUBLIC_SUPPORT_EMAIL: 'bfa.support64@gmail.com',
 };
 
 test('staging and production validate public config without any server secrets', () => {
   validatePublicAuthConfig(beta);
-  validatePublicAuthConfig({ ...beta, EXPO_PUBLIC_SUPPORT_EMAIL: 'tymabee@proton.me' });
+  validatePublicAuthConfig({ ...beta, EXPO_PUBLIC_SUPPORT_EMAIL: 'bfa.support64@gmail.com' });
   validatePublicAuthConfig({
     ...beta,
     EXPO_PUBLIC_APP_ENV: 'production',

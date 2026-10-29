@@ -60,8 +60,9 @@ export default function TermsScreen() {
           displayed totals. The point ledger records those changes.
         </Term>
         <Term title="Contact and governing law">
-          Contact Brock Fantasy support at tymabee@proton.me. Ontario and applicable Canadian law
-          govern these terms, subject to mandatory rights and protections that apply where you live.
+          Contact Brock Fantasy support at bfa.support64@gmail.com. Ontario and applicable Canadian
+          law govern these terms, subject to mandatory rights and protections that apply where you
+          live.
         </Term>
       </Card>
     </AppShell>

@@ -1,7 +1,7 @@
 # Cookies and device storage
 
 **Last revised:** October 29, 2026\
-**Contact:** [Brock Fantasy support](mailto:tymabee@proton.me)
+**Contact:** [Brock Fantasy support](mailto:bfa.support64@gmail.com)
 
 Brock Fantasy uses necessary cookies and device storage to provide account access, protect requests and operate the features you choose. Optional appearance preferences are stored only with your permission. We do not use advertising cookies, analytics trackers or visitor profiling.
 

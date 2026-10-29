@@ -1,7 +1,7 @@
 # Athlete and sports-data rights statement
 
 **Last revised:** October 29, 2026\
-**Contact:** [Brock Fantasy support](mailto:tymabee@proton.me)
+**Contact:** [Brock Fantasy support](mailto:bfa.support64@gmail.com)
 
 **Operator:** Ty Mabee, 602 Main Street, Port Dover, ON, N0A 1N0
 
@@ -38,7 +38,7 @@ Brock game records and HockeyDB season summaries are used within their recorded 
 
 Athletes may contact the privacy contact to correct their information or request
 that it no longer be used, without opening an account. The operator has selected an athlete
-opt-out policy. Send requests to [Brock Fantasy support](mailto:tymabee@proton.me). The review includes import suppression to prevent later imports from restoring withdrawn records. We do not represent an athlete's silence as
+opt-out policy. Send requests to [Brock Fantasy support](mailto:bfa.support64@gmail.com). The review includes import suppression to prevent later imports from restoring withdrawn records. We do not represent an athlete's silence as
 documented explicit consent.
 
 Retention and necessary historical audit records follow the

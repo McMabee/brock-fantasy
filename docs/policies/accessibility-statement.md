@@ -1,7 +1,7 @@
 # Accessibility statement
 
 **Last revised:** October 29, 2026\
-**Contact:** [Brock Fantasy support](mailto:tymabee@proton.me)
+**Contact:** [Brock Fantasy support](mailto:bfa.support64@gmail.com)
 
 Brock Fantasy works toward WCAG 2.2 Level AA across its web properties and considers applicable accessibility obligations separately. This statement describes available features and known limitations; it is not a certification of full conformance.
 
@@ -18,7 +18,7 @@ Automated browser checks cover representative public and authenticated workflows
 
 ## Help and alternate formats
 
-Email [Brock Fantasy support at tymabee@proton.me](mailto:tymabee@proton.me). Tell us the
+Email [Brock Fantasy support at bfa.support64@gmail.com](mailto:bfa.support64@gmail.com). Tell us the
 page, what prevented access, and the assistance or format you need. A medical diagnosis is
 not required. The accessibility contact coordinates the response. We will work with you on
 an appropriate accessible alternative.
