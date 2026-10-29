@@ -9,6 +9,7 @@ import { webRequest } from '@/lib/web-request';
 import { useSession } from '@/providers/session-provider';
 import { heading } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
+import { useAdminRole } from '@/hooks/use-admin-role';
 import { useParticipation } from '@/hooks/use-participation';
 import { VarsityBadge } from '@/components/varsity-badge';
 import { VARSITY_PROGRAMS } from '@brock-fantasy/domain';
@@ -20,6 +21,7 @@ export default function AccountScreen() {
   useRequireUser();
   const router = useRouter();
   const { user, signOut } = useSession();
+  const hasAdminRole = useAdminRole();
   const { participation } = useParticipation();
   const [confirmation, setConfirmation] = useState('');
   const [message, setMessage] = useState<string | null>(null);
@@ -75,8 +77,12 @@ export default function AccountScreen() {
           />
         </Card>
         <ActionButton label="Sign out" onPress={() => void logout()} variant="secondary" />
-        <ActionButton label="Authenticator security" href="/mfa" variant="ghost" />
-        <ActionButton label="Admin panel" href="/admin" variant="secondary" />
+        {hasAdminRole ? (
+          <>
+            <ActionButton label="Authenticator security" href="/mfa" variant="ghost" />
+            <ActionButton label="Admin panel" href="/admin" variant="secondary" />
+          </>
+        ) : null}
       </View>
 
       <SectionTitle title="Privacy and deletion" />

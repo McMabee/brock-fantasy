@@ -11,6 +11,7 @@ import { gameTime, projectedPoints } from '@/lib/player-format';
 import { InfoButton } from './info-button';
 import { supabase } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
+import { AdminSelect } from './admin-ui';
 
 export function PlayerForecastPanel({
   athleteId,
@@ -99,16 +100,13 @@ export function PlayerForecastPanel({
         </Text>
         <InfoButton topic="projection" />
       </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {source.periods.map((row) => (
-          <ActionButton
-            key={row.id}
-            label={`Period ${row.number}`}
-            variant={period?.id === row.id ? 'primary' : 'secondary'}
-            onPress={() => setSelected(row.id)}
-          />
-        ))}
-      </View>
+      <AdminSelect
+        label="Forecast period"
+        value={period?.id ?? ''}
+        options={source.periods.map((row) => ({ value: row.id, label: `Period ${row.number}` }))}
+        disabled={!source.periods.length}
+        onChange={setSelected}
+      />
       {period && result ? (
         <>
           <Text style={ui.body}>
@@ -135,6 +133,7 @@ export function PlayerForecastPanel({
                 Date.parse(game.startsAt) >= Date.parse(period.startsAt) &&
                 Date.parse(game.startsAt) < Date.parse(period.endsAt),
             )
+            .sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt))
             .map((game) => (
               <View key={game.id} style={{ paddingVertical: 10, gap: 4 }}>
                 <Text style={ui.body}>

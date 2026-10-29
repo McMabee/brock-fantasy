@@ -4,6 +4,17 @@ interface SavedEntry {
   status: string;
 }
 
+// - Compare final assignments with the editing baseline in one pass
+export function pendingLineupChanges<T extends SavedEntry>(
+  baseline: readonly T[],
+  assignments: Readonly<Record<string, string>>,
+): { entry: T; from: string; to: string }[] {
+  return baseline.flatMap((entry) => {
+    const to = assignments[entry.athlete_id] ?? entry.slot_code;
+    return to === entry.slot_code ? [] : [{ entry, from: entry.slot_code, to }];
+  });
+}
+
 export function sameSavedLineup(
   baseline: readonly SavedEntry[],
   current: readonly SavedEntry[],

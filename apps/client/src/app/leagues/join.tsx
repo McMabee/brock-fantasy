@@ -92,9 +92,9 @@ export default function JoinLeagueScreen() {
       <Card style={styles.card}>
         <Pill label="INVITE REQUIRED" tone="info" />
         <Text style={styles.title}>Enter your league code</Text>
+        <Text style={styles.body}>Ask the league commissioner for the private invite code.</Text>
         <Text style={styles.body}>
-          Ask the league commissioner for the private invite code. Joining creates one fantasy team
-          linked to your verified account.
+          Joining creates one fantasy team linked to your verified account.
         </Text>
         <View style={styles.field}>
           <Text style={uiStyles.label}>Invite code</Text>

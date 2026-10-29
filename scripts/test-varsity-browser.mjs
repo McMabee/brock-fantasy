@@ -192,6 +192,10 @@ try {
       athlete: row(player),
     }));
     const commands = [];
+    let adminRole = true;
+    let adminVerified = true;
+    let roleUnavailable = false;
+    let gameMode = 'populated';
     let scheduled = false;
     let preDraft = false;
     let pickSeconds = null;
@@ -236,7 +240,14 @@ try {
         });
       if (url.pathname === '/api/auth/csrf') return reply({});
       if (url.pathname === '/api/admin/status')
-        return reply({ authenticated: true, hasAdminRole: true, isAdmin: true, aal: 'aal2' });
+        return roleUnavailable
+          ? route.fulfill({ status: 503, body: '{}' })
+          : reply({
+              authenticated: true,
+              hasAdminRole: adminRole,
+              isAdmin: adminRole && adminVerified,
+              aal: adminVerified ? 'aal2' : 'aal1',
+            });
       if (url.pathname.startsWith('/api/command/')) {
         const payload = route.request().postDataJSON();
         const name = url.pathname.split('/').at(-1);
@@ -351,6 +362,85 @@ try {
       if (url.pathname === '/api/data/supabase') {
         const data = new URL(url.searchParams.get('path'), origin);
         const table = data.pathname.split('/').at(-1);
+        if (table === 'competitions')
+          return reply(
+            Object.keys(programNames).map((program) => ({
+              id: program,
+              division: program.split('_')[0],
+              name: programNames[program],
+              season_label: '2026-27',
+              is_active: true,
+              ruleset_id: 'fixture',
+              sports: { code: program.split('_')[1] },
+            })),
+          );
+        if (table === 'get_upcoming_program_games') {
+          if (gameMode === 'error')
+            return route.fulfill({
+              status: 503,
+              body: JSON.stringify({ message: 'Fixture unavailable' }),
+              contentType: 'application/json',
+            });
+          return reply(
+            Object.keys(programNames).map((program) => ({
+              competition_id: program,
+              live:
+                gameMode === 'populated' && program === 'womens_hockey'
+                  ? {
+                      id: 'live',
+                      starts_at: '2026-11-01T05:30:00Z',
+                      status: 'in_progress',
+                      schedule_confirmed: true,
+                      opponent: 'Live Opponents',
+                      home: true,
+                      neutral: false,
+                    }
+                  : null,
+              next:
+                gameMode !== 'empty' && program !== 'mens_hockey'
+                  ? {
+                      id: 'next-' + program,
+                      starts_at: '2026-11-01T06:30:00Z',
+                      status: 'scheduled',
+                      schedule_confirmed: program !== 'womens_hockey',
+                      opponent: 'Next Opponents',
+                      home: program !== 'womens_hockey',
+                      neutral: program === 'mens_volleyball',
+                    }
+                  : null,
+            })),
+          );
+        }
+        if (table === 'admin_get_ranking_seasons')
+          return reply({ currentSeason: '2026-27', seasons: ['2026-27', '2025-26'] });
+        if (table === 'admin_get_ranking_review')
+          return reply({
+            season: '2026-27',
+            poolId,
+            canPublish: true,
+            preview: route.request().postDataJSON()?.p_preview === true,
+            input_hash: 'ranking-hash',
+            publication: { version: 1, published_at: '2026-10-19T12:00:00Z' },
+            rows: [
+              {
+                athlete_id: 'athlete-10',
+                name: 'Zulu Free Guard',
+                position_group: 'BB_BC',
+                position_rank: 1,
+                projected_points: 190,
+                display_data: {
+                  position: 'BC',
+                  program: 'womens_basketball',
+                  division: 'womens',
+                  season_label: '2026-27',
+                  games_played: 20,
+                  stats: { assists: 12 },
+                },
+              },
+            ],
+          });
+        if (table === 'get_published_preseason_ranking_seasons')
+          return reply({ currentSeason: '2026-27', seasons: ['2026-27', '2025-26'] });
         if (table === 'get_my_participation')
           return reply({
             role: participant.role,
@@ -450,13 +540,22 @@ try {
               offered: [{ id: 'athlete-7', name: 'Hotel Guard' }],
             },
           ]);
-        if (table === 'get_preseason_rankings')
+        if (table === 'get_published_preseason_rankings')
           return reply({
+            season: route.request().postDataJSON()?.p_season || '2026-27',
             publication: { version: 1, published_at: '2026-10-19T12:00:00Z' },
             rows: [
               {
                 athlete_id: 'athlete-10',
                 name: 'Zulu Free Guard',
+                display_data: {
+                  position: 'BC',
+                  program: 'womens_basketball',
+                  division: 'womens',
+                  season_label: '2026-27',
+                  games_played: 20,
+                  stats: { assists: 12 },
+                },
                 position: 'BC',
                 program: 'womens_basketball',
                 position_group: 'BB_BC',
@@ -466,6 +565,13 @@ try {
               {
                 athlete_id: 'athlete-13',
                 name: 'Missing Projection',
+                display_data: {
+                  position: 'F',
+                  program: 'mens_hockey',
+                  division: 'mens',
+                  season_label: '2026-27',
+                  stats: {},
+                },
                 position: 'F',
                 program: 'mens_hockey',
                 position_group: 'HK_F',
@@ -656,6 +762,35 @@ try {
     page.on('pageerror', (error) => report.errors.push(error.message));
     await page.goto(origin + '/dashboard');
     await page.getByText('Varsity League', { exact: true }).waitFor();
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const upcoming = page.getByRole('table', { name: 'Upcoming Brock games', exact: true });
+      await upcoming.waitFor();
+      await upcoming.getByText('LIVE · vs. Live Opponents', { exact: true }).waitFor();
+      await upcoming.getByText('@ Next Opponents', { exact: true }).waitFor();
+      const text = await upcoming.innerText();
+      assert.ok(
+        text.includes('EDT') && text.includes('EST'),
+        'Toronto formatting handles both sides of the daylight-saving change',
+      );
+      assert.ok(!text.includes('2026'), 'Fixture dates omit the year');
+      assert.ok(text.includes('Neutral site') && text.includes('No upcoming game scheduled'));
+      await assertNoOverflow(page);
+      await page.screenshot({
+        path: path.join(output, `upcoming-${theme}-${width}.png`),
+        fullPage: true,
+      });
+    }
+    gameMode = 'empty';
+    await page.reload();
+    await page.getByRole('table', { name: 'Upcoming Brock games', exact: true }).waitFor();
+    await expect(page.getByText('No upcoming game scheduled', { exact: true })).toHaveCount(6);
+    gameMode = 'error';
+    await page.reload();
+    await page.getByText('Upcoming games could not load.', { exact: true }).waitFor();
+    gameMode = 'populated';
+    await page.reload();
+    await page.getByRole('table', { name: 'Upcoming Brock games', exact: true }).waitFor();
     assert.equal(
       await page.getByText('Oversight only league', { exact: true }).count(),
       0,
@@ -908,6 +1043,7 @@ try {
         .getByRole('button', { name: 'About Waiver claims', exact: true })
         .first();
       await definition.focus();
+      await definition.press('Enter');
       await page.getByText('Waiver claims', { exact: true }).waitFor();
       await page.keyboard.press('Escape');
       await page.getByText('Waiver claims', { exact: true }).waitFor({ state: 'hidden' });
@@ -937,14 +1073,37 @@ try {
     );
     await page.goto(origin + '/players');
     await page.getByRole('button', { name: 'Preseason rankings', exact: true }).click();
-    await page.getByText('Reviewed snapshot v1', { exact: false }).waitFor();
-    await page.getByText('Unranked, Projection unavailable', { exact: true }).waitFor();
+    await page.getByText('Published snapshot v1', { exact: false }).waitFor();
+    await page.getByRole('link', { name: 'Missing Projection', exact: true }).waitFor();
     await page
       .getByRole('textbox', { name: 'Search preseason rankings', exact: true })
       .fill('Zulu');
     assert.equal(
-      await page.getByText('Unranked, Projection unavailable', { exact: true }).count(),
+      await page.getByRole('link', { name: 'Missing Projection', exact: true }).count(),
       0,
+    );
+    await page.getByRole('textbox', { name: 'Search preseason rankings', exact: true }).fill('');
+    await page.getByRole('combobox', { name: 'Position', exact: true }).selectOption('HK_F');
+    assert.equal(
+      await page.getByRole('heading', { name: 'Basketball', exact: true }).count(),
+      0,
+      'Position filters hide unrelated sport headings',
+    );
+    await page.getByRole('combobox', { name: 'Sport', exact: true }).selectOption('basketball');
+    assert.equal(
+      await page.getByRole('combobox', { name: 'Position', exact: true }).inputValue(),
+      'all',
+    );
+    await page
+      .getByRole('table', { name: 'Basketball Basketball guard preseason rankings', exact: true })
+      .waitFor();
+    await page
+      .getByRole('combobox', { name: 'Ranking season', exact: true })
+      .selectOption('2025-26');
+    await page.getByRole('link', { name: 'Zulu Free Guard', exact: true }).waitFor();
+    assert.equal(
+      await page.getByRole('combobox', { name: 'Ranking season', exact: true }).inputValue(),
+      '2025-26',
     );
     await page.goto(origin + '/players/athlete-10');
     await page.getByText('2025–26 Brock game logs', { exact: true }).waitFor();
@@ -952,6 +1111,28 @@ try {
       .getByText('Required statistics missing: power play goals', { exact: true })
       .waitFor();
     await page.getByText('Estimated finish: 10.0 pts', { exact: true }).waitFor();
+    await page
+      .getByRole('combobox', { name: 'Forecast period', exact: true })
+      .selectOption('forecast-period');
+    const definition = page
+      .getByRole('heading', { name: 'Game and period forecast', exact: true })
+      .locator('..')
+      .getByRole('button', { name: 'About Projected fantasy points', exact: true });
+    await definition.hover();
+    await definition.focus();
+    assert.equal(
+      await definition.getAttribute('aria-expanded'),
+      'false',
+      'Hover and focus do not open definitions',
+    );
+    await definition.press('Enter');
+    assert.equal(await definition.getAttribute('aria-expanded'), 'true');
+    await page.keyboard.press('Escape');
+    assert.equal(await definition.getAttribute('aria-expanded'), 'false');
+    assert.ok(
+      await definition.evaluate((element) => document.activeElement === element),
+      'Escape restores the definition trigger',
+    );
     const historyCard = page
       .getByText('2025-26, historical', { exact: true })
       .locator('..')
@@ -1225,7 +1406,7 @@ try {
       });
       await page.goto(origin + '/admin/rankings');
       await page.getByRole('button', { name: 'Preview preseason rankings', exact: true }).click();
-      await page.getByText('1 position entries', { exact: true }).waitFor();
+      await page.getByRole('link', { name: 'Zulu Free Guard', exact: true }).waitFor();
       await page
         .getByRole('textbox', { name: 'Ranking publication review reason', exact: true })
         .waitFor();
@@ -1253,6 +1434,25 @@ try {
     report.checks.push(
       `Review fixes ${theme}: membership-only dashboard, inline metric definitions, spaced league actions and admin review forms at 320 and 1440px`,
     );
+    adminRole = false;
+    await page.goto(origin + '/account');
+    await page.getByText('Varsity Manager', { exact: true }).waitFor();
+    assert.equal(await page.getByRole('link', { name: 'Admin panel', exact: true }).count(), 0);
+    assert.equal(
+      await page.getByRole('link', { name: 'Authenticator security', exact: true }).count(),
+      0,
+    );
+    adminRole = true;
+    adminVerified = false;
+    await page.reload();
+    await page.getByRole('link', { name: 'Authenticator security', exact: true }).waitFor();
+    await page.getByRole('link', { name: 'Admin panel', exact: true }).waitFor();
+    roleUnavailable = true;
+    await page.reload();
+    await page.getByText('Varsity Manager', { exact: true }).waitFor();
+    assert.equal(await page.getByRole('link', { name: 'Admin panel', exact: true }).count(), 0);
+    roleUnavailable = false;
+    adminVerified = true;
     await page.goto(origin + '/account');
     await page.getByText('Varsity Manager', { exact: true }).waitFor();
     assert.ok(
@@ -1277,6 +1477,19 @@ try {
         .click();
     };
     const lineupCommands = () => commands.filter((command) => command.name === 'set_period_lineup');
+    await changeFlex();
+    const pendingPanel = page
+      .getByRole('heading', { name: 'Pending lineup changes', exact: true })
+      .locator('..');
+    await pendingPanel.waitFor();
+    assert.equal(
+      await pendingPanel.getByText(/→/u).count(),
+      2,
+      'One row describes each changed athlete',
+    );
+    await changeFlex();
+    assert.equal(await pendingPanel.count(), 0, 'Reversing the same swap removes the panel');
+    assert.ok(await page.getByRole('button', { name: 'Save lineup', exact: true }).isDisabled());
     await changeFlex();
     lineupSaveMode = 'conflict';
     const savesBeforeConflict = lineupCommands().length;

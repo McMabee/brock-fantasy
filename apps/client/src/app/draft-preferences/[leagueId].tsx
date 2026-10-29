@@ -16,6 +16,7 @@ import { useDraftSetup } from '@/hooks/use-draft-setup';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { useSession } from '@/providers/session-provider';
 import { betaCommand } from '@/lib/web-api';
+import { useThemeColors } from '@/providers/theme-provider';
 
 export default function DraftPreferencesScreen() {
   useRequireUser();
@@ -32,6 +33,7 @@ export default function DraftPreferencesScreen() {
 
 function PreferencesEditor({ leagueId }: { leagueId: string }) {
   const ui = useUiStyles();
+  const colors = useThemeColors();
   const setup = useDraftSetup(leagueId);
   const [ids, setIds] = useState<string[]>([]);
   const [version, setVersion] = useState<number | null>(null);
@@ -127,7 +129,7 @@ function PreferencesEditor({ leagueId }: { leagueId: string }) {
     );
   return (
     <AppShell title="Private draft rankings" eyebrow="Scheduled automatic draft">
-      <Card>
+      <Card style={{ gap: 18 }}>
         <Text style={ui.body}>
           Rank athletes in the order you prefer. At the cutoff, the system follows snake order and
           takes your first available preference that preserves legal rosters for everyone. If your
@@ -171,7 +173,16 @@ function PreferencesEditor({ leagueId }: { leagueId: string }) {
         {ids.map((id, index) => {
           const player = players.get(id);
           return (
-            <View key={id} style={{ gap: 12, paddingVertical: 16 }}>
+            <View
+              key={id}
+              style={{
+                gap: 16,
+                padding: 20,
+                borderWidth: 1,
+                borderRadius: 12,
+                borderColor: colors.border,
+              }}
+            >
               <Text style={ui.label}>
                 {index + 1}.{' '}
                 {player?.displayName ?? 'Previously ranked athlete — currently unavailable'}
@@ -249,7 +260,7 @@ function PreferencesEditor({ leagueId }: { leagueId: string }) {
         placeholder="Search name, program, or position"
       />
       {available.map((player) => (
-        <Card key={player.id}>
+        <Card key={player.id} style={{ gap: 20, marginBottom: 12 }}>
           <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
             <DraftPlayerPhoto player={player} />
             <View style={{ flex: 1, minWidth: 0 }}>

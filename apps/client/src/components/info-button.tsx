@@ -60,7 +60,6 @@ export function InfoButton({
   const id = useId();
   const anchor = useRef<View>(null);
   const trigger = useRef<View>(null);
-  const suppressFocus = useRef(false);
   const [portalHost, setPortalHost] = useState<Element | null>(null);
   const [placement, setPlacement] = useState({ top: 0, left: 0 });
   const reveal = () => {
@@ -83,21 +82,9 @@ export function InfoButton({
   const dismiss = useCallback((restoreFocus = false) => {
     setOpen(false);
     if (restoreFocus && Platform.OS === 'web') {
-      suppressFocus.current = true;
       (trigger.current as unknown as HTMLElement | null)?.focus();
-      suppressFocus.current = false;
     }
   }, []);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cancelClose = () => {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-  };
-  useEffect(
-    () => () => {
-      if (closeTimer.current) clearTimeout(closeTimer.current);
-    },
-    [],
-  );
   useEffect(() => {
     if (!open || Platform.OS !== 'web') return;
     const handler = (event: KeyboardEvent) => {
@@ -122,7 +109,6 @@ export function InfoButton({
           top: Math.max(8, Math.min(current.top, window.innerHeight - height - 8)),
         }));
       }}
-      onPointerEnter={cancelClose}
       style={{
         width: '100%',
         maxWidth: 430,
@@ -175,13 +161,6 @@ export function InfoButton({
         aria-expanded={open}
         aria-controls={open ? id : undefined}
         onPress={reveal}
-        onHoverIn={() => {
-          cancelClose();
-          reveal();
-        }}
-        onFocus={() => {
-          if (!suppressFocus.current) reveal();
-        }}
         style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
       >
         <Text style={{ color: colors.text, fontFamily: 'Inter', fontSize: 19 }}>ⓘ</Text>
