@@ -84,6 +84,8 @@ try {
       email_confirm: true,
       user_metadata: {
         display_name: 'Edge Smoke Admin',
+        varsity_role: 'none',
+        varsity_programs: [],
         beta_age_eligible: true,
         beta_eligibility_year: Number(
           new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric' }).format(
