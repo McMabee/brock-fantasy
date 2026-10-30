@@ -1,6 +1,7 @@
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { Link } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
+import type { Competition, DivisionCode } from '@brock-fantasy/domain';
 
 import {
   ActionButton,
@@ -18,11 +19,21 @@ import { useSession } from '@/providers/session-provider';
 import { heading } from '@/theme';
 import { programNames } from '@/lib/player-program';
 
+const PROGRAM_DIVISIONS = ['womens', 'mens'] as const;
+const PUBLIC_PROGRAM_COLUMNS = PROGRAM_DIVISIONS.map((division) => ({
+  division,
+  programs: Object.entries(programNames).filter(([key]) => key.startsWith(`${division}_`)),
+}));
+
 export default function HomeScreen() {
   const styles = useThemedStyles(createStyles);
   const { user, loading } = useSession();
   const competitionQuery = useCompetitions(Boolean(user));
   const competitions = competitionQuery.data;
+  // - Group programs in one pass to keep women on the left and men on the right
+  const competitionColumns: Record<DivisionCode, Competition[]> = { womens: [], mens: [] };
+  for (const competition of competitions)
+    competitionColumns[competition.division].push(competition);
 
   return (
     <AppShell>
@@ -59,17 +70,18 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      <SectionTitle
-        title="2026–27 programs"
-        detail="Men’s and women’s hockey, basketball and volleyball"
-      />
+      <SectionTitle title="2026–27 programs" />
       {!user ? (
         <View style={styles.programGrid}>
-          {Object.entries(programNames).map(([key, name]) => (
-            <Card key={key} style={styles.programCard}>
-              <Text style={styles.programName}>{name}</Text>
-              <Text style={styles.programMeta}>Brock Badgers, 2026–27</Text>
-            </Card>
+          {PUBLIC_PROGRAM_COLUMNS.map(({ division, programs }) => (
+            <View key={division} style={styles.programColumn}>
+              {programs.map(([key, name]) => (
+                <Card key={key} style={styles.programCard}>
+                  <Text style={styles.programName}>{name}</Text>
+                  <Text style={styles.programMeta}>Brock Badgers, 2026–27</Text>
+                </Card>
+              ))}
+            </View>
           ))}
         </View>
       ) : competitionQuery.loading ? (
@@ -83,15 +95,19 @@ export default function HomeScreen() {
         />
       ) : (
         <View style={styles.programGrid}>
-          {competitions.map((competition) => (
-            <Card key={competition.id} style={styles.programCard}>
-              <Text style={styles.programName}>{competition.name}</Text>
-              <Text style={styles.programMeta}>
-                {competition.division === 'womens' ? 'Women’s' : 'Men’s'}, {competition.sport},{' '}
-                {competition.seasonLabel}
-              </Text>
-              <Pill label={competition.isActive ? 'AVAILABLE' : 'COMING SOON'} tone="info" />
-            </Card>
+          {PROGRAM_DIVISIONS.map((division) => (
+            <View key={division} style={styles.programColumn}>
+              {competitionColumns[division].map((competition) => (
+                <Card key={competition.id} style={styles.programCard}>
+                  <Text style={styles.programName}>{competition.name}</Text>
+                  <Text style={styles.programMeta}>
+                    {competition.division === 'womens' ? 'Women’s' : 'Men’s'}, {competition.sport},{' '}
+                    {competition.seasonLabel}
+                  </Text>
+                  <Pill label={competition.isActive ? 'AVAILABLE' : 'COMING SOON'} tone="info" />
+                </Card>
+              ))}
+            </View>
           ))}
         </View>
       )}
@@ -121,8 +137,9 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
       maxWidth: 640,
     },
     instagramLink: { color: colors.link, textDecorationLine: 'underline' },
-    programGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-    programCard: { flex: 1, minWidth: 250, gap: 9 },
+    programGrid: { flexDirection: 'row', gap: 14 },
+    programColumn: { flex: 1, minWidth: 0, gap: 14 },
+    programCard: { minWidth: 0, gap: 9 },
     programName: { ...heading, fontSize: 18, color: colors.text },
     programMeta: {
       fontFamily: 'Inter',
