@@ -1,9 +1,10 @@
 # Privacy policy
 
-**Last revised:** October 29, 2026\
-**Contact:** [Brock Fantasy support](mailto:bfa.support64@gmail.com)
+**Last revised:** October 30, 2026\
+**Contact:** [Brock Fantasy support](mailto:bfa.support64@gmail.com)\
+**Privacy contact:** [tymabee@proton.me](mailto:tymabee@proton.me)
 
-**Operator:** Ty Mabee, 602 Main Street, Port Dover, ON, N0A 1N0
+**Operator:** Ty Mabee
 
 ## Scope and purposes
 

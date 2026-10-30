@@ -1,9 +1,9 @@
 # Terms and conditions
 
-**Last revised:** October 29, 2026\
+**Last revised:** October 30, 2026\
 **Contact:** [Brock Fantasy support](mailto:bfa.support64@gmail.com)
 
-**Operator:** Ty Mabee, 602 Main Street, Port Dover, ON, N0A 1N0
+**Operator:** Ty Mabee
 
 ## Agreement and eligibility
 
