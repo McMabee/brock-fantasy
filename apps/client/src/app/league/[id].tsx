@@ -22,7 +22,8 @@ import { useLeague, type LeagueChatMessage } from '@/hooks/use-league';
 import { heading, radii } from '@/theme';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { supabase } from '@/lib/supabase';
-import { selectMyMatchup } from '@/lib/matchup-selection';
+import { matchupHeading, selectMyMatchup } from '@/lib/matchup-selection';
+import { useMatchupClock } from '@/hooks/use-matchup-clock';
 import { useActionFeedback } from '@/providers/action-feedback-provider';
 import { useSession } from '@/providers/session-provider';
 import { MatchupSetup } from '@/components/matchup-setup';
@@ -293,7 +294,8 @@ function Overview({
 }) {
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
-  const matchup = selectMyMatchup(matchups, myTeamId);
+  const now = useMatchupClock(matchups);
+  const matchup = selectMyMatchup(matchups, myTeamId, now);
   const homeName = teams.find((team) => team.id === matchup?.homeTeamId)?.name ?? 'Home team';
   const awayName = teams.find((team) => team.id === matchup?.awayTeamId)?.name ?? 'Away team';
   const draftOpen = Boolean(
@@ -310,7 +312,7 @@ function Overview({
                   label={`${matchup.status.toUpperCase()}, WEEK ${matchup.period}`}
                   tone={matchup.status === 'active' ? 'warning' : 'info'}
                 />
-                <Text style={styles.scoreTitle}>Current matchup</Text>
+                <Text style={styles.scoreTitle}>{matchupHeading(matchup, now)}</Text>
               </View>
               <Text style={styles.scoreClock}>AUDITED</Text>
             </View>

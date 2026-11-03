@@ -5,6 +5,10 @@ import { readFile, readdir } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
+if (process.argv.includes('--matchup-rollover')) {
+  process.env.BROCK_TEST_SQL_FILES ??=
+    '080-rpc-security.test.sql,150-game-lineups-schedules.test.sql,200-backlog-history.test.sql,260-admin-scoring-publication.test.sql,310-matchup-rollover.test.sql';
+}
 if (process.argv.includes('--automatic-drafts')) {
   process.env.BROCK_TEST_AUTOMATIC_HTTP = '1';
   process.env.BROCK_TEST_SQL_FILES ??=
@@ -94,6 +98,21 @@ async function migrate(db, paths) {
 try {
   const db = await scaffold('suite');
   await migrate(db, migrations);
+  if (process.argv.includes('--matchup-rollover')) {
+    const rollover = migrations.find((name) =>
+      name.endsWith('_automatic_matchup_period_rollover.sql'),
+    );
+    assert.ok(rollover);
+    await migrate(db, [rollover]);
+    const source = await readFile(`supabase/migrations/${rollover}`, 'utf8');
+    await assert.rejects(
+      sql(
+        db,
+        `begin;select cron.schedule('competing-matchup-worker','* * * * *','select public.advance_matchup_periods(100);');${source}rollback;`,
+      ),
+      /Existing matchup rollover job found/u,
+    );
+  }
   if (process.env.BROCK_TEST_ADVISORS === '1') {
     const result = await exec(
       process.execPath,
@@ -342,6 +361,14 @@ try {
       database: scanDatabase,
       databaseContainer: container,
       executeSql: (input) => sql(scanDatabase, input),
+    });
+  }
+  if (process.argv.includes('--matchup-rollover')) {
+    const { verifyMatchupRolloverConcurrency } = await import('./lib/matchup-rollover-local.mjs');
+    await verifyMatchupRolloverConcurrency({
+      database: db,
+      databaseContainer: container,
+      executeSql: (input) => sql(db, input),
     });
   }
 } finally {

@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { formatFantasyPoints } from '@brock-fantasy/domain';
 import { ActionButton, AppShell, Card, LoadingState, useUiStyles } from '@/components/ui';
 import { useLeague } from '@/hooks/use-league';
+import { useMatchupClock } from '@/hooks/use-matchup-clock';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { useResponsiveDimensions } from '@/hooks/use-responsive-dimensions';
 import { supabase } from '@/lib/supabase';
@@ -23,6 +24,7 @@ export default function MatchupsScreen() {
   useRequireUser();
   const { leagueId, matchupId } = useLocalSearchParams<{ leagueId: string; matchupId?: string }>();
   const data = useLeague(leagueId);
+  const now = useMatchupClock(data.matchups);
   const [selected, setSelected] = useState(matchupId ?? '');
   const [state, setState] = useState<{ id: string; detail: Detail | null; error: string | null }>({
     id: '',
@@ -31,7 +33,7 @@ export default function MatchupsScreen() {
   });
   const current =
     data.matchups.find((row) => row.id === selected) ??
-    selectMyMatchup(data.matchups, data.myTeamId);
+    selectMyMatchup(data.matchups, data.myTeamId, now);
   const { width } = useResponsiveDimensions();
   const ui = useUiStyles();
   useEffect(() => {
