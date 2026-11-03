@@ -48,7 +48,7 @@ export function selectMyMatchup(
 export function matchupHeading(row: MatchupResult, now = Date.now()): string {
   if (row.startsAt && Date.parse(row.startsAt) > now) return 'Upcoming matchup';
   if (row.endsAt && Date.parse(row.endsAt) <= now) return 'Latest matchup';
-  return 'Current matchup';
+  return `Week ${row.period} Matchup`;
 }
 
 export function nextMatchupBoundary(rows: readonly MatchupResult[], now: number): number {

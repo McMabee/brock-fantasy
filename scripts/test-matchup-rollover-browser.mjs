@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { chromium, expect } from '@playwright/test';
 import handler from '../api/index.js';
@@ -38,6 +38,7 @@ await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch();
 const errors = [];
+await mkdir('test-results/matchup-rollover', { recursive: true });
 const matchups = [
   {
     period: 1,
@@ -125,10 +126,12 @@ try {
     await page.clock.install({ time: new Date('2026-11-01T03:59:30Z') });
     await page.clock.pauseAt(new Date('2026-11-01T03:59:30Z'));
     await page.goto(`${origin}/league/${league}`);
-    await expect(page.getByText('ACTIVE, WEEK 1', { exact: true })).toBeVisible();
+    await expect(page.getByText('Week 1 Matchup', { exact: true })).toBeVisible();
     await page.clock.runFor(30000);
-    await expect(page.getByText('SCHEDULED, WEEK 2', { exact: true })).toBeVisible();
-    await expect(page.getByText('Current matchup', { exact: true })).toBeVisible();
+    await expect(page.getByText('Week 2 Matchup', { exact: true })).toBeVisible();
+    await expect(page.getByText('AUDITED', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('SCHEDULED, WEEK 2', { exact: true })).toHaveCount(0);
+    await page.screenshot({ path: `test-results/matchup-rollover/week-2-${width}.png` });
     await page.goto(`${origin}/matchups/${league}`);
     await expect(
       page.getByRole('heading', { name: 'Period 2, scheduled', exact: true }),
@@ -143,14 +146,37 @@ try {
     await expect(
       page.getByRole('heading', { name: 'Period 1, active', exact: true }),
     ).toBeVisible();
+    await page.goto(`${origin}/league/${league}`);
+    await expect(page.getByText('Week 2 Matchup', { exact: true })).toBeVisible();
+    await page.clock.fastForward(
+      Date.parse(matchups[2].starts_at) - Date.parse(matchups[1].starts_at),
+    );
+    await expect(page.getByText('Week 3 Matchup', { exact: true })).toBeVisible();
     await page.clock.setFixedTime(new Date('2026-11-22T05:00:00Z'));
     await page.goto(`${origin}/league/${league}`);
     await expect(page.getByText('Latest matchup', { exact: true })).toBeVisible();
+    await page.goto(`${origin}/auth`);
+    await expect(page.locator('[name="eligibilityAttested"]')).toHaveCount(0);
+    await expect(
+      page.getByText(
+        'Existing accounts only need this confirmation if eligibility has not been recorded yet.',
+        { exact: true },
+      ),
+    ).toHaveCount(0);
+    await page.goto(`${origin}/signup`);
+    const eligibility = page.getByRole('checkbox', {
+      name: 'I am 18 or turn 18 this calendar year.',
+      exact: true,
+    });
+    await expect(eligibility).toHaveJSProperty('required', true);
+    assert.equal(await eligibility.evaluate((input) => input.validity.valueMissing), true);
+    await eligibility.check();
+    assert.equal(await eligibility.evaluate((input) => input.validity.valid), true);
     await context.close();
   }
   assert.deepEqual(errors, []);
   console.log(
-    'Desktop and mobile: exact Toronto boundary selects scheduled Week 2 despite stale active Week 1; history links and post-season fallback work',
+    'Desktop and mobile: Week 2 heading advances to Week 3 at the boundary; history and fallbacks work; sign-in has no age checkbox and signup requires it',
   );
 } finally {
   await browser.close();

@@ -382,7 +382,7 @@ const post: RequestHandler = async (request, params) => {
       return response(
         {
           error:
-            'A verified, eligible account is required. If you meet the eligibility requirement, check the confirmation box and sign in again.',
+            'A verified, eligible account is required to sign in. Contact support if your account needs eligibility confirmation.',
         },
         403,
         clearSessionCookies(),

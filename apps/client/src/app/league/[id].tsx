@@ -306,16 +306,7 @@ function Overview({
       <View style={styles.contentMain}>
         {matchup ? (
           <Card accent>
-            <View style={styles.scoreHeader}>
-              <View>
-                <Pill
-                  label={`${matchup.status.toUpperCase()}, WEEK ${matchup.period}`}
-                  tone={matchup.status === 'active' ? 'warning' : 'info'}
-                />
-                <Text style={styles.scoreTitle}>{matchupHeading(matchup, now)}</Text>
-              </View>
-              <Text style={styles.scoreClock}>AUDITED</Text>
-            </View>
+            <Text style={styles.scoreTitle}>{matchupHeading(matchup, now)}</Text>
             <View style={styles.scoreGrid}>
               <View style={styles.scoreTeam}>
                 <Pressable
@@ -557,9 +548,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     contentGridWide: { flexDirection: 'row', alignItems: 'flex-start' },
     contentMain: { flex: 1.6, minWidth: 0 },
     contentSide: { flex: 0.8, minWidth: 280, gap: 15 },
-    scoreHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-    scoreTitle: { ...heading, fontSize: 20, marginTop: 10, color: colors.text },
-    scoreClock: { color: colors.accent, fontWeight: '900' },
+    scoreTitle: { ...heading, fontSize: 20, color: colors.text },
     scoreGrid: { flexDirection: 'row', alignItems: 'center', paddingVertical: 28 },
     scoreTeam: { flex: 1, alignItems: 'center' },
     scoreTeamName: {
