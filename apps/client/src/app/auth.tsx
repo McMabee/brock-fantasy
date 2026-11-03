@@ -2,7 +2,7 @@ import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-resp
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ActionButton, AppShell, Card, Pill, useUiStyles } from '@/components/ui';
 import { PublicAuthEntry } from '@/components/public-auth-entry';
 import { useSession } from '@/providers/session-provider';
@@ -27,7 +27,6 @@ function NativeSignInScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [eligibilityAttested, setEligibilityAttested] = useState(false);
   const submit = async () => {
     setError(null);
     if (!email.includes('@') || password.length < 8) {
@@ -36,7 +35,7 @@ function NativeSignInScreen() {
     }
     setLoading(true);
     try {
-      const message = await signIn(email.trim(), password, eligibilityAttested);
+      const message = await signIn(email.trim(), password);
       if (message) setError(message);
       else router.replace(next ? authReturnPath(next) : '/dashboard');
     } finally {
@@ -75,18 +74,6 @@ function NativeSignInScreen() {
               {error}
             </Text>
           ) : null}
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: eligibilityAttested }}
-            onPress={() => setEligibilityAttested((value) => !value)}
-          >
-            <Text style={uiStyles.body}>
-              {eligibilityAttested ? '☑' : '☐'} I am 18 or turn 18 this calendar year.
-            </Text>
-          </Pressable>
-          <Text style={uiStyles.body}>
-            Existing accounts only need this confirmation if eligibility has not been recorded yet.
-          </Text>
           <ActionButton label="Sign in" onPress={() => void submit()} loading={loading} />
           <Link href="/forgot-password" style={uiStyles.link}>
             Forgot password?

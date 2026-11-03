@@ -61,6 +61,14 @@ try {
     assert.equal(entry.status, 200, route);
     const html = await entry.text();
     assert.ok(html.includes(`<h1>${heading}</h1>`), route);
+    if (heading === 'Sign In')
+      assert.doesNotMatch(html, /name="eligibilityAttested"|Existing accounts only/u, route);
+    if (heading === 'Create Your Account')
+      assert.match(
+        html,
+        /<input\b(?=[^>]*name="eligibilityAttested")(?=[^>]*\brequired\b)[^>]*>/u,
+        route,
+      );
     if (route === '/signup' || route.startsWith('/auth')) {
       const selected = heading === 'Create Your Account' ? 'Create an account' : 'Sign in';
       assert.ok(html.includes(`aria-current="page">${selected}</a>`), route);
@@ -229,6 +237,24 @@ try {
     { displayName: 'Ordinary' },
     { displayName: 'Ordinary', varsityRole: 'coach', varsityPrograms: [] },
     { displayName: 'Ordinary', varsityRole: 'athlete', varsityPrograms: ['unknown'] },
+    {
+      displayName: 'Ordinary',
+      varsityRole: 'none',
+      varsityPrograms: [],
+      eligibilityAttested: false,
+    },
+    {
+      displayName: 'Ordinary',
+      varsityRole: 'none',
+      varsityPrograms: [],
+      eligibilityAttested: undefined,
+    },
+    {
+      displayName: 'Ordinary',
+      varsityRole: 'none',
+      varsityPrograms: [],
+      eligibilityAttested: 'true',
+    },
   ]) {
     scenario = 'unapproved';
     calls.length = 0;
@@ -249,7 +275,8 @@ try {
     );
   }
   results.push({
-    scenario: 'signup requires name and explicit valid participation before contacting Auth',
+    scenario:
+      'signup requires name, valid participation and explicit age confirmation before contacting Auth',
     status: 400,
   });
   for (const [name, expected] of [
