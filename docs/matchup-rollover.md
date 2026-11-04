@@ -1,6 +1,6 @@
 # Matchup period rollover
 
-Investigation: November 3, 2026, against `McMabee/brock-fantasy` at `528b95a` and the linked Brock Sports Fantasy project `fdovowiihxowzatewxgv`. Hosted database checks were read-only. This change has not been applied to production.
+Investigation: November 3, 2026, against `McMabee/brock-fantasy` at `528b95a` and the linked Brock Sports Fantasy project `fdovowiihxowzatewxgv`. The original investigation used read-only hosted checks. The fix was subsequently merged in `2ded93d` and its database migration was released on November 3, 2026. See the [production standings release record](standings-release-2026-11-03.md) for observed results and verification boundaries.
 
 ## Findings
 
@@ -66,9 +66,11 @@ The exported desktop and mobile screens were tested with synthetic API responses
 
 The broader `pnpm test` run passed 51 domain tests and 114 of 119 import tests at the time it ran. Four import tests could not read the missing private `logic/Fall.Winter Brock Fantasy Information - Goalie stats.csv`; the unrelated `official-schedule-sync` test also failed an assertion expecting an October 17 fixture to be reported as missing after that date had passed. Those files are unchanged. Do not describe the full application suite or CI as green until these separate failures are resolved.
 
-## Production rollout remaining
+## Production rollout procedure
 
-1. Review and merge the bug-fix PR through the normal release process; this task does not authorize a merge or production deployment
+The first production rollout is complete. Retain this procedure for future releases; production changes require authorization from the project owner.
+
+1. Review and merge the bug-fix PR through the normal release process
 2. Reconfirm the target is `fdovowiihxowzatewxgv`, inspect all pending migrations, and check for external rollover automation before applying anything
 3. Review the pending SQL with `pnpm exec supabase db push --linked --project-ref fdovowiihxowzatewxgv --skip-vault --dry-run`; stop if it includes unreviewed changes
 4. Once separately approved, apply the reviewed migration using `pnpm exec supabase db push --linked --project-ref fdovowiihxowzatewxgv --skip-vault` through the normal database release process
