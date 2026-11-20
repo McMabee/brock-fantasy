@@ -362,6 +362,22 @@ try {
       if (url.pathname === '/api/data/supabase') {
         const data = new URL(url.searchParams.get('path'), origin);
         const table = data.pathname.split('/').at(-1);
+        if (
+          table === 'athletes' &&
+          data.searchParams.get('select')?.includes('availability_status')
+        ) {
+          const ids = (data.searchParams.get('id') ?? '').slice(4, -1).split(',');
+          return reply(
+            players
+              .filter((p) => ids.includes(p.id))
+              .map((p) => ({
+                id: p.id,
+                availability_status: 'active',
+                availability_revision: 0,
+                availability_changed_at: null,
+              })),
+          );
+        }
         if (table === 'competitions')
           return reply(
             Object.keys(programNames).map((program) => ({

@@ -1,7 +1,7 @@
 import { newCommandKey } from '../../lib/command-key';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { usePlayerInsights } from '@/hooks/use-player-insights';
 import {
@@ -31,6 +31,14 @@ import { betaCommand } from '@/lib/web-api';
 import { useActionFeedback } from '@/providers/action-feedback-provider';
 import { InfoButton } from '@/components/info-button';
 import { useRequireUser } from '@/hooks/use-route-access';
+import { AthleteStatus, AvailabilityControls } from '@/components/athlete-availability';
+import { useAthleteAvailability } from '@/providers/athlete-availability-provider';
+import {
+  compareAvailability,
+  matchesAvailability,
+  type AvailabilityFilter,
+  type AvailabilityOrder,
+} from '@/lib/athlete-availability';
 
 export default function TransactionsScreen() {
   const styles = useThemedStyles(createStyles);
@@ -74,6 +82,14 @@ export default function TransactionsScreen() {
     rulesetId: leagueData.league?.rulesetId,
   });
   const [dropAthleteId, setDropAthleteId] = useState<string | null>(null);
+  const availability = useAthleteAvailability([
+    ...transactions.freeAgents.map((a) => a.id),
+    ...transactions.rosterAssets.map((a) => a.id),
+  ]);
+  const [statusFilter, setStatusFilter] = useState<AvailabilityFilter>('all');
+  const [statusOrder, setStatusOrder] = useState<AvailabilityOrder>('default');
+  const [tradeFilter, setTradeFilter] = useState<AvailabilityFilter>('all');
+  const [tradeOrder, setTradeOrder] = useState<AvailabilityOrder>('default');
   const [receivingTeamId, setReceivingTeamId] = useState('');
   const [offeredAthleteId, setOfferedAthleteId] = useState('');
   const [requestedAthleteId, setRequestedAthleteId] = useState('');
@@ -114,12 +130,20 @@ export default function TransactionsScreen() {
       .filter(
         (row) =>
           (!query || row.key.includes(query)) &&
+          matchesAvailability(row.id, availability.rows, statusFilter) &&
           (program === 'all' || (row.player?.program ?? row.program) === program) &&
           (position === 'all' ||
             position === 'FLEX' ||
             (row.player?.positions ?? row.position.split(/\s*[/,;]\s*/u)).includes(position)),
       );
     return rows.sort((left, right) => {
+      const statusDifference = compareAvailability(
+        left.id,
+        right.id,
+        availability.rows,
+        statusOrder,
+      );
+      if (statusDifference) return statusDifference;
       const a =
         sort === 'next'
           ? left.player?.nextProjection
@@ -149,12 +173,33 @@ export default function TransactionsScreen() {
     program,
     position,
     sort,
+    availability.rows,
+    statusFilter,
+    statusOrder,
   ]);
   const myTeamId = leagueData.myTeamId;
-  const myAssets = transactions.rosterAssets.filter((asset) => asset.fantasyTeamId === myTeamId);
+  const myAssets = useMemo(
+    () => transactions.rosterAssets.filter((asset) => asset.fantasyTeamId === myTeamId),
+    [transactions.rosterAssets, myTeamId],
+  );
   const otherTeams = leagueData.teams.filter((team) => team.id !== myTeamId);
-  const requestedAssets = transactions.rosterAssets.filter(
-    (asset) => asset.fantasyTeamId === receivingTeamId,
+  const requestedAssets = useMemo(
+    () => transactions.rosterAssets.filter((asset) => asset.fantasyTeamId === receivingTeamId),
+    [transactions.rosterAssets, receivingTeamId],
+  );
+  const offeredCandidates = useMemo(
+    () =>
+      myAssets
+        .filter((a) => matchesAvailability(a.id, availability.rows, tradeFilter))
+        .sort((a, b) => compareAvailability(a.id, b.id, availability.rows, tradeOrder)),
+    [myAssets, availability.rows, tradeFilter, tradeOrder],
+  );
+  const requestedCandidates = useMemo(
+    () =>
+      requestedAssets
+        .filter((a) => matchesAvailability(a.id, availability.rows, tradeFilter))
+        .sort((a, b) => compareAvailability(a.id, b.id, availability.rows, tradeOrder)),
+    [requestedAssets, availability.rows, tradeFilter, tradeOrder],
   );
 
   useEffect(() => {
@@ -330,6 +375,7 @@ export default function TransactionsScreen() {
           <Choice
             key={asset.id}
             label={`${asset.displayName}, ${positionLabel(asset.position)}`}
+            athleteId={asset.id}
             selected={dropAthleteId === asset.id}
             onPress={() => setDropAthleteId(asset.id)}
           />
@@ -377,6 +423,12 @@ export default function TransactionsScreen() {
             />
           ))}
         </View>
+        <AvailabilityControls
+          filter={statusFilter}
+          order={statusOrder}
+          onFilter={setStatusFilter}
+          onOrder={setStatusOrder}
+        />
         <Text style={uiStyles.label}>Sort</Text>
         <View style={styles.choices}>
           {(['next', 'season', 'adp', 'name'] as const).map((value) => (
@@ -461,6 +513,7 @@ export default function TransactionsScreen() {
                       {athlete.displayName} ↗
                     </Text>
                   </Pressable>
+                  <AthleteStatus athleteId={athlete.id} />
                   <Text style={styles.assetMeta}>
                     {programNames[athlete.player?.program ?? athlete.program] ??
                       athlete.player?.program ??
@@ -509,6 +562,18 @@ export default function TransactionsScreen() {
             detail="Assets are revalidated atomically at acceptance"
           />
           <Card style={styles.tradeBuilder}>
+            <AvailabilityControls
+              filter={tradeFilter}
+              order={tradeOrder}
+              onFilter={setTradeFilter}
+              onOrder={setTradeOrder}
+            />
+            <Text style={uiStyles.body}>
+              Selected offer:{' '}
+              {myAssets.find((a) => a.id === offeredAthleteId)?.displayName ?? 'None'}. Selected
+              request:{' '}
+              {requestedAssets.find((a) => a.id === requestedAthleteId)?.displayName ?? 'None'}.
+            </Text>
             <Text style={uiStyles.label}>Trade with</Text>
             <View style={styles.choices}>
               {otherTeams.map((team) => (
@@ -525,10 +590,11 @@ export default function TransactionsScreen() {
             </View>
             <Text style={uiStyles.label}>You offer</Text>
             <View style={styles.choices}>
-              {myAssets.map((asset) => (
+              {offeredCandidates.map((asset) => (
                 <Choice
                   key={asset.id}
                   label={asset.displayName}
+                  athleteId={asset.id}
                   selected={offeredAthleteId === asset.id}
                   onPress={() => setOfferedAthleteId(asset.id)}
                 />
@@ -536,10 +602,11 @@ export default function TransactionsScreen() {
             </View>
             <Text style={uiStyles.label}>You request</Text>
             <View style={styles.choices}>
-              {requestedAssets.map((asset) => (
+              {requestedCandidates.map((asset) => (
                 <Choice
                   key={asset.id}
                   label={asset.displayName}
+                  athleteId={asset.id}
                   selected={requestedAthleteId === asset.id}
                   onPress={() => setRequestedAthleteId(asset.id)}
                 />
@@ -688,21 +755,31 @@ function Choice({
   label,
   selected,
   onPress,
+  athleteId,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
+  athleteId?: string;
 }) {
   const styles = useThemedStyles(createStyles);
+  const statusId = useId();
   return (
     <Pressable
       accessibilityRole="radio"
+      accessibilityLabel={label}
+      aria-describedby={athleteId ? statusId : undefined}
       aria-checked={selected}
       accessibilityState={{ checked: selected }}
       onPress={onPress}
       style={[styles.choice, selected && styles.choiceSelected]}
     >
       <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{label}</Text>
+      {athleteId ? (
+        <View nativeID={statusId}>
+          <AthleteStatus athleteId={athleteId} />
+        </View>
+      ) : null}
     </Pressable>
   );
 }

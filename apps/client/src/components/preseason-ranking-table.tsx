@@ -4,6 +4,9 @@ import { Card, useUiStyles } from './ui';
 import { AdminTable } from './admin-ui';
 import { PressableLink } from './pressable-link';
 import { DraftPlayerPhoto } from './player-photo';
+import { AthleteStatus } from './athlete-availability';
+import { useAthleteAvailability } from '@/providers/athlete-availability-provider';
+import { matchesAvailability, type AvailabilityFilter } from '@/lib/athlete-availability';
 import { ROSTER_GUIDE, positionLabel } from '@/lib/roster-guide';
 import { programNames, RANKING_SPORTS } from '@/lib/player-program';
 import { operationLabel } from '@/lib/admin-operations';
@@ -31,6 +34,7 @@ function RankingAthletes({ athletes }: { athletes: readonly AdminRankingRow[] })
               </Text>
             </PressableLink>
           </View>
+          <AthleteStatus athleteId={row.athlete_id} />
           <Text style={ui.body}>
             {row.display_data.program
               ? (programNames[row.display_data.program] ?? row.display_data.program)
@@ -89,13 +93,16 @@ export function RankingTables({
   sport = 'all',
   position = 'all',
   query = '',
+  availabilityFilter = 'all',
 }: {
   rows: readonly AdminRankingRow[];
   sport?: string;
   position?: string;
   query?: string;
+  availabilityFilter?: AvailabilityFilter;
 }) {
   const ui = useUiStyles();
+  const availability = useAthleteAvailability(rows.map((row) => row.athlete_id));
   // - Pair the complete snapshot before filtering so searches never renumber athletes
   const paired = useMemo(() => pairRankingRows(rows), [rows]);
   const normalized = query.trim().toLocaleLowerCase();
@@ -117,10 +124,16 @@ export function RankingTables({
             const pairs = (paired.get(slot.code) ?? [])
               .map((pair) => ({
                 ...pair,
-                women: pair.women.filter((row) =>
-                  row.name.toLocaleLowerCase().includes(normalized),
+                women: pair.women.filter(
+                  (row) =>
+                    row.name.toLocaleLowerCase().includes(normalized) &&
+                    matchesAvailability(row.athlete_id, availability.rows, availabilityFilter),
                 ),
-                men: pair.men.filter((row) => row.name.toLocaleLowerCase().includes(normalized)),
+                men: pair.men.filter(
+                  (row) =>
+                    row.name.toLocaleLowerCase().includes(normalized) &&
+                    matchesAvailability(row.athlete_id, availability.rows, availabilityFilter),
+                ),
               }))
               .filter((pair) => pair.women.length || pair.men.length);
             return (

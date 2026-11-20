@@ -1,3 +1,4 @@
+import { AthleteStatus } from '@/components/athlete-availability';
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
@@ -99,6 +100,7 @@ export default function DraftResultsScreen() {
                     <Text style={styles.body}>
                       {pick.display_name}, {pick.program.replace(/^Brock /u, '')}
                     </Text>
+                    <AthleteStatus athleteId={pick.athlete_id} />
                     <Text style={styles.body}>
                       {pick.team_name}, Round {pick.round}, pick {pick.pick_in_round}
                       {pick.source === 'autopick' ? ', Autopick' : ''}

@@ -1,3 +1,4 @@
+import { AthleteStatus } from '@/components/athlete-availability';
 import { playerMetrics } from '@brock-fantasy/domain';
 import { Animated, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useEffect, useRef } from 'react';
@@ -132,6 +133,7 @@ export function PlayerInsightsPanel({
                   >
                     {player.displayName}
                   </Text>
+                  <AthleteStatus athleteId={player.id} />
                   <Text style={ui.body}>
                     {programNames[player.program] ?? player.program.replaceAll('_', ' ')},{' '}
                     {player.team}

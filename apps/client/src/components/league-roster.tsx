@@ -1,3 +1,4 @@
+import { AthleteStatus } from '@/components/athlete-availability';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Card, EmptyState, SectionTitle, useUiStyles } from './ui';
@@ -198,6 +199,7 @@ function RosterAthlete({
       <DraftPlayerPhoto player={{ displayName: entry.displayName, bio: entry.bio }} size={52} />
       <View style={styles.rosterCopy}>
         <Text style={styles.rosterName}>{entry.displayName}</Text>
+        <AthleteStatus athleteId={entry.athleteId} />
         <Text style={styles.rosterMeta}>
           {entry.programName.replace(/^Brock /u, '')}
           {entry.jerseyNumber !== null ? `, #${entry.jerseyNumber}` : ''}

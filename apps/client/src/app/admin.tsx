@@ -157,6 +157,16 @@ export default function AdminScreen() {
             <Card style={styles.actions}>
               <View style={styles.actionGroup}>
                 <Text accessibilityRole="header" style={styles.actionTitle}>
+                  Athlete availability
+                </Text>
+                <ActionButton
+                  label="Manage athlete status"
+                  href="/admin/athletes"
+                  variant="secondary"
+                />
+              </View>
+              <View style={styles.actionGroup}>
+                <Text accessibilityRole="header" style={styles.actionTitle}>
                   Varsity participants
                 </Text>
                 <ActionButton

@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabase';
 import { ROSTER_GUIDE } from '@/lib/roster-guide';
 import type { AdminRankingRow } from '@/lib/admin-rankings';
 import { useSession } from '@/providers/session-provider';
+import { AvailabilityControls } from './athlete-availability';
+import type { AvailabilityFilter } from '@/lib/athlete-availability';
 
 interface PublishedRankings {
   season: string | null;
@@ -27,6 +29,7 @@ export function PreseasonRankings() {
   const [position, setPosition] = useState('all');
   const [sport, setSport] = useState('all');
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<AvailabilityFilter>('all');
   const [retry, setRetry] = useState(0);
   const ui = useUiStyles();
   useEffect(() => {
@@ -135,7 +138,9 @@ export function PreseasonRankings() {
           />
         </View>
       </View>
+      <AvailabilityControls filter={statusFilter} onFilter={setStatusFilter} />
       <RankingTables
+        availabilityFilter={statusFilter}
         rows={state.data?.rows ?? []}
         sport={sport}
         position={position}

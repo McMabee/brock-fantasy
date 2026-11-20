@@ -25,6 +25,14 @@ import { heading } from '@/theme';
 import { RulesLink } from '@/components/rules-link';
 import { rosterSlotLabel } from '@/lib/roster-guide';
 import { useSession } from '@/providers/session-provider';
+import { AthleteStatus, AvailabilityControls } from '@/components/athlete-availability';
+import { useAthleteAvailability } from '@/providers/athlete-availability-provider';
+import {
+  compareAvailability,
+  matchesAvailability,
+  type AvailabilityFilter,
+  type AvailabilityOrder,
+} from '@/lib/athlete-availability';
 
 type Tab = 'available' | 'roster' | 'queue' | 'chat' | 'history';
 export default function DraftRoomScreen() {
@@ -34,6 +42,9 @@ export default function DraftRoomScreen() {
   useRequireUser();
   const { id } = useLocalSearchParams<{ id: string }>();
   const data = useDraft(id);
+  const availability = useAthleteAvailability(data.athletes.map((athlete) => athlete.id));
+  const [statusFilter, setStatusFilter] = useState<AvailabilityFilter>('all');
+  const [statusOrder, setStatusOrder] = useState<AvailabilityOrder>('default');
   const { user } = useSession();
   const { width, height } = useWindowDimensions();
   const wide = width >= 1024;
@@ -80,6 +91,7 @@ export default function DraftRoomScreen() {
         .filter(
           (a) =>
             availableIds.has(a.id) &&
+            matchesAvailability(a.id, availability.rows, statusFilter) &&
             data.legalAthleteIds.has(a.id) &&
             (!program || a.program === program) &&
             (!position || a.positions.includes(position)) &&
@@ -87,8 +99,21 @@ export default function DraftRoomScreen() {
               .toLowerCase()
               .includes(query.trim().toLowerCase()),
         )
-        .sort((a, b) => a.rank - b.rank),
-    [availableIds, data.athletes, data.legalAthleteIds, position, program, query],
+        .sort(
+          (a, b) =>
+            compareAvailability(a.id, b.id, availability.rows, statusOrder) || a.rank - b.rank,
+        ),
+    [
+      availableIds,
+      data.athletes,
+      data.legalAthleteIds,
+      position,
+      program,
+      query,
+      availability.rows,
+      statusFilter,
+      statusOrder,
+    ],
   );
   const programs = useMemo(
     () => [...new Set(data.athletes.map((a) => a.program))].sort(),
@@ -174,6 +199,12 @@ export default function DraftRoomScreen() {
     <Card style={styles.players}>
       <Text style={styles.panelTitle}>Available players</Text>
       <Text style={styles.meta}>{filtered.length} legal selections for your roster</Text>
+      <AvailabilityControls
+        filter={statusFilter}
+        order={statusOrder}
+        onFilter={setStatusFilter}
+        onOrder={setStatusOrder}
+      />
       <TextInput
         accessibilityLabel="Search available players"
         placeholder="Search player, program, or position"
@@ -215,6 +246,7 @@ export default function DraftRoomScreen() {
                   onPress={() => setSelected(a)}
                 >
                   <Text style={styles.playerName}>{a.displayName}</Text>
+                  <AthleteStatus athleteId={a.id} />
                 </Pressable>
                 <Text style={styles.meta}>
                   {a.program.replace(/^Brock\s+/u, '')}, {a.positions.join('/')}, #
@@ -288,6 +320,7 @@ export default function DraftRoomScreen() {
                     {cell.entry ? '✓ ' : '⏳ '}
                     {athlete.displayName}
                   </Text>
+                  <AthleteStatus athleteId={athlete.id} />
                   <Text style={styles.meta}>
                     {cell.entry ? 'Drafted' : 'Queued, not drafted'}, {athlete.positions.join('/')}
                   </Text>
@@ -337,6 +370,7 @@ export default function DraftRoomScreen() {
               <Text style={styles.playerName}>
                 {index + 1}. {athlete?.displayName ?? 'Unavailable player'}
               </Text>
+              <AthleteStatus athleteId={qid} />
               {!data.legalAthleteIds.has(qid) ? (
                 <Text style={styles.meta}>Not currently legal for your roster</Text>
               ) : null}
@@ -387,6 +421,7 @@ export default function DraftRoomScreen() {
               <Text style={styles.playerName}>
                 {athleteById.get(pick.athleteId)?.displayName ?? 'Unavailable player'}
               </Text>
+              <AthleteStatus athleteId={pick.athleteId} />
             </Pressable>
           </View>
         ))}

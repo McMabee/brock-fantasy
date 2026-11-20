@@ -23,6 +23,14 @@ import { programNames as programs } from '@/lib/player-program';
 
 import { useRequireUser } from '@/hooks/use-route-access';
 import { useSession } from '@/providers/session-provider';
+import { AthleteStatus, AvailabilityControls } from '@/components/athlete-availability';
+import { useAthleteAvailability } from '@/providers/athlete-availability-provider';
+import {
+  compareAvailability,
+  matchesAvailability,
+  type AvailabilityFilter,
+  type AvailabilityOrder,
+} from '@/lib/athlete-availability';
 
 interface PlayerRow {
   id: string;
@@ -48,6 +56,9 @@ export default function PlayerDirectoryScreen() {
   const { user } = useSession();
   const router = useRouter();
   const [players, setPlayers] = useState<readonly PlayerRow[]>([]);
+  const availability = useAthleteAvailability(players.map((player) => player.id));
+  const [statusFilter, setStatusFilter] = useState<AvailabilityFilter>('all');
+  const [statusOrder, setStatusOrder] = useState<AvailabilityOrder>('default');
   const [query, setQuery] = useState('');
   const [program, setProgram] = useState('all');
   const [sort, setSort] = useState<'name' | 'projection' | 'adp'>('name');
@@ -133,9 +144,12 @@ export default function PlayerDirectoryScreen() {
     const filtered = players.filter(
       (player) =>
         (program === 'all' || player.bio.program === program) &&
+        matchesAvailability(player.id, availability.rows, statusFilter) &&
         directoryData.get(player.id)!.searchText.includes(needle),
     );
     return filtered.sort((a, b) => {
+      const statusDifference = compareAvailability(a.id, b.id, availability.rows, statusOrder);
+      if (statusDifference) return statusDifference;
       if (sort === 'projection') {
         const left = directoryData.get(a.id)!.metrics.projectedPoints ?? -Infinity;
         const right = directoryData.get(b.id)!.metrics.projectedPoints ?? -Infinity;
@@ -150,7 +164,17 @@ export default function PlayerDirectoryScreen() {
       }
       return a.display_name.localeCompare(b.display_name, 'en-CA');
     });
-  }, [players, directoryData, adps, query, program, sort]);
+  }, [
+    players,
+    directoryData,
+    adps,
+    query,
+    program,
+    sort,
+    availability.rows,
+    statusFilter,
+    statusOrder,
+  ]);
 
   return (
     <AppShell
@@ -244,6 +268,12 @@ export default function PlayerDirectoryScreen() {
               onRetry={() => setReload((value) => value + 1)}
             />
           ) : null}
+          <AvailabilityControls
+            filter={statusFilter}
+            order={statusOrder}
+            onFilter={setStatusFilter}
+            onOrder={setStatusOrder}
+          />
           {adpError && players.length > 0 ? (
             <Text accessibilityRole="alert" style={styles.error}>
               {adpError}
@@ -281,6 +311,7 @@ export default function PlayerDirectoryScreen() {
                     />
                     <View style={styles.copy}>
                       <Text style={styles.name}>{player.display_name}</Text>
+                      <AthleteStatus athleteId={player.id} />
                       <Text style={styles.meta}>
                         {programs[player.bio.program ?? ''] ?? 'Brock Badgers'},{' '}
                         {player.bio.sourcePosition ?? player.position}

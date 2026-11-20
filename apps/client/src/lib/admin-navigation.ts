@@ -1,5 +1,6 @@
 export const adminRoutes = [
   '/admin',
+  '/admin/athletes',
   '/admin/games',
   '/admin/import',
   '/admin/accounts',

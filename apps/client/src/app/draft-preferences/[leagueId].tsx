@@ -1,5 +1,13 @@
 import { newCommandKey } from '../../lib/command-key';
 import { useLocalSearchParams } from 'expo-router';
+import { AthleteStatus, AvailabilityControls } from '@/components/athlete-availability';
+import { useAthleteAvailability } from '@/providers/athlete-availability-provider';
+import {
+  compareAvailability,
+  matchesAvailability,
+  type AvailabilityFilter,
+  type AvailabilityOrder,
+} from '@/lib/athlete-availability';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Text, TextInput, View } from 'react-native';
 import {
@@ -44,6 +52,9 @@ function PreferencesEditor({ leagueId }: { leagueId: string }) {
   const inFlight = useRef(false);
   const pending = useRef<{ payload: string; key: string } | null>(null);
   const data = setup.data;
+  const availability = useAthleteAvailability((data?.players ?? []).map((player) => player.id));
+  const [statusFilter, setStatusFilter] = useState<AvailabilityFilter>('all');
+  const [statusOrder, setStatusOrder] = useState<AvailabilityOrder>('default');
   useEffect(() => {
     if (!data || dirty.current) return;
     setIds(data.preferences);
@@ -57,15 +68,21 @@ function PreferencesEditor({ leagueId }: { leagueId: string }) {
   const query = useDeferredValue(search.trim().toLowerCase());
   const available = useMemo(
     () =>
-      (data?.players ?? []).filter(
-        (player) =>
-          !selected.has(player.id) &&
-          player.eligibleForMe &&
-          `${player.displayName} ${player.program} ${player.positions.join(' ')}`
-            .toLowerCase()
-            .includes(query),
-      ),
-    [data?.players, selected, query],
+      (data?.players ?? [])
+        .filter(
+          (player) =>
+            !selected.has(player.id) &&
+            matchesAvailability(player.id, availability.rows, statusFilter) &&
+            player.eligibleForMe &&
+            `${player.displayName} ${player.program} ${player.positions.join(' ')}`
+              .toLowerCase()
+              .includes(query),
+        )
+        .sort(
+          (a, b) =>
+            compareAvailability(a.id, b.id, availability.rows, statusOrder) || a.rank - b.rank,
+        ),
+    [data?.players, selected, query, availability.rows, statusFilter, statusOrder],
   );
   const conflict = data && version !== null && data.preferenceVersion !== version;
   const editable = Boolean(data?.editable && !saving);
@@ -187,6 +204,7 @@ function PreferencesEditor({ leagueId }: { leagueId: string }) {
                 {index + 1}.{' '}
                 {player?.displayName ?? 'Previously ranked athlete — currently unavailable'}
               </Text>
+              <AthleteStatus athleteId={id} />
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                 <ActionButton
                   label={`Move ${player?.displayName ?? 'athlete'} up`}
@@ -252,6 +270,12 @@ function PreferencesEditor({ leagueId }: { leagueId: string }) {
         ) : null}
       </Card>
       <SectionTitle title="Add preferences" />
+      <AvailabilityControls
+        filter={statusFilter}
+        order={statusOrder}
+        onFilter={setStatusFilter}
+        onOrder={setStatusOrder}
+      />
       <TextInput
         style={[ui.input, { marginBottom: 16 }]}
         accessibilityLabel="Search athletes for private rankings"
@@ -265,6 +289,7 @@ function PreferencesEditor({ leagueId }: { leagueId: string }) {
             <DraftPlayerPhoto player={player} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={ui.label}>{player.displayName}</Text>
+              <AthleteStatus athleteId={player.id} />
               <Text style={ui.body}>
                 {player.program} · {player.positions.join('/')} · Default rank {player.rank}
               </Text>

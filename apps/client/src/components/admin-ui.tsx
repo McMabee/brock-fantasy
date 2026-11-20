@@ -37,6 +37,7 @@ export function AdminSelect({
       >
         {label}
         <select
+          aria-label={label}
           value={value}
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}

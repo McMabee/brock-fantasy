@@ -1,3 +1,4 @@
+import { AthleteStatus } from '@/components/athlete-availability';
 import { useResponsiveDimensions as useWindowDimensions } from '@/hooks/use-responsive-dimensions';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { BETA_SEASON, playerMetrics } from '@brock-fantasy/domain';
@@ -80,6 +81,7 @@ export function DraftPlayerPanel({
                 <Text accessibilityRole="header" style={styles.name}>
                   {player.displayName}
                 </Text>
+                <AthleteStatus athleteId={player.id} />
                 <Text style={uiStyles.body}>
                   {player.program}, {player.positions.join('/')}, #{player.jerseyNumber ?? '—'}
                 </Text>
