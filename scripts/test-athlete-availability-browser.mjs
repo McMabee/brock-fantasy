@@ -18,6 +18,7 @@ const server = createServer(async (request, response) => {
       '.js': 'text/javascript',
       '.css': 'text/css',
       '.ttf': 'font/ttf',
+      '.woff2': 'font/woff2',
       '.png': 'image/png',
       '.svg': 'image/svg+xml',
     }[path.extname(file)];
@@ -39,9 +40,12 @@ const stamp = new Date().toISOString();
 const report = { hosted: false, checks: [], screenshots: [], errors: [], accessibility: [] };
 try {
   for (const theme of ['dark', 'light'])
-    for (const width of [390, 1440]) {
+    for (const width of [320, 390, 829, 1064, 1440]) {
       const context = await browser.newContext({
-        viewport: { width, height: 1000 },
+        viewport: {
+          width,
+          height: width === 829 || width === 1064 ? 1803 : width === 320 ? 640 : 1000,
+        },
         colorScheme: theme,
         reducedMotion: 'reduce',
       });
@@ -223,6 +227,7 @@ try {
       const page = await context.newPage();
       page.on('pageerror', (error) => report.errors.push(error.message));
       await page.goto(`${origin}/admin/athletes`);
+      await page.evaluate(() => globalThis.document.fonts.ready);
       await page.bringToFront();
       await expect(
         page.getByRole('button', { name: 'Edit Alpha Forward', exact: true }),
@@ -246,6 +251,29 @@ try {
       await page
         .getByRole('textbox', { name: 'Private audit reason' })
         .fill('Private verified injury report');
+      const statusInput = page.getByLabel('New status', { exact: true });
+      await statusInput.focus();
+      const focusClipping = await statusInput.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = globalThis.getComputedStyle(element);
+        const outset =
+          Number.parseFloat(style.outlineWidth) + Number.parseFloat(style.outlineOffset);
+        const clipping = [];
+        for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+          if (!['auto', 'scroll', 'hidden'].includes(globalThis.getComputedStyle(parent).overflowX))
+            continue;
+          const bounds = parent.getBoundingClientRect();
+          if (rect.left - outset < bounds.left - 1 || rect.right + outset > bounds.right + 1)
+            clipping.push(parent.tagName);
+        }
+        return clipping;
+      });
+      assert.deepEqual(focusClipping, [], `${theme}-${width}: status focus ring fits the panel`);
+      const auditReason = page.getByRole('textbox', { name: 'Private audit reason' });
+      assert.ok(
+        (await auditReason.boundingBox()).height >= 112,
+        'audit reason has room for multiple lines',
+      );
       const editorShot = `${output}/${theme}-${width}-editor.png`;
       const editorAccess = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
       report.accessibility.push({

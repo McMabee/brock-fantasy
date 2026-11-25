@@ -202,7 +202,7 @@ export function AppShell({
                 </View>
               ) : null}
               {children}
-              <View style={styles.footer}>
+              <View role="contentinfo" style={styles.footer}>
                 <Text style={styles.footerBrand}>BROCK FANTASY</Text>
                 <View style={styles.footerLinks}>
                   <CookieSettings />

@@ -11,7 +11,7 @@ import {
   useUiStyles,
 } from '@/components/ui';
 import { AdminAccess } from '@/components/admin-access';
-import { AdminPanel, AdminSelect, AdminTable } from '@/components/admin-ui';
+import { adminMultiline, AdminPanel, AdminSelect, AdminTable } from '@/components/admin-ui';
 import { AthleteStatus, AvailabilityControls } from '@/components/athlete-availability';
 import { useRequireAdmin } from '@/hooks/use-route-access';
 import { useSession } from '@/providers/session-provider';
@@ -298,7 +298,7 @@ export default function AthleteStatusScreen() {
               multiline
               maxLength={500}
               editable={!working}
-              style={ui.input}
+              style={[ui.input, adminMultiline, { minHeight: 112 }]}
             />
             <Text style={ui.body}>
               Saving a changed status sends an in-app notification to current roster owners in each

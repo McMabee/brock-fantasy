@@ -7,6 +7,7 @@
     "node": ">=22.12"
   },
   "scripts": {
+    "test:auth-layout:browser": "node scripts/test-auth-layout-browser.mjs",
     "test:athlete-availability:local": "node scripts/test-athlete-availability-local.mjs",
     "test:athlete-availability:browser": "node scripts/test-athlete-availability-browser.mjs",
     "verify:admin-centre:hosted": "node scripts/verify-admin-centre-hosted.mjs",
