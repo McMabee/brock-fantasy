@@ -1,3 +1,4 @@
+import { AthleteStatus } from '@/components/athlete-availability';
 import { AdminTable } from '@/components/admin-ui';
 import { DraftPlayerPhoto } from '@/components/player-photo';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -282,6 +283,7 @@ export default function AdminLeagueDetail() {
                             {entry.display_name}
                             {entry.jersey_number ? ` #${entry.jersey_number}` : ''}
                           </Text>
+                          <AthleteStatus athleteId={entry.athlete_id} />
                         </View>,
                         entry.program_name,
                         positionLabel(entry.position),

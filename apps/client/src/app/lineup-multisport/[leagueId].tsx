@@ -1,3 +1,4 @@
+import { AthleteStatus } from '@/components/athlete-availability';
 import { newCommandKey } from '../../lib/command-key';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocalSearchParams } from 'expo-router';
@@ -464,6 +465,7 @@ export default function BetaLineupScreen() {
                                       <Text style={[ui.title, { flex: 1, minWidth: 0 }]}>
                                         {entry.display_name} ↗
                                       </Text>
+                                      <AthleteStatus athleteId={entry.athlete_id} />
                                     </Pressable>
                                     <Text style={ui.body}>
                                       {entry.positions.map(positionLabel).join(' / ')}

@@ -12,6 +12,7 @@ import { SessionProvider } from '@/providers/session-provider';
 import { ThemeProvider, useTheme } from '@/providers/theme-provider';
 import { usePushRegistration } from '@/hooks/use-push-registration';
 import { NotificationsProvider } from '@/providers/notifications-provider';
+import { AthleteAvailabilityProvider } from '@/providers/athlete-availability-provider';
 import { WebAccessibility } from '@/components/web-accessibility';
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return (
@@ -84,7 +85,9 @@ export default function RootLayout() {
       <ThemeProvider>
         <SessionProvider>
           <NotificationsProvider>
-            <AppRuntime />
+            <AthleteAvailabilityProvider>
+              <AppRuntime />
+            </AthleteAvailabilityProvider>
           </NotificationsProvider>
         </SessionProvider>
       </ThemeProvider>

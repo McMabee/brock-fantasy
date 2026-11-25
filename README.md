@@ -12,6 +12,9 @@ For beta deployment variables and authentication diagnostics, see
 For administrator sign-in, staff onboarding, scorekeeping, and moving the panel
 from beta to play, see [admin panel access](ADMIN_PANEL.md).
 
+For admin-managed Active/Injured status and manager notifications, see
+[athlete availability](docs/athlete-availability.md).
+
 For the six-program player directory, roster exclusions, supplied projections,
 and repeatable roster publication, see [player roster imports](ROSTER_IMPORT.md).
 

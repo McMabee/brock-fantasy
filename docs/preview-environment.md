@@ -34,6 +34,39 @@ Without the explicit live-backend choice, previews still require
 `BROCK_PREVIEW_ISOLATED=true` and a separate hosted Supabase project. Missing or
 invalid settings are reported by name without printing configured values.
 
+## Injury-status preview
+
+On 2026-11-25, the user approved the existing live Supabase backend for
+`injury-status` and a Preview redeployment. The seven public app settings above
+are scoped to **Preview** and **`injury-status`**, with
+`BROCK_PREVIEW_BACKEND=live` and `EXPO_PUBLIC_APP_ENV=staging`. The Supabase URL,
+publishable key and support contact match `config/public-web.json`.
+
+- App origin: `https://brock-fantasy-git-injury-status-ty-mabees-projects.vercel.app`
+- Registration origin: `https://brock-fantasy-landing-page-git-feat-u-9511d4-ty-mabees-projects.vercel.app`
+- Deployed application commit: `875ca091863a2197250cb58c9948f3b6b8fcd700`
+- Preview deployment: `dpl_EMVPGMZ78VDnJXDoCkhDSENyvR1g`
+
+The Preview reached READY after passing the public configuration and published
+sports RPC checks. Authenticated Vercel fetches returned HTTP 200 for `/auth`,
+`/api/auth/session` and the `/admin/athletes` shell. The session endpoint returned
+an anonymous session. The Vercel fetch helper reported an authentication failure
+for the athlete command endpoint, so application-level anonymous denial was not
+verified. Signed-in administrator and MFA workflows were not exercised.
+
+The initial read-only query found the availability migration and RPC absent.
+After the user requested Active availability for every athlete on 2026-11-25,
+migration `20261119213017_athlete_availability.sql` was applied to the approved
+live project. Verification confirmed all 120 athletes have Active availability,
+revision zero and no change timestamp. New athletes default to Active and the
+column cannot be null. No baseline notifications were created. A before/after
+hash of every pre-existing athlete field matched, and roster counts, scoring
+event counts and earned points were unchanged. The targeted local suite passed
+468 pgTAP assertions plus upgrade and concurrency checks; hosted security
+advisors reported no error-level issues. The existing Preview uses the updated
+schema without rebuilding. Signed-in administrator and MFA workflows remain
+unverified.
+
 ## Association settings
 
 The association project scopes `BROCK_PREVIEW_BACKEND=live`,

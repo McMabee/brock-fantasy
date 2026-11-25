@@ -49,6 +49,7 @@ Deno.serve(async (request) => {
     const notificationsResult = await db
       .from('notifications')
       .select('id, user_id, title, body, data')
+      .not('kind', 'in', '(athlete_injured,athlete_active)')
       .gte('created_at', new Date(Date.now() - 7 * 86_400_000).toISOString())
       .order('created_at')
       .limit(100);

@@ -1,3 +1,4 @@
+import { AthleteStatus } from '@/components/athlete-availability';
 import { HistoricalGameLogs } from '@/components/historical-game-logs';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { formatFantasyPoints } from '@brock-fantasy/domain';
@@ -12,7 +13,6 @@ import {
   Card,
   EmptyState,
   LoadingState,
-  Pill,
   SectionTitle,
   useUiStyles,
 } from '@/components/ui';
@@ -252,7 +252,7 @@ export default function PlayerScreen() {
           ? (athlete?.display_name ?? (loading ? 'Loading player…' : 'Player unavailable'))
           : 'Players'
       }
-      action={<Pill label={athlete?.status?.toUpperCase() ?? 'LOADING'} tone="info" />}
+      action={athlete ? <AthleteStatus athleteId={athlete.id} /> : undefined}
     >
       {error ? (
         <Text accessibilityRole="alert" style={styles.error}>

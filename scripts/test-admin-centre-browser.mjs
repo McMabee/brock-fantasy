@@ -44,14 +44,16 @@ const report = {
   accessibility: [],
   errors: [],
 };
-const widths = (process.env.BROCK_BROWSER_WIDTHS ?? '320,390,768,1280,1440').split(',').map(Number);
+const widths = (process.env.BROCK_BROWSER_WIDTHS ?? '320,390,768,829,1064,1280,1440')
+  .split(',')
+  .map(Number);
 const themes = (process.env.BROCK_BROWSER_THEMES ?? 'dark,light').split(',');
 try {
   for (const theme of themes)
     for (const width of widths) {
       const name = `${theme}-${width}`;
       const context = await browser.newContext({
-        viewport: { width, height: 950 },
+        viewport: { width, height: width === 829 || width === 1064 ? 1803 : 950 },
         colorScheme: theme,
         reducedMotion: 'reduce',
       });
@@ -411,6 +413,20 @@ try {
           if (rpc === 'get_notification_snapshot') return reply({ items: [], unreadCount: 0 });
           if (denied) return reply({ message: 'Administrator MFA required', code: '42501' }, 403);
           if (
+            rpc === 'athletes' &&
+            resource.searchParams.get('select')?.includes('availability_status')
+          ) {
+            const requested = resource.searchParams.get('id')?.slice(4, -1).split(',') ?? [];
+            return reply(
+              requested.map((id) => ({
+                id: id.replaceAll('"', ''),
+                availability_status: 'active',
+                availability_revision: 0,
+                availability_changed_at: null,
+              })),
+            );
+          }
+          if (
             missingService &&
             [
               'admin_get_operations_summary',
@@ -592,6 +608,7 @@ try {
       const visibleText = (value) =>
         page.getByText(value, { exact: true }).filter({ visible: true });
       const capture = async (label) => {
+        await page.evaluate(() => globalThis.document.fonts.ready);
         const overflow = await page.evaluate(
           () => globalThis.document.documentElement.scrollWidth - globalThis.window.innerWidth,
         );
@@ -633,6 +650,27 @@ try {
       const statsGap =
         healthBounds.y - Math.max(...metricBounds.map((bounds) => bounds.y + bounds.height));
       assert.ok(statsGap >= 20 && statsGap <= 32, `${name}: stats/content gap is ${statsGap}px`);
+      const auditBounds = await page
+        .getByLabel('40 recent audit events', { exact: true })
+        .boundingBox();
+      const actionsBounds = await page
+        .getByRole('heading', { name: 'Actions', exact: true })
+        .boundingBox();
+      if (width < 1280) {
+        const actionsGap = actionsBounds.y - (auditBounds.y + auditBounds.height);
+        assert.ok(
+          actionsGap >= 24 && actionsGap <= 64,
+          `${name}: stacked actions gap is ${actionsGap}px`,
+        );
+      }
+      const actionsEnd = await page
+        .getByRole('link', { name: 'Import provider snapshot', exact: true })
+        .boundingBox();
+      const footerBounds = await page.getByRole('contentinfo').boundingBox();
+      assert.ok(
+        footerBounds.y >= actionsEnd.y + actionsEnd.height + 24,
+        `${name}: footer follows the actions`,
+      );
       for (const title of [
         'Varsity participants',
         'Game scores and player statistics',
@@ -653,6 +691,10 @@ try {
         );
       }
       await capture('dashboard');
+      if (width === 829 || width === 1064) {
+        await page.getByRole('contentinfo').scrollIntoViewIfNeeded();
+        await capture('dashboard-footer');
+      }
       await expect(page.locator('[role="link"]:not([href])')).toHaveCount(0);
       const latestSyncLink = page.getByRole('link', { name: 'View Latest sync', exact: true });
       await latestSyncLink.focus();

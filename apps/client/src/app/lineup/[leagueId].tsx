@@ -1,3 +1,4 @@
+import { AthleteStatus } from '@/components/athlete-availability';
 import { newCommandKey } from '../../lib/command-key';
 import { useThemedStyles, useThemeColors } from '@/providers/theme-provider';
 import { useLocalSearchParams } from 'expo-router';
@@ -205,6 +206,7 @@ export default function LineupScreen() {
                       <Text style={[styles.athleteName, selected && styles.athleteNameSelected]}>
                         {entry.displayName}
                       </Text>
+                      <AthleteStatus athleteId={entry.athleteId} />
                       <Text style={styles.position}>{entry.position}</Text>
                     </Pressable>
                   );

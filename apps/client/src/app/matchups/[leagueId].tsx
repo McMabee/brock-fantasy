@@ -1,3 +1,4 @@
+import { AthleteStatus } from '@/components/athlete-availability';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
@@ -122,6 +123,7 @@ export default function MatchupsScreen() {
                           }}
                           variant="ghost"
                         />
+                        <AthleteStatus athleteId={row.athlete_id} />
                         <Text style={ui.body}>
                           {formatFantasyPoints(row.points)} pts, {row.games} scoring games
                         </Text>
@@ -152,6 +154,7 @@ export default function MatchupsScreen() {
                               }}
                               variant="ghost"
                             />
+                            <AthleteStatus athleteId={row.athlete_id} />
                             <Text style={ui.body}>
                               {rosterSlotLabel(row.slot, data.league?.rosterFormat === 'varsity')}
                             </Text>

@@ -39,6 +39,7 @@ async function cookieAuthenticatedRead(
     headers: request.headers,
     credentials: 'include',
     cache: 'no-store',
+    signal: request.signal,
     ...(request.method === 'GET' || request.method === 'HEAD'
       ? {}
       : { body: await request.text() }),

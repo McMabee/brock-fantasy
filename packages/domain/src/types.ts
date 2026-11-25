@@ -9,6 +9,7 @@ export type DraftStatus = 'scheduled' | 'active' | 'paused' | 'complete';
 export type DraftMode = 'live' | 'scheduled_auto';
 export type MatchupStatus = 'scheduled' | 'active' | 'final';
 export type RosterStatus = 'starter' | 'bench' | 'injured_reserve';
+export type AthleteAvailability = 'active' | 'injured';
 
 export interface Competition {
   id: UUID;

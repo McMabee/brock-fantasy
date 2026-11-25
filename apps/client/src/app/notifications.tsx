@@ -8,7 +8,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useRequireUser } from '@/hooks/use-route-access';
 import { notificationTarget } from '@/lib/notification-target';
 
-type Category = 'all' | 'trade' | 'waiver' | 'matchup' | 'game' | 'draft';
+type Category = 'all' | 'trade' | 'waiver' | 'matchup' | 'game' | 'draft' | 'athlete';
 export default function NotificationsScreen() {
   const styles = useThemedStyles(createStyles);
   const uiStyles = useUiStyles();
@@ -24,29 +24,33 @@ export default function NotificationsScreen() {
       action={<Pill label={unreadCount + ' UNREAD'} tone="info" />}
     >
       <View style={styles.filters}>
-        {(['all', 'trade', 'waiver', 'matchup', 'game', 'draft'] as Category[]).map((c) => (
-          <Pressable
-            key={c}
-            accessibilityRole="button"
-            accessibilityState={{ selected: category === c }}
-            onPress={() => setCategory(c)}
-            style={[styles.filter, category === c ? styles.active : null]}
-          >
-            <Text style={styles.title}>
-              {c === 'all'
-                ? 'All updates'
-                : c === 'trade'
-                  ? 'Trades'
-                  : c === 'waiver'
-                    ? 'Waivers'
-                    : c === 'matchup'
-                      ? 'Matchups'
-                      : c === 'game'
-                        ? 'Games'
-                        : 'Drafts'}
-            </Text>
-          </Pressable>
-        ))}
+        {(['all', 'trade', 'waiver', 'matchup', 'game', 'draft', 'athlete'] as Category[]).map(
+          (c) => (
+            <Pressable
+              key={c}
+              accessibilityRole="button"
+              accessibilityState={{ selected: category === c }}
+              onPress={() => setCategory(c)}
+              style={[styles.filter, category === c ? styles.active : null]}
+            >
+              <Text style={styles.title}>
+                {c === 'all'
+                  ? 'All updates'
+                  : c === 'trade'
+                    ? 'Trades'
+                    : c === 'waiver'
+                      ? 'Waivers'
+                      : c === 'matchup'
+                        ? 'Matchups'
+                        : c === 'game'
+                          ? 'Games'
+                          : c === 'athlete'
+                            ? 'Athlete updates'
+                            : 'Drafts'}
+              </Text>
+            </Pressable>
+          ),
+        )}
       </View>
       {error ? (
         <Text accessibilityRole="alert" style={styles.error}>
@@ -58,7 +62,7 @@ export default function NotificationsScreen() {
       ) : !loading && !filtered.length ? (
         <EmptyState
           title="No notifications"
-          body="Trade requests, roster game reminders, and draft updates will appear here."
+          body="Athlete status changes, trade requests, roster game reminders, and draft updates will appear here."
         />
       ) : null}
       {filtered.length ? (

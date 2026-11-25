@@ -29,6 +29,7 @@ export function AdminSelect({
           flexDirection: 'column',
           gap: 8,
           minWidth: 0,
+          flexShrink: 0,
           color: colors.text,
           fontFamily: 'Inter',
           fontSize: 13,
@@ -37,13 +38,16 @@ export function AdminSelect({
       >
         {label}
         <select
+          aria-label={label}
           value={value}
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
           style={{
+            boxSizing: 'border-box',
             width: '100%',
             minWidth: 0,
             minHeight: 50,
+            flexShrink: 0,
             padding: '12px 14px',
             borderRadius: 8,
             border: `1px solid ${colors.controlBorder}`,
@@ -317,18 +321,29 @@ export function AdminPanel({
           style={{
             width: width < 768 ? '100%' : Math.min(620, width),
             flex: 1,
+            minHeight: 0,
             backgroundColor: colors.panel,
             padding: 20,
             gap: 18,
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 0 }}>
             <Text accessibilityRole="header" style={[ui.title, { flex: 1 }]}>
               {title}
             </Text>
             <ActionButton label="Close" variant="secondary" onPress={onClose} />
           </View>
-          <ScrollView contentContainerStyle={{ gap: 16, paddingBottom: 32 }}>{children}</ScrollView>
+          <ScrollView
+            style={{ minHeight: 0, marginHorizontal: -8 }}
+            contentContainerStyle={{
+              gap: 16,
+              paddingHorizontal: 8,
+              paddingTop: 8,
+              paddingBottom: 32,
+            }}
+          >
+            {children}
+          </ScrollView>
         </View>
       </View>
     </Modal>

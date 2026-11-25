@@ -109,7 +109,7 @@ export default function AdminScreen() {
         ) : null}
 
         <View style={[styles.grid, wide && styles.gridWide]}>
-          <View style={styles.main}>
+          <View style={[styles.main, wide && styles.mainWide]}>
             <Text accessibilityRole="header" style={styles.sectionTitle}>
               Sports data health
             </Text>
@@ -150,11 +150,21 @@ export default function AdminScreen() {
             </Card>
           </View>
 
-          <View style={styles.side}>
+          <View style={[styles.side, wide && styles.sideWide]}>
             <Text accessibilityRole="header" style={styles.sectionTitle}>
               Actions
             </Text>
             <Card style={styles.actions}>
+              <View style={styles.actionGroup}>
+                <Text accessibilityRole="header" style={styles.actionTitle}>
+                  Athlete availability
+                </Text>
+                <ActionButton
+                  label="Manage athlete status"
+                  href="/admin/athletes"
+                  variant="secondary"
+                />
+              </View>
               <View style={styles.actionGroup}>
                 <Text accessibilityRole="header" style={styles.actionTitle}>
                   Varsity participants
@@ -271,8 +281,10 @@ const createStyles = (colors: ReturnType<typeof useThemeColors>) =>
     metricDetail: { fontFamily: 'Inter', color: colors.muted, fontSize: 9, marginTop: 3 },
     grid: { gap: 24 },
     gridWide: { flexDirection: 'row', alignItems: 'flex-start' },
-    main: { flex: 1.65, minWidth: 0, gap: 14 },
-    side: { flex: 0.8, minWidth: 280, gap: 14 },
+    main: { minWidth: 0, gap: 14 },
+    mainWide: { flex: 1.65 },
+    side: { minWidth: 0, gap: 14 },
+    sideWide: { flex: 0.8, minWidth: 280 },
     sectionTitle: { ...heading, fontSize: 22, color: colors.text },
     tableCard: { paddingVertical: 4 },
     syncRow: {

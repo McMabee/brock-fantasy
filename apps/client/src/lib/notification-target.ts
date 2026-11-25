@@ -1,6 +1,8 @@
 const uuid = (value: unknown): value is string =>
   typeof value === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/iu.test(value);
 export function notificationTarget(kind: string, data: Record<string, unknown>): string {
+  if (['athlete_injured', 'athlete_active'].includes(kind) && uuid(data.league_id))
+    return `/${uuid(data.pool_id) ? 'lineup-multisport' : 'lineup'}/${data.league_id}`;
   if (kind.startsWith('waiver') && uuid(data.league_id)) return '/transactions/' + data.league_id;
   if (kind.startsWith('matchup') && uuid(data.league_id))
     return (
