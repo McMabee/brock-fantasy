@@ -54,11 +54,18 @@ an anonymous session. The Vercel fetch helper reported an authentication failure
 for the athlete command endpoint, so application-level anonymous denial was not
 verified. Signed-in administrator and MFA workflows were not exercised.
 
-A read-only query against the live project confirmed that migration
-`20261119213017_athlete_availability.sql` and the
-`public.admin_set_athlete_availability` RPC are absent. The injury-status feature
-still requires that migration before use. The Preview configuration and
-redeployment did not apply a hosted migration or change athlete records.
+The initial read-only query found the availability migration and RPC absent.
+After the user requested Active availability for every athlete on 2026-11-25,
+migration `20261119213017_athlete_availability.sql` was applied to the approved
+live project. Verification confirmed all 120 athletes have Active availability,
+revision zero and no change timestamp. New athletes default to Active and the
+column cannot be null. No baseline notifications were created. A before/after
+hash of every pre-existing athlete field matched, and roster counts, scoring
+event counts and earned points were unchanged. The targeted local suite passed
+468 pgTAP assertions plus upgrade and concurrency checks; hosted security
+advisors reported no error-level issues. The existing Preview uses the updated
+schema without rebuilding. Signed-in administrator and MFA workflows remain
+unverified.
 
 ## Association settings
 
